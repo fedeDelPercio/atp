@@ -1,0 +1,209 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { serverEnv } from "@/lib/env";
+import { runAgent } from "@/lib/agent/run";
+import { testProvider } from "@/lib/providers/test-provider";
+import type { HistoryMessage } from "@/lib/agent/types";
+import type { AgentJob } from "@/lib/supabase/types";
+
+export const dynamic = "force-dynamic";
+// El worker puede tardar: corre el agente completo. Vercel necesita el límite.
+export const maxDuration = 300;
+
+// ===========================================================================
+// POST /api/jobs/process
+//
+// Worker de jobs. Lo dispara el cron de Vercel (cada minuto) o el auto-trigger
+// del webhook entrante. Reclama hasta 5 jobs pending de forma atómica y corre
+// el agente para cada uno. Protegido por CRON_SECRET (en dev se permite sin
+// secret para el botón "Procesar ahora").
+// ===========================================================================
+
+const BATCH_SIZE = 5;
+const HISTORY_LIMIT = 20;
+
+// Etiqueta legible de cada categoría de notificación (para el cartel).
+const CATEGORY_LABEL: Record<string, string> = {
+  arquitecto_desarrollador: "Arquitecto / Desarrollador",
+  cantidad_equipos: "Consulta por cantidad de equipos",
+  interes_compra: "Interés de compra",
+  cliente_existente: "Cliente existente",
+  fuera_de_conocimiento: "Consulta fuera de la base de conocimiento",
+};
+
+function isAuthorized(req: NextRequest): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  const secret = serverEnv().CRON_SECRET;
+  return (
+    req.headers.get("x-cron-secret") === secret ||
+    req.headers.get("authorization") === `Bearer ${secret}`
+  );
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { data: jobs, error } = await supabase.rpc("claim_agent_jobs", {
+    p_limit: BATCH_SIZE,
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!jobs || jobs.length === 0) return NextResponse.json({ processed: 0 });
+
+  let processed = 0;
+  let failed = 0;
+  // Secuencial: evita levantar varias sesiones del Agent SDK en paralelo.
+  for (const job of jobs) {
+    try {
+      await processJob(job);
+      processed++;
+    } catch (err) {
+      await handleJobFailure(job, err);
+      failed++;
+    }
+  }
+
+  return NextResponse.json({ claimed: jobs.length, processed, failed });
+}
+
+/** Procesa un job: corre el agente y persiste la respuesta. */
+async function processJob(job: AgentJob): Promise<void> {
+  const supabase = getSupabaseServerClient();
+
+  // Freeze guard: si la conversación ya tiene una notificación, está derivada
+  // a un humano. El agente no responde más; el job se cierra sin correr.
+  const { count: notifCount } = await supabase
+    .from("agent_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", job.conversation_id);
+
+  if ((notifCount ?? 0) > 0) {
+    await supabase
+      .from("agent_jobs")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        error: "Conversación congelada: ya fue derivada a un asesor humano.",
+      })
+      .eq("id", job.id);
+    return;
+  }
+
+  // Mensaje del usuario que originó el job.
+  const { data: userMsg, error: userErr } = await supabase
+    .from("messages")
+    .select("content")
+    .eq("id", job.user_message_id)
+    .single();
+  if (userErr || !userMsg) {
+    throw new Error("No se encontró el mensaje del usuario");
+  }
+
+  // Historial: últimos N mensajes previos de la conversación.
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("id, role, content, created_at")
+    .eq("conversation_id", job.conversation_id)
+    .order("created_at", { ascending: true });
+
+  const history: HistoryMessage[] = (msgs ?? [])
+    .filter((m) => m.id !== job.user_message_id)
+    .slice(-HISTORY_LIMIT)
+    .map((m) => ({ role: m.role as HistoryMessage["role"], content: m.content }));
+
+  // Correr el agente.
+  const result = await runAgent({
+    conversationId: job.conversation_id,
+    userMessageId: job.user_message_id,
+    userMessage: userMsg.content,
+    history,
+  });
+
+  // El agente puede devolver varios mensajes cortos separados por una línea
+  // con "---" (estilo mensajería). Se insertan como burbujas separadas.
+  const segments = result.assistantMessage
+    .split(/\n\s*---\s*\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const finalSegments = segments.length > 0 ? segments : [result.assistantMessage];
+
+  let lastMessageId: string | null = null;
+  for (let i = 0; i < finalSegments.length; i++) {
+    const isLast = i === finalSegments.length - 1;
+    const { data: msg } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: job.conversation_id,
+        role: "assistant",
+        content: finalSegments[i] ?? "",
+        // Solo el último mensaje del turno lleva el trace.
+        trace_id: isLast ? result.traceId : null,
+      })
+      .select("id")
+      .single();
+    if (isLast && msg) lastMessageId = msg.id;
+  }
+
+  if (lastMessageId) {
+    await supabase
+      .from("agent_traces")
+      .update({ assistant_message_id: lastMessageId })
+      .eq("id", result.traceId);
+  }
+
+  // Si hubo notificación, se inserta un "cartel" de sistema visible en el panel.
+  if (result.status === "escalated") {
+    const label = CATEGORY_LABEL[result.escalationReason ?? ""] ?? "Notificación";
+    await supabase.from("messages").insert({
+      conversation_id: job.conversation_id,
+      role: "system",
+      content:
+        `🔔 NOTIFICACIÓN AL EQUIPO — ${label}. ` +
+        `La conversación fue derivada a un asesor humano.`,
+    });
+  }
+
+  // Reordenar la conversación.
+  await supabase
+    .from("conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", job.conversation_id);
+
+  // Entrega externa del canal (no-op en el provider de test).
+  await testProvider.sendMessage(job.conversation_id, result.assistantMessage);
+
+  // Job terminado. El estado real del agente vive en el trace.
+  await supabase
+    .from("agent_jobs")
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      trace_id: result.traceId,
+    })
+    .eq("id", job.id);
+}
+
+/**
+ * Maneja un fallo de infraestructura al procesar el job (no un fallo del
+ * agente, que runAgent absorbe). Reintenta si quedan intentos.
+ */
+async function handleJobFailure(job: AgentJob, err: unknown): Promise<void> {
+  const supabase = getSupabaseServerClient();
+  const message = err instanceof Error ? err.message : "error desconocido";
+  const exhausted = job.attempts >= job.max_attempts;
+
+  await supabase
+    .from("agent_jobs")
+    .update({
+      status: exhausted ? "failed" : "pending",
+      error: message,
+      completed_at: exhausted ? new Date().toISOString() : null,
+    })
+    .eq("id", job.id);
+
+  console.error(
+    `[jobs] job ${job.id} falló (intento ${job.attempts}/${job.max_attempts}): ${message}`,
+  );
+}

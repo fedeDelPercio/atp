@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Supabase__apply_migration",
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 3100 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { Write-Output \"3100 en uso \\(PID $\\($c.OwningProcess | Select-Object -First 1\\)\\)\" } else { Write-Output \"3100 libre\" })"
+    ]
+  }
+}

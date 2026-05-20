@@ -250,6 +250,7 @@ export type Database = {
           target_id: string;
           author_id: string;
           content: string;
+          kind: string;
           client_slug: string;
           created_at: string;
         };
@@ -259,6 +260,7 @@ export type Database = {
           target_id: string;
           author_id: string;
           content: string;
+          kind?: string;
           client_slug?: string;
           created_at?: string;
         };
@@ -268,6 +270,7 @@ export type Database = {
           target_id?: string;
           author_id?: string;
           content?: string;
+          kind?: string;
           client_slug?: string;
           created_at?: string;
         };
@@ -413,6 +416,12 @@ export type TraceStatus = "running" | "completed" | "escalated" | "failed";
 export type StepType = "orchestrator" | "subagent" | "tool" | "evaluator";
 export type JobStatus = "pending" | "processing" | "completed" | "failed";
 export type CommentTargetType = "conversation" | "message";
+/**
+ * Tipo de comentario. `positive`/`negative` son reacciones unicas por
+ * (target, autor) — son toggle (clic ya activo = borra). `note` es texto
+ * libre y puede repetirse.
+ */
+export type CommentKind = "positive" | "negative" | "note";
 export type Provider = "anthropic" | "openrouter";
 export type NotificationCategory =
   | "arquitecto_desarrollador"

@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, ChevronRight, Bell } from "lucide-react";
-import type { Message } from "@/lib/supabase/types";
+import { ChevronRight, Bell } from "lucide-react";
+import type { Message, CommentKind } from "@/lib/supabase/types";
 import type { ViewMode } from "@/lib/profile";
 import { MessageTrace } from "./MessageTrace";
+import {
+  MessageReactions,
+  EMPTY_REACTION,
+  type MessageReactionState,
+} from "./MessageReactions";
 
 // Burbuja de un mensaje. En vista avanzada, los mensajes del agente con trace
 // se pueden expandir para ver el detalle agentico.
@@ -12,13 +17,16 @@ import { MessageTrace } from "./MessageTrace";
 export function MessageBubble({
   message,
   viewMode,
-  onOpenComments,
+  reactions,
+  onReact,
 }: {
   message: Message;
   viewMode: ViewMode;
-  onOpenComments: (messageId: string) => void;
+  reactions?: MessageReactionState;
+  onReact: (messageId: string, kind: CommentKind) => void;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
+  const state = reactions ?? EMPTY_REACTION;
 
   // Mensajes de sistema: el "cartel" de notificación al equipo.
   if (message.role === "system") {
@@ -36,9 +44,23 @@ export function MessageBubble({
   const isAgent = message.role === "assistant";
   const canExpand = viewMode === "advanced" && isAgent && Boolean(message.trace_id);
 
+  // Las reacciones van al costado del bubble: a la IZQUIERDA del mensaje
+  // del usuario (que se alinea a la derecha) y a la DERECHA del mensaje
+  // del agente (que se alinea a la izquierda). Asi siempre quedan entre
+  // el bubble y el borde libre, faciles de ver/clickear.
+  const reactionsCol = (
+    <MessageReactions
+      state={state}
+      onReact={(kind) => onReact(message.id, kind)}
+    />
+  );
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className="group max-w-[85%] sm:max-w-[78%]">
+    <div
+      className={`flex items-end gap-1 ${isUser ? "justify-end" : "justify-start"}`}
+    >
+      {isUser && reactionsCol}
+      <div className="max-w-[85%] sm:max-w-[78%]">
         <div
           className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
             isUser
@@ -61,14 +83,6 @@ export function MessageBubble({
             })}
           </span>
 
-          <button
-            onClick={() => onOpenComments(message.id)}
-            className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100 hover:text-neutral-700 dark:hover:text-neutral-300"
-            title="Comentarios sobre este mensaje"
-          >
-            <MessageSquare className="h-3 w-3" />
-          </button>
-
           {canExpand && (
             <button
               onClick={() => setTraceOpen((v) => !v)}
@@ -86,6 +100,7 @@ export function MessageBubble({
           <MessageTrace traceId={message.trace_id} />
         )}
       </div>
+      {!isUser && reactionsCol}
     </div>
   );
 }

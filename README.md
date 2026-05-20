@@ -64,7 +64,7 @@ Supabase Realtime  → el panel ve aparecer la respuesta sin recargar
 - **Trace**: cada corrida registra un `agent_traces` + N `agent_trace_steps`
   (un step por orquestador / subagente / tool / evaluator).
 
-## Estructura multi-cliente (branch-per-client)
+## Estructura multi-cliente (branch-per-client + tenant en una sola DB)
 
 Este repo está pensado como **base reutilizable**:
 
@@ -72,9 +72,29 @@ Este repo está pensado como **base reutilizable**:
   mejoras del panel** (UI, infra, bug fixes).
 - `client/<nombre>` = una rama por cliente. Cada rama customiza solo
   [src/lib/agent/](src/lib/agent/) (prompts, KB, categorías de notificación,
-  horario, rubric) y deploya a **su propio Supabase + Vercel**.
+  horario, rubric) y deploya a su propio Vercel.
 - Cuando hay una mejora del panel: commit en `main` → `git merge main` en
   cada rama de cliente. Sin drift entre clientes.
+
+### Aislamiento de datos: RLS + `client_slug`
+
+Para no pagar un proyecto Supabase por cliente, todos comparten **un solo
+proyecto** y los datos se aíslan a nivel de DB:
+
+- Cada tabla tiene una columna `client_slug` (snake_case, ej: `ibath`).
+- Postgres tiene **Row Level Security** activado en todas las tablas con
+  policies que filtran por el slug que viene en el header HTTP
+  `X-Client-Slug` de cada request.
+- El cliente supabase-js de cada worktree setea el header automáticamente
+  leyéndolo de la env var `NEXT_PUBLIC_CLIENT_SLUG`.
+- Cualquier query (con o sin WHERE) solo ve filas del cliente activo. Si
+  una query se olvida el filtro, devuelve 0 filas. No hay forma de que un
+  bug mezcle datos entre clientes.
+
+Ver [supabase/migrations/004_multi_client.sql](supabase/migrations/004_multi_client.sql)
+para el detalle.
+
+### Worktrees
 
 Para trabajar con varias ramas en paralelo localmente, usá **`git worktree`**
 (cada cliente abre en su propia carpeta con su propio `.env.local`):
@@ -83,8 +103,9 @@ Para trabajar con varias ramas en paralelo localmente, usá **`git worktree`**
 git worktree add ../atp-<cliente> client/<cliente>
 ```
 
-Cada worktree corre su `npm run dev` (acordate de cambiar el puerto en
-`package.json` si vas a tener dos arriba al mismo tiempo).
+Cada worktree corre su `npm run dev` en un puerto distinto (configurado en
+su `package.json`) y tiene su propio `NEXT_PUBLIC_CLIENT_SLUG` en
+`.env.local`.
 
 ## Cómo empezar (setup local)
 
@@ -95,10 +116,15 @@ Cada worktree corre su `npm run dev` (acordate de cambiar el puerto en
 
 ### 2. Base de datos (Supabase)
 
-Creá un proyecto Supabase **dedicado para este cliente** (aislamiento de
-datos por rama). En el SQL Editor del dashboard, corré en orden todas las
-migraciones de [supabase/migrations/](supabase/migrations/):
-`001_initial.sql`, `002_claim_jobs.sql`, `003_notifications.sql`.
+Si es el primer cliente que enchufás: creá un proyecto Supabase y aplicá en
+orden las migraciones de [supabase/migrations/](supabase/migrations/):
+`001_initial.sql`, `002_claim_jobs.sql`, `003_notifications.sql`,
+`004_multi_client.sql`.
+
+Si ya hay un proyecto Supabase compartido entre varios clientes: no creés
+uno nuevo. El aislamiento lo hace RLS via `client_slug` (ver sección
+"Aislamiento de datos" más arriba). Elegí un slug snake_case único para
+este cliente y poneselo en `NEXT_PUBLIC_CLIENT_SLUG`.
 
 ### 3. Variables de entorno
 

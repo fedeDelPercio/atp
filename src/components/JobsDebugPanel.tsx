@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Cog, Loader2 } from "lucide-react";
+import { clientEnv } from "@/lib/env";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 // Panel flotante de debugging (solo dev). En local no corre el cron de Vercel,
@@ -27,7 +28,12 @@ export function JobsDebugPanel() {
       .channel("jobs-debug")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "agent_jobs" },
+        {
+          event: "*",
+          schema: "public",
+          table: "agent_jobs",
+          filter: `client_slug=eq.${clientEnv.NEXT_PUBLIC_CLIENT_SLUG}`,
+        },
         () => void refresh(),
       )
       .subscribe();

@@ -24,6 +24,13 @@ const clientSchema = z.object({
     .string()
     .url("NEXT_PUBLIC_APP_URL invalida")
     .default("http://localhost:3000"),
+  // Slug del cliente activo en este worktree/deploy. Se envia como header
+  // X-Client-Slug en cada request a Supabase y dispara las policies de RLS
+  // que aislan los datos por cliente (ver migration 004).
+  NEXT_PUBLIC_CLIENT_SLUG: z
+    .string()
+    .min(1, "NEXT_PUBLIC_CLIENT_SLUG es obligatoria (ej: 'ibath', 'quintaglia')")
+    .regex(/^[a-z][a-z0-9_]*$/, "NEXT_PUBLIC_CLIENT_SLUG debe ser snake_case"),
 });
 
 function parseClientEnv() {
@@ -33,6 +40,7 @@ function parseClientEnv() {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_CLIENT_SLUG: process.env.NEXT_PUBLIC_CLIENT_SLUG,
   });
   if (!parsed.success) {
     throw new Error(

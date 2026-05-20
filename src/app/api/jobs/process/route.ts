@@ -22,14 +22,24 @@ export const maxDuration = 300;
 const BATCH_SIZE = 5;
 const HISTORY_LIMIT = 20;
 
-// Etiqueta legible de cada categoría de notificación (para el cartel).
-const CATEGORY_LABEL: Record<string, string> = {
-  arquitecto_desarrollador: "Arquitecto / Desarrollador",
-  cantidad_equipos: "Consulta por cantidad de equipos",
+// Etiquetas legibles para las categorías comunes (cada cliente puede sumar
+// las suyas en su rama). Cualquier otra categoría se humaniza automáticamente
+// con `humanizeCategory()`.
+const COMMON_CATEGORY_LABEL: Record<string, string> = {
   interes_compra: "Interés de compra",
   cliente_existente: "Cliente existente",
   fuera_de_conocimiento: "Consulta fuera de la base de conocimiento",
+  escalado_manual: "Escalado manual",
 };
+
+/** Convierte una categoría snake_case en un texto legible para el cartel. */
+function humanizeCategory(category: string): string {
+  const known = COMMON_CATEGORY_LABEL[category];
+  if (known) return known;
+  return category
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function isAuthorized(req: NextRequest): boolean {
   if (process.env.NODE_ENV !== "production") return true;
@@ -155,13 +165,13 @@ async function processJob(job: AgentJob): Promise<void> {
 
   // Si hubo notificación, se inserta un "cartel" de sistema visible en el panel.
   if (result.status === "escalated") {
-    const label = CATEGORY_LABEL[result.escalationReason ?? ""] ?? "Notificación";
+    const label = humanizeCategory(result.escalationReason ?? "Notificación");
     await supabase.from("messages").insert({
       conversation_id: job.conversation_id,
       role: "system",
       content:
         `🔔 NOTIFICACIÓN AL EQUIPO — ${label}. ` +
-        `La conversación fue derivada a un asesor humano.`,
+        `La conversación fue derivada a un humano.`,
     });
   }
 

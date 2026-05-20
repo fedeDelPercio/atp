@@ -6,12 +6,16 @@ import type { RunContext } from "../types";
 // Tool `notify_team`.
 //
 // El orquestador la invoca apenas detecta un disparador (ver orchestrator.md).
-// Notificar = entregar la conversacion a un humano: la conversacion se
-// "congela" (el agente no responde mas) y el vendedor toma el control.
+// Notificar = entregar la conversación a un humano: la conversación queda
+// "congelada" (el agente no responde más) y el equipo toma el control.
+//
+// La categoría es texto libre (snake_case): cada cliente define las suyas
+// en el prompt del orquestador. El worker tiene etiquetas legibles para las
+// categorías comunes y un fallback que humaniza el snake_case.
 //
 // Es un factory porque el handler necesita el RunContext de la corrida actual
-// para senializar la notificacion. run.ts la lee despues de que la sesion del
-// SDK termina y registra la notificacion + congela la conversacion.
+// para señalizar la notificación. run.ts la lee después de que la sesión del
+// SDK termina y registra la notificación + congela la conversación.
 // ===========================================================================
 
 export const NOTIFY_TOOL_NAME = "notify_team";
@@ -19,30 +23,30 @@ export const NOTIFY_TOOL_NAME = "notify_team";
 export function createNotifyTeamTool(ctx: RunContext) {
   return tool(
     NOTIFY_TOOL_NAME,
-    "Notifica al equipo de ventas y entrega la conversacion a un asesor humano. " +
-      "Invocala apenas se cumpla cualquiera de los disparadores definidos en tus " +
-      "instrucciones. Despues de llamarla, despedite con UN solo mensaje breve y " +
-      "cordial y no respondas ninguna consulta mas.",
+    "Notifica al equipo y entrega la conversación a un humano. Invocala " +
+      "apenas se cumpla cualquiera de los disparadores definidos en tus " +
+      "instrucciones. Después de llamarla, despedite con UN solo mensaje " +
+      "breve y cordial y no respondas ninguna consulta más.",
     {
       category: z
-        .enum([
-          "arquitecto_desarrollador",
-          "cantidad_equipos",
-          "interes_compra",
-          "cliente_existente",
-          "fuera_de_conocimiento",
-        ])
-        .describe("Motivo por el que se notifica al equipo."),
+        .string()
+        .min(1)
+        .describe(
+          "Categoría de la notificación en snake_case. Ejemplos comunes: " +
+            "'interes_compra', 'cliente_existente', 'fuera_de_conocimiento', " +
+            "'escalado_manual'. Usá las categorías propias del cliente que " +
+            "estén definidas en el prompt del orquestador.",
+        ),
       reason: z
         .string()
         .min(1)
-        .describe("Explicacion breve del disparador detectado."),
+        .describe("Explicación breve del disparador detectado."),
       summary: z
         .string()
         .min(1)
         .describe(
-          "Resumen para el vendedor: que necesita el cliente y el contexto util " +
-            "para que pueda continuar la conversacion.",
+          "Resumen para el equipo: qué necesita el cliente y el contexto " +
+            "útil para que pueda continuar la conversación.",
         ),
     },
     async (args) => {
@@ -55,9 +59,9 @@ export function createNotifyTeamTool(ctx: RunContext) {
           {
             type: "text" as const,
             text:
-              "Equipo de ventas notificado. La conversacion queda en manos de un " +
-              "asesor. Despedite con un unico mensaje breve y cordial; no respondas " +
-              "ninguna consulta mas.",
+              "Equipo notificado. La conversación queda en manos de un humano. " +
+              "Despedite con un único mensaje breve y cordial; no respondas " +
+              "ninguna consulta más.",
           },
         ],
       };

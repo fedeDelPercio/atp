@@ -387,9 +387,10 @@ export type StepType = "orchestrator" | "subagent" | "tool" | "evaluator";
 export type JobStatus = "pending" | "processing" | "completed" | "failed";
 export type CommentTargetType = "conversation" | "message";
 export type Provider = "anthropic" | "openrouter";
-export type NotificationCategory =
-  | "arquitecto_desarrollador"
-  | "cantidad_equipos"
-  | "interes_compra"
-  | "cliente_existente"
-  | "fuera_de_conocimiento";
+/**
+ * Categoría de una notificación al equipo. Texto libre en snake_case: cada
+ * cliente define sus propias categorías en el prompt del orquestador. El
+ * worker tiene etiquetas legibles para las comunes y un fallback que
+ * humaniza el snake_case.
+ */
+export type NotificationCategory = string;

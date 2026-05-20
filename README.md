@@ -58,10 +58,33 @@ Supabase Realtime  → el panel ve aparecer la respuesta sin recargar
 - **Loop de reintentos** ([src/lib/agent/run.ts](src/lib/agent/run.ts)):
   orquestador → evaluator → si rechaza, reintenta con feedback (hasta
   `AGENT_MAX_ITERATIONS`). Si se agota, escala.
-- **Tool `escalate_to_human`**: disponible desde el primer turno para casos
-  fuera de alcance.
+- **Tool `notify_team`**: disponible desde el primer turno para entregar la
+  conversación a un humano cuando se detecta un disparador. La categoría es
+  texto libre (snake_case): cada cliente define las suyas en su prompt.
 - **Trace**: cada corrida registra un `agent_traces` + N `agent_trace_steps`
   (un step por orquestador / subagente / tool / evaluator).
+
+## Estructura multi-cliente (branch-per-client)
+
+Este repo está pensado como **base reutilizable**:
+
+- `main` = panel + template de agente con placeholders. **Acá viven las
+  mejoras del panel** (UI, infra, bug fixes).
+- `client/<nombre>` = una rama por cliente. Cada rama customiza solo
+  [src/lib/agent/](src/lib/agent/) (prompts, KB, categorías de notificación,
+  horario, rubric) y deploya a **su propio Supabase + Vercel**.
+- Cuando hay una mejora del panel: commit en `main` → `git merge main` en
+  cada rama de cliente. Sin drift entre clientes.
+
+Para trabajar con varias ramas en paralelo localmente, usá **`git worktree`**
+(cada cliente abre en su propia carpeta con su propio `.env.local`):
+
+```bash
+git worktree add ../atp-<cliente> client/<cliente>
+```
+
+Cada worktree corre su `npm run dev` (acordate de cambiar el puerto en
+`package.json` si vas a tener dos arriba al mismo tiempo).
 
 ## Cómo empezar (setup local)
 
@@ -72,21 +95,23 @@ Supabase Realtime  → el panel ve aparecer la respuesta sin recargar
 
 ### 2. Base de datos (Supabase)
 
-Las migraciones de [supabase/migrations/](supabase/migrations/) ya fueron
-aplicadas sobre el proyecto Supabase **"delpercio Project"**
-(`cwogvvjsbjksdnztrnmv`). Si querés un proyecto propio, creá uno nuevo y
-corré ahí, en orden, `001_initial.sql` y `002_claim_jobs.sql` (SQL Editor
-del dashboard de Supabase).
+Creá un proyecto Supabase **dedicado para este cliente** (aislamiento de
+datos por rama). En el SQL Editor del dashboard, corré en orden todas las
+migraciones de [supabase/migrations/](supabase/migrations/):
+`001_initial.sql`, `002_claim_jobs.sql`, `003_notifications.sql`.
 
 ### 3. Variables de entorno
 
-Copiá `.env.example` a `.env.local` y completá. El archivo `.env.local` ya
-viene con la URL y la anon key de Supabase y los secrets de webhooks
-generados. **Faltan completar dos valores:**
+Copiá `.env.example` a `.env.local` y completá con los datos del proyecto
+Supabase recién creado y tu API key de Anthropic:
 
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase Dashboard → Project Settings → API
-  → `service_role` (secret).
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Project
+  Settings → API.
+- `SUPABASE_SERVICE_ROLE_KEY` — Project Settings → API → `service_role`
+  (secret).
 - `ANTHROPIC_API_KEY` — https://console.anthropic.com/
+- `CRON_SECRET`, `WEBHOOK_SIGNING_SECRET` — generá dos strings random
+  (ej: `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`).
 
 ### 4. Instalar y levantar
 

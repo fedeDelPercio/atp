@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare, Loader2, Menu } from "lucide-react";
+import toast from "react-hot-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Conversation, Message } from "@/lib/supabase/types";
+import type { CommentKind, Conversation, Message } from "@/lib/supabase/types";
 import {
   getViewMode,
   setViewMode as persistViewMode,
@@ -14,6 +15,10 @@ import { Avatar } from "./Avatar";
 import { ViewToggle } from "./ViewToggle";
 import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
+import {
+  EMPTY_REACTION,
+  type MessageReactionState,
+} from "./MessageReactions";
 
 // Objetivo de un hilo de comentarios (una conversacion entera o un mensaje).
 export type CommentTarget = {
@@ -37,6 +42,9 @@ export function ConversationPanel({
   const { profile } = useProfile();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [reactions, setReactions] = useState<Record<string, MessageReactionState>>(
+    {},
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("simple");
   const [thinking, setThinking] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -60,6 +68,72 @@ export function ConversationPanel({
     setThinking((count ?? 0) > 0);
   }, [conversationId]);
 
+  // Recarga las reacciones (positive/negative/note) de todos los mensajes
+  // de la conversacion en una sola query.
+  const refreshReactions = useCallback(
+    async (messageIds: string[]) => {
+      if (messageIds.length === 0) {
+        setReactions({});
+        return;
+      }
+      const { data } = await getSupabaseBrowserClient()
+        .from("comments")
+        .select("target_id, author_id, kind")
+        .eq("target_type", "message")
+        .in("target_id", messageIds);
+
+      const map: Record<string, MessageReactionState> = {};
+      for (const id of messageIds) map[id] = { ...EMPTY_REACTION };
+      for (const c of data ?? []) {
+        const entry = map[c.target_id];
+        if (!entry) continue;
+        if (c.kind === "positive") {
+          entry.positiveCount++;
+          if (c.author_id === profile?.id) entry.myKind = "positive";
+        } else if (c.kind === "negative") {
+          entry.negativeCount++;
+          if (c.author_id === profile?.id) entry.myKind = "negative";
+        } else if (c.kind === "note") {
+          entry.noteCount++;
+        }
+      }
+      setReactions(map);
+    },
+    [profile?.id],
+  );
+
+  // Click en un boton de reaccion: positive/negative van al API (toggle),
+  // note abre el panel lateral para escribir texto.
+  const handleReact = useCallback(
+    async (messageId: string, kind: CommentKind) => {
+      if (!profile) {
+        toast.error("Necesitás un perfil para comentar.");
+        return;
+      }
+      if (kind === "note") {
+        onOpenComments({ type: "message", id: messageId, label: "mensaje" });
+        return;
+      }
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          target_type: "message",
+          target_id: messageId,
+          author_id: profile.id,
+          kind,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "No se pudo registrar la reacción");
+      }
+      // El refetch viene por Realtime; si fallara, igual cae en el proximo
+      // mount o cambio de conversacion.
+    },
+    [profile, onOpenComments],
+  );
+
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     let active = true;
@@ -75,10 +149,12 @@ export function ConversationPanel({
           .order("created_at", { ascending: true }),
       ]);
       if (!active) return;
+      const msgs = msgRes.data ?? [];
       setConversation(convRes.data);
-      setMessages(msgRes.data ?? []);
+      setMessages(msgs);
       setLoading(false);
       void refreshThinking();
+      void refreshReactions(msgs.map((m) => m.id));
     })();
 
     const channel = supabase
@@ -93,9 +169,12 @@ export function ConversationPanel({
         },
         (payload) => {
           const incoming = payload.new as Message;
-          setMessages((prev) =>
-            prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming],
-          );
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === incoming.id)) return prev;
+            const next = [...prev, incoming];
+            void refreshReactions(next.map((m) => m.id));
+            return next;
+          });
           void refreshThinking();
         },
       )
@@ -109,13 +188,25 @@ export function ConversationPanel({
         },
         () => void refreshThinking(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments" },
+        () => {
+          // Refetch barato (consulta filtrada por target_id IN). El RLS por
+          // client_slug limita el ruido a comments del cliente activo.
+          setMessages((prev) => {
+            void refreshReactions(prev.map((m) => m.id));
+            return prev;
+          });
+        },
+      )
       .subscribe();
 
     return () => {
       active = false;
       void supabase.removeChannel(channel);
     };
-  }, [conversationId, refreshThinking]);
+  }, [conversationId, refreshThinking, refreshReactions]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -175,9 +266,8 @@ export function ConversationPanel({
               key={m.id}
               message={m}
               viewMode={viewMode}
-              onOpenComments={(id) =>
-                onOpenComments({ type: "message", id, label: "mensaje" })
-              }
+              reactions={reactions[m.id]}
+              onReact={handleReact}
             />
           ))
         )}

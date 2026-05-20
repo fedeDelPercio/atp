@@ -19,9 +19,9 @@ export type Database = {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; name: string; role: string; created_at: string };
-        Insert: { id?: string; name: string; role?: string; created_at?: string };
-        Update: { id?: string; name?: string; role?: string; created_at?: string };
+        Row: { id: string; name: string; role: string; client_slug: string; created_at: string };
+        Insert: { id?: string; name: string; role?: string; client_slug?: string; created_at?: string };
+        Update: { id?: string; name?: string; role?: string; client_slug?: string; created_at?: string };
         Relationships: [];
       };
       conversations: {
@@ -32,6 +32,7 @@ export type Database = {
           external_id: string | null;
           status: string;
           created_by: string | null;
+          client_slug: string;
           created_at: string;
           updated_at: string;
         };
@@ -42,6 +43,7 @@ export type Database = {
           external_id?: string | null;
           status?: string;
           created_by?: string | null;
+          client_slug?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -52,6 +54,7 @@ export type Database = {
           external_id?: string | null;
           status?: string;
           created_by?: string | null;
+          client_slug?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -64,6 +67,7 @@ export type Database = {
           role: string;
           content: string;
           trace_id: string | null;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -72,6 +76,7 @@ export type Database = {
           role: string;
           content: string;
           trace_id?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -80,6 +85,7 @@ export type Database = {
           role?: string;
           content?: string;
           trace_id?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -98,6 +104,7 @@ export type Database = {
           evaluator_passed: boolean | null;
           escalation_reason: string | null;
           provider: string;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -113,6 +120,7 @@ export type Database = {
           evaluator_passed?: boolean | null;
           escalation_reason?: string | null;
           provider?: string;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -128,6 +136,7 @@ export type Database = {
           evaluator_passed?: boolean | null;
           escalation_reason?: string | null;
           provider?: string;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -148,6 +157,7 @@ export type Database = {
           output_tokens: number;
           latency_ms: number;
           error: string | null;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -165,6 +175,7 @@ export type Database = {
           output_tokens?: number;
           latency_ms?: number;
           error?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -182,6 +193,7 @@ export type Database = {
           output_tokens?: number;
           latency_ms?: number;
           error?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -196,6 +208,7 @@ export type Database = {
           max_attempts: number;
           error: string | null;
           trace_id: string | null;
+          client_slug: string;
           created_at: string;
           started_at: string | null;
           completed_at: string | null;
@@ -209,6 +222,7 @@ export type Database = {
           max_attempts?: number;
           error?: string | null;
           trace_id?: string | null;
+          client_slug?: string;
           created_at?: string;
           started_at?: string | null;
           completed_at?: string | null;
@@ -222,6 +236,7 @@ export type Database = {
           max_attempts?: number;
           error?: string | null;
           trace_id?: string | null;
+          client_slug?: string;
           created_at?: string;
           started_at?: string | null;
           completed_at?: string | null;
@@ -235,6 +250,7 @@ export type Database = {
           target_id: string;
           author_id: string;
           content: string;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -243,6 +259,7 @@ export type Database = {
           target_id: string;
           author_id: string;
           content: string;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -251,6 +268,7 @@ export type Database = {
           target_id?: string;
           author_id?: string;
           content?: string;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -263,6 +281,7 @@ export type Database = {
           events: string[];
           secret: string | null;
           active: boolean;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -272,6 +291,7 @@ export type Database = {
           events: string[];
           secret?: string | null;
           active?: boolean;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -281,6 +301,7 @@ export type Database = {
           events?: string[];
           secret?: string | null;
           active?: boolean;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -293,6 +314,7 @@ export type Database = {
           category: string;
           reason: string | null;
           summary: string | null;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -302,6 +324,7 @@ export type Database = {
           category: string;
           reason?: string | null;
           summary?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -311,6 +334,7 @@ export type Database = {
           category?: string;
           reason?: string | null;
           summary?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -324,6 +348,7 @@ export type Database = {
           response_status: number | null;
           response_body: string | null;
           delivered_at: string | null;
+          client_slug: string;
           created_at: string;
         };
         Insert: {
@@ -334,6 +359,7 @@ export type Database = {
           response_status?: number | null;
           response_body?: string | null;
           delivered_at?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Update: {
@@ -344,6 +370,7 @@ export type Database = {
           response_status?: number | null;
           response_body?: string | null;
           delivered_at?: string | null;
+          client_slug?: string;
           created_at?: string;
         };
         Relationships: [];

@@ -63,6 +63,49 @@ Supabase Realtime  → el panel ve aparecer la respuesta sin recargar
 - **Trace**: cada corrida registra un `agent_traces` + N `agent_trace_steps`
   (un step por orquestador / subagente / tool / evaluator).
 
+## Estructura multi-cliente (branch-per-client + tenant en una sola DB)
+
+Este repo está pensado como **base reutilizable**:
+
+- `main` = panel + template de agente con placeholders. **Acá viven las
+  mejoras del panel** (UI, infra, bug fixes).
+- `client/<nombre>` = una rama por cliente. Cada rama customiza solo
+  [src/lib/agent/](src/lib/agent/) (prompts, KB, categorías de notificación,
+  horario, rubric) y deploya a su propio Vercel.
+- Cuando hay una mejora del panel: commit en `main` → `git merge main` en
+  cada rama de cliente. Sin drift entre clientes.
+
+### Aislamiento de datos: RLS + `client_slug`
+
+Para no pagar un proyecto Supabase por cliente, todos comparten **un solo
+proyecto** y los datos se aíslan a nivel de DB:
+
+- Cada tabla tiene una columna `client_slug` (snake_case, ej: `ibath`).
+- Postgres tiene **Row Level Security** activado en todas las tablas con
+  policies que filtran por el slug que viene en el header HTTP
+  `X-Client-Slug` de cada request.
+- El cliente supabase-js de cada worktree setea el header automáticamente
+  leyéndolo de la env var `NEXT_PUBLIC_CLIENT_SLUG`.
+- Cualquier query (con o sin WHERE) solo ve filas del cliente activo. Si
+  una query se olvida el filtro, devuelve 0 filas. No hay forma de que un
+  bug mezcle datos entre clientes.
+
+Ver [supabase/migrations/004_multi_client.sql](supabase/migrations/004_multi_client.sql)
+para el detalle.
+
+### Worktrees
+
+Para trabajar con varias ramas en paralelo localmente, usá **`git worktree`**
+(cada cliente abre en su propia carpeta con su propio `.env.local`):
+
+```bash
+git worktree add ../atp-<cliente> client/<cliente>
+```
+
+Cada worktree corre su `npm run dev` en un puerto distinto (configurado en
+su `package.json`) y tiene su propio `NEXT_PUBLIC_CLIENT_SLUG` en
+`.env.local`.
+
 ## Cómo empezar (setup local)
 
 ### 1. Requisitos
@@ -74,9 +117,11 @@ Supabase Realtime  → el panel ve aparecer la respuesta sin recargar
 
 Las migraciones de [supabase/migrations/](supabase/migrations/) ya fueron
 aplicadas sobre el proyecto Supabase **"delpercio Project"**
-(`cwogvvjsbjksdnztrnmv`). Si querés un proyecto propio, creá uno nuevo y
-corré ahí, en orden, `001_initial.sql` y `002_claim_jobs.sql` (SQL Editor
-del dashboard de Supabase).
+(`cwogvvjsbjksdnztrnmv`), que está compartido con otros clientes via RLS
+(`client_slug='ibath'` para esta rama). Si querés un proyecto propio para
+esta rama, creá uno nuevo y corré las cuatro migraciones en orden:
+`001_initial.sql`, `002_claim_jobs.sql`, `003_notifications.sql`,
+`004_multi_client.sql`.
 
 ### 3. Variables de entorno
 

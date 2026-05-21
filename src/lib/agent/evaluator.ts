@@ -6,6 +6,7 @@ import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { loadPrompt } from "./prompts";
 import { usageToTotals } from "./hooks/token-tracker";
+import { resolveClaudeCodeExecutable } from "./binary";
 import type { EvaluationResult, HistoryMessage, RunContext } from "./types";
 import type { Json } from "@/lib/supabase/types";
 
@@ -82,6 +83,7 @@ export async function evaluateResponse(params: {
     settingSources: [],
     abortController,
     includePartialMessages: false,
+    pathToClaudeCodeExecutable: resolveClaudeCodeExecutable(),
   };
 
   let rawText = "";

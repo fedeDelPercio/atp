@@ -7,6 +7,7 @@ import { buildPanelToolServer, PANEL_TOOL_NAMES } from "./tools";
 import { createTraceLoggerHooks } from "./hooks/trace-logger";
 import { usageToTotals } from "./hooks/token-tracker";
 import { timeContextBlock, type TimeContext } from "./business-hours";
+import { resolveClaudeCodeExecutable } from "./binary";
 import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 
 // ===========================================================================
@@ -117,6 +118,7 @@ export async function runOrchestrator(params: {
     settingSources: [],
     abortController,
     includePartialMessages: false,
+    pathToClaudeCodeExecutable: resolveClaudeCodeExecutable(),
   };
 
   let responseText = "";

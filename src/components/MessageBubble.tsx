@@ -80,7 +80,10 @@ export function MessageBubble({
 
   return (
     <div
-      className={`flex items-end gap-1 ${isUser ? "justify-end" : "justify-start"}`}
+      id={`message-${message.id}`}
+      className={`flex items-end gap-1 rounded-2xl px-1 py-0.5 ${
+        isUser ? "justify-end" : "justify-start"
+      }`}
     >
       {isUser && quickBubble}
       {isUser && reactionsCol}

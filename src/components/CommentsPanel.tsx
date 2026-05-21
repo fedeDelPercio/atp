@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { X, ArrowUp, Trash2, Loader2, Check, X as XIcon } from "lucide-react";
+import {
+  X,
+  ArrowUp,
+  Trash2,
+  Loader2,
+  Check,
+  X as XIcon,
+  CornerDownRight,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -11,8 +19,13 @@ import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
 import type { CommentTarget } from "./ConversationPanel";
 
-// Side-panel de comentarios firmados por perfil. En desktop es una columna;
-// en mobile es un drawer. Realtime: los comentarios nuevos aparecen solos.
+// Side-panel de actividad: muestra reacciones (positive/negative) y notas
+// firmadas por perfil. En modo "conversation" agrega tambien la actividad
+// de cada mensaje de la conversacion, con un snippet clickeable que hace
+// scroll al mensaje correspondiente.
+
+// Snippet chico de mensaje para mostrar al lado de cada entry message-level.
+type MessageSnippet = { content: string; role: string };
 
 export function CommentsPanel({
   target,
@@ -24,6 +37,9 @@ export function CommentsPanel({
   const { profile } = useProfile();
   const [comments, setComments] = useState<Comment[]>([]);
   const [authors, setAuthors] = useState<Record<string, string>>({});
+  // Mapa id -> snippet para renderizar el contexto de cada entrada que
+  // apunta a un mensaje. Vacio cuando target.type === "message".
+  const [messageMap, setMessageMap] = useState<Record<string, MessageSnippet>>({});
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -36,33 +52,66 @@ export function CommentsPanel({
     setAuthors(map);
   }, []);
 
-  // Traemos toda la actividad: notas (con texto) + reacciones (positive/
-  // negative, sin texto). Las pintamos distinto: las notas como burbuja
-  // con contenido, las reacciones como una linea compacta de actividad.
   const refetch = useCallback(async () => {
-    const { data } = await getSupabaseBrowserClient()
+    const supabase = getSupabaseBrowserClient();
+
+    if (target.type === "message") {
+      // Caso simple: actividad de un mensaje puntual.
+      const { data } = await supabase
+        .from("comments")
+        .select("*")
+        .eq("target_type", "message")
+        .eq("target_id", target.id)
+        .order("created_at", { ascending: true });
+      setComments(data ?? []);
+      setMessageMap({});
+      return;
+    }
+
+    // Conversacion: traemos los mensajes de la conversacion + comments de la
+    // conversacion + comments de cada mensaje. Despues ordenamos por tiempo.
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("id, content, role")
+      .eq("conversation_id", target.id);
+    const map: Record<string, MessageSnippet> = {};
+    const messageIds: string[] = [];
+    for (const m of msgs ?? []) {
+      map[m.id] = { content: m.content, role: m.role };
+      messageIds.push(m.id);
+    }
+    setMessageMap(map);
+
+    const convPromise = supabase
       .from("comments")
       .select("*")
-      .eq("target_type", target.type)
-      .eq("target_id", target.id)
-      .order("created_at", { ascending: true });
-    setComments(data ?? []);
+      .eq("target_type", "conversation")
+      .eq("target_id", target.id);
+    const msgPromise =
+      messageIds.length > 0
+        ? supabase
+            .from("comments")
+            .select("*")
+            .eq("target_type", "message")
+            .in("target_id", messageIds)
+        : Promise.resolve({ data: [] as Comment[] });
+    const [convRes, msgRes] = await Promise.all([convPromise, msgPromise]);
+    const all = [...(convRes.data ?? []), ...(msgRes.data ?? [])];
+    all.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    setComments(all);
   }, [target]);
 
   useEffect(() => {
     void loadAuthors();
     void refetch();
     const supabase = getSupabaseBrowserClient();
+    // Suscribimos a TODOS los cambios en comments (RLS scopea por
+    // client_slug). Refetchemos en cada evento — es barato y simple.
     const channel = supabase
-      .channel(`comments-${target.id}`)
+      .channel(`comments-panel-${target.type}-${target.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "comments",
-          filter: `target_id=eq.${target.id}`,
-        },
+        { event: "*", schema: "public", table: "comments" },
         () => void refetch(),
       )
       .subscribe();
@@ -104,6 +153,46 @@ export function CommentsPanel({
     if (!res.ok) toast.error("No se pudo borrar el comentario");
   }
 
+  // Scroll al mensaje al que apunta la entrada + highlight breve.
+  function scrollToMessage(messageId: string) {
+    const el = document.getElementById(`message-${messageId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("highlight-message");
+    window.setTimeout(() => el.classList.remove("highlight-message"), 1500);
+  }
+
+  // Renderiza el snippet clickeable del mensaje al que apunta una entrada.
+  function MessageContext({ messageId }: { messageId: string }) {
+    const snippet = messageMap[messageId];
+    if (!snippet) return null;
+    const trimmed =
+      snippet.content.length > 80
+        ? snippet.content.slice(0, 80).trim() + "…"
+        : snippet.content;
+    const roleLabel =
+      snippet.role === "user"
+        ? "cliente"
+        : snippet.role === "assistant"
+          ? "agente"
+          : "sistema";
+    return (
+      <button
+        onClick={() => scrollToMessage(messageId)}
+        className="mt-1 flex w-full items-start gap-1.5 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-left text-[11px] text-neutral-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 dark:border-neutral-700 dark:bg-neutral-800/60 dark:text-neutral-400 dark:hover:border-violet-500/50 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+        title="Ir al mensaje"
+      >
+        <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0" />
+        <span className="flex-1">
+          <span className="font-medium text-neutral-400 dark:text-neutral-500">
+            sobre el mensaje del {roleLabel}:
+          </span>{" "}
+          <span className="italic">{trimmed}</span>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <>
       <div
@@ -114,10 +203,12 @@ export function CommentsPanel({
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
           <div>
             <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-              Comentarios
+              Actividad
             </p>
             <p className="truncate text-[11px] text-neutral-400 dark:text-neutral-500">
-              sobre {target.type === "conversation" ? "la conversación" : "un mensaje"}
+              {target.type === "conversation"
+                ? "reacciones y notas de la conversación"
+                : "reacciones y notas del mensaje"}
             </p>
           </div>
           <button
@@ -140,42 +231,50 @@ export function CommentsPanel({
                 addSuffix: true,
                 locale: es,
               });
-              // Reacciones: una linea compacta con el ícono.
+              const showsMessageContext =
+                target.type === "conversation" && c.target_type === "message";
+
+              // Reacciones: una linea compacta con el icono coloreado.
               if (c.kind === "positive" || c.kind === "negative") {
                 const isPositive = c.kind === "positive";
                 return (
-                  <div key={c.id} className="group flex items-center gap-2.5">
+                  <div key={c.id} className="group flex gap-2.5">
                     <Avatar name={authorName} size="sm" />
-                    <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-300">
-                      <span className="font-semibold text-neutral-800 dark:text-neutral-200">
-                        {authorName}
-                      </span>
-                      <span className="text-neutral-400 dark:text-neutral-500">
-                        marcó como
-                      </span>
-                      <span
-                        className={`inline-flex h-4 w-4 items-center justify-center rounded ${
-                          isPositive
-                            ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
-                            : "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
-                        }`}
-                      >
-                        {isPositive ? (
-                          <Check className="h-3 w-3" strokeWidth={2.5} />
-                        ) : (
-                          <XIcon className="h-3 w-3" strokeWidth={2.5} />
-                        )}
-                      </span>
-                      <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
-                        · {when}
-                      </span>
-                      <button
-                        onClick={() => remove(c.id)}
-                        className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
-                        aria-label="Borrar reacción"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-300">
+                        <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                          {authorName}
+                        </span>
+                        <span className="text-neutral-400 dark:text-neutral-500">
+                          marcó como
+                        </span>
+                        <span
+                          className={`inline-flex h-4 w-4 items-center justify-center rounded ${
+                            isPositive
+                              ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+                              : "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                          }`}
+                        >
+                          {isPositive ? (
+                            <Check className="h-3 w-3" strokeWidth={2.5} />
+                          ) : (
+                            <XIcon className="h-3 w-3" strokeWidth={2.5} />
+                          )}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                          · {when}
+                        </span>
+                        <button
+                          onClick={() => remove(c.id)}
+                          className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
+                          aria-label="Borrar reacción"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                      {showsMessageContext && (
+                        <MessageContext messageId={c.target_id} />
+                      )}
                     </div>
                   </div>
                 );
@@ -192,6 +291,9 @@ export function CommentsPanel({
                       <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
                         {when}
                       </span>
+                      <span className="ml-1 inline-flex h-4 items-center rounded bg-neutral-100 px-1.5 text-[9px] uppercase tracking-wider text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                        nota
+                      </span>
                       <button
                         onClick={() => remove(c.id)}
                         className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
@@ -202,6 +304,9 @@ export function CommentsPanel({
                     <p className="mt-0.5 whitespace-pre-wrap rounded-lg rounded-tl-sm bg-neutral-100 px-2.5 py-1.5 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
                       {c.content}
                     </p>
+                    {showsMessageContext && (
+                      <MessageContext messageId={c.target_id} />
+                    )}
                   </div>
                 </div>
               );
@@ -221,7 +326,11 @@ export function CommentsPanel({
                 }
               }}
               rows={1}
-              placeholder="Escribí un comentario…"
+              placeholder={
+                target.type === "conversation"
+                  ? "Nota sobre toda la conversación…"
+                  : "Nota sobre este mensaje…"
+              }
               className="scroll-thin max-h-28 min-h-[32px] flex-1 resize-none self-center bg-transparent py-1.5 text-sm outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
             <button

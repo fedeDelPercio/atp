@@ -50,10 +50,15 @@ export function resolveClaudeCodeExecutable(): string | undefined {
   for (const path of candidates) {
     if (existsSync(path)) {
       cached = path;
+      console.log(`[binary] usando claude binary en: ${path}`);
       return path;
     }
   }
 
+  console.warn(
+    `[binary] NO se encontro el binario de claude-agent-sdk-linux-x64 en ninguno de:\n` +
+      candidates.map((c) => `  - ${c}`).join("\n"),
+  );
   cached = null;
   return undefined;
 }

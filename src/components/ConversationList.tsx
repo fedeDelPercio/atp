@@ -170,7 +170,7 @@ export function ConversationList({
                   <li key={c.id} className="group relative">
                     <button
                       onClick={() => onSelect(c.id)}
-                      className={`flex w-full items-start gap-3 rounded-xl px-2.5 py-2.5 text-left transition ${
+                      className={`flex w-full items-start gap-3 rounded-xl py-2.5 pl-2.5 pr-9 text-left transition ${
                         selected
                           ? "bg-violet-50 dark:bg-violet-500/10"
                           : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
@@ -196,10 +196,11 @@ export function ConversationList({
                         </p>
                       </div>
                     </button>
-                    {/* Boton de borrar: siempre visible pero apagado (40%);
-                        se prende a full color al hover. Asi se descubre
-                        facil tanto en desktop como en mobile (donde no hay
-                        hover). */}
+                    {/* Boton de borrar: posicionado en el espacio reservado
+                        a la derecha del item (pr-9 del boton de seleccion).
+                        Centrado vertical para no chocar con timestamp arriba
+                        ni con el preview abajo. Apagado (40%) en idle, full
+                        color al hover. */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -207,7 +208,7 @@ export function ConversationList({
                       }}
                       title="Borrar conversación"
                       aria-label={`Borrar conversación ${c.display_name}`}
-                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-neutral-400 opacity-40 transition hover:bg-rose-100 hover:text-rose-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
+                      className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 opacity-40 transition hover:bg-rose-100 hover:text-rose-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

@@ -5,16 +5,13 @@ import { clientEnv, serverEnv } from "@/lib/env";
 import type { Database } from "./types";
 
 // ===========================================================================
-// Cliente de Supabase para el servidor (API routes, worker de jobs, hooks
-// del agente).
+// Cliente de Supabase para el servidor (API routes, worker, hooks).
 //
-// Usa la ANON key + header X-Client-Slug. RLS de Postgres filtra los datos
-// por client_slug en cada request, asi no hay forma de mezclar datos entre
-// clientes ni por bug ni por accidente.
+// El anon key del proyecto va como "apikey" (lo exige el gateway de Supabase).
+// El JWT custom con claim client_slug va como "Authorization: Bearer" —
+// PostgREST lo lee y lo expone via auth.jwt() para las policies de RLS.
 //
-// El header llega al worker por el codigo (no por la request HTTP del
-// cliente original), porque el worker es interno y siempre opera bajo el
-// CLIENT_SLUG configurado en su env.
+// Asi el aislamiento por cliente se enforce a nivel DB sin tocar cada query.
 // ===========================================================================
 let scopedClient: SupabaseClient<Database> | null = null;
 let adminClient: SupabaseClient<Database> | null = null;
@@ -28,7 +25,7 @@ export function getSupabaseServerClient(): SupabaseClient<Database> {
       auth: { persistSession: false, autoRefreshToken: false },
       global: {
         headers: {
-          "X-Client-Slug": clientEnv.NEXT_PUBLIC_CLIENT_SLUG,
+          Authorization: `Bearer ${clientEnv.NEXT_PUBLIC_SUPABASE_CLIENT_JWT}`,
         },
       },
     },
@@ -40,7 +37,7 @@ export function getSupabaseServerClient(): SupabaseClient<Database> {
  * Cliente admin (service_role). Bypassa RLS — solo usar para tareas que
  * genuinamente necesitan ver/escribir a traves de clientes (migraciones,
  * scripts de mantenimiento). NO usar desde rutas API ni desde el worker
- * en flujos normales: para eso esta `getSupabaseServerClient()`.
+ * en flujos normales.
  */
 export function getSupabaseAdminClient(): SupabaseClient<Database> {
   if (adminClient) return adminClient;

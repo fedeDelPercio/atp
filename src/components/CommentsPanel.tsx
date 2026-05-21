@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { X, ArrowUp, Trash2, Loader2 } from "lucide-react";
+import { X, ArrowUp, Trash2, Loader2, Check, X as XIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -36,6 +36,9 @@ export function CommentsPanel({
     setAuthors(map);
   }, []);
 
+  // Traemos toda la actividad: notas (con texto) + reacciones (positive/
+  // negative, sin texto). Las pintamos distinto: las notas como burbuja
+  // con contenido, las reacciones como una linea compacta de actividad.
   const refetch = useCallback(async () => {
     const { data } = await getSupabaseBrowserClient()
       .from("comments")
@@ -128,36 +131,81 @@ export function CommentsPanel({
         <div className="scroll-thin flex-1 space-y-3 overflow-y-auto p-3">
           {comments.length === 0 ? (
             <p className="py-8 text-center text-sm text-neutral-400 dark:text-neutral-500">
-              Sin comentarios todavía.
+              Sin actividad todavía.
             </p>
           ) : (
-            comments.map((c) => (
-              <div key={c.id} className="group flex gap-2.5">
-                <Avatar name={authors[c.author_id] ?? "Perfil"} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
-                      {authors[c.author_id] ?? "Perfil"}
-                    </span>
-                    <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
-                      {formatDistanceToNow(new Date(c.created_at), {
-                        addSuffix: true,
-                        locale: es,
-                      })}
-                    </span>
-                    <button
-                      onClick={() => remove(c.id)}
-                      className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+            comments.map((c) => {
+              const authorName = authors[c.author_id] ?? "Perfil";
+              const when = formatDistanceToNow(new Date(c.created_at), {
+                addSuffix: true,
+                locale: es,
+              });
+              // Reacciones: una linea compacta con el ícono.
+              if (c.kind === "positive" || c.kind === "negative") {
+                const isPositive = c.kind === "positive";
+                return (
+                  <div key={c.id} className="group flex items-center gap-2.5">
+                    <Avatar name={authorName} size="sm" />
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-300">
+                      <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                        {authorName}
+                      </span>
+                      <span className="text-neutral-400 dark:text-neutral-500">
+                        marcó como
+                      </span>
+                      <span
+                        className={`inline-flex h-4 w-4 items-center justify-center rounded ${
+                          isPositive
+                            ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+                            : "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                        }`}
+                      >
+                        {isPositive ? (
+                          <Check className="h-3 w-3" strokeWidth={2.5} />
+                        ) : (
+                          <XIcon className="h-3 w-3" strokeWidth={2.5} />
+                        )}
+                      </span>
+                      <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                        · {when}
+                      </span>
+                      <button
+                        onClick={() => remove(c.id)}
+                        className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
+                        aria-label="Borrar reacción"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
-                  <p className="mt-0.5 whitespace-pre-wrap rounded-lg rounded-tl-sm bg-neutral-100 px-2.5 py-1.5 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
-                    {c.content}
-                  </p>
+                );
+              }
+              // Notas: bubble con contenido.
+              return (
+                <div key={c.id} className="group flex gap-2.5">
+                  <Avatar name={authorName} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                        {authorName}
+                      </span>
+                      <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                        {when}
+                      </span>
+                      <button
+                        onClick={() => remove(c.id)}
+                        className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <p className="mt-0.5 whitespace-pre-wrap rounded-lg rounded-tl-sm bg-neutral-100 px-2.5 py-1.5 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                      {c.content}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

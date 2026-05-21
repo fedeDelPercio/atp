@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { clientEnv } from "@/lib/env";
@@ -9,6 +10,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Conversation } from "@/lib/supabase/types";
 import { Avatar } from "./Avatar";
 import { NewConversationModal } from "./NewConversationModal";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
 // Lista de conversaciones de prueba.
 // En desktop es una columna fija; en mobile es un drawer (open / onClose).
@@ -18,17 +20,24 @@ type Preview = { content: string; role: string };
 export function ConversationList({
   selectedId,
   onSelect,
+  onDeleted,
   open,
   onClose,
 }: {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  // Se llama tras borrar la conversacion (para que el parent limpie su
+  // seleccion si esa era la conversacion activa).
+  onDeleted?: (id: string) => void;
   open: boolean;
   onClose: () => void;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [previews, setPreviews] = useState<Record<string, Preview>>({});
   const [modalOpen, setModalOpen] = useState(false);
+  // Conversacion pendiente de confirmar borrado.
+  const [pendingDelete, setPendingDelete] = useState<Conversation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const refetch = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -74,11 +83,42 @@ export function ConversationList({
         },
         () => void refetch(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "conversations",
+        },
+        () => void refetch(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
   }, [refetch]);
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    const id = pendingDelete.id;
+    try {
+      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "No se pudo borrar la conversación");
+        return;
+      }
+      toast.success("Conversación borrada");
+      setPendingDelete(null);
+      onDeleted?.(id);
+      void refetch();
+    } catch {
+      toast.error("Error de red");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <>
@@ -127,7 +167,7 @@ export function ConversationList({
                 const preview = previews[c.id];
                 const selected = selectedId === c.id;
                 return (
-                  <li key={c.id}>
+                  <li key={c.id} className="group relative">
                     <button
                       onClick={() => onSelect(c.id)}
                       className={`flex w-full items-start gap-3 rounded-xl px-2.5 py-2.5 text-left transition ${
@@ -156,6 +196,19 @@ export function ConversationList({
                         </p>
                       </div>
                     </button>
+                    {/* Boton de borrar: visible en hover (desktop) y siempre
+                        clickeable en mobile via focus-within. */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingDelete(c);
+                      }}
+                      title="Borrar conversación"
+                      aria-label={`Borrar conversación ${c.display_name}`}
+                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-neutral-400 opacity-0 transition hover:bg-rose-100 hover:text-rose-600 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </li>
                 );
               })}
@@ -171,6 +224,17 @@ export function ConversationList({
               void refetch();
               onSelect(id);
             }}
+          />
+        )}
+
+        {pendingDelete && (
+          <ConfirmDeleteModal
+            title="Borrar conversación"
+            description={`Vas a borrar “${pendingDelete.display_name}” con todos sus mensajes, traces, reacciones y notas. Esta acción no se puede deshacer.`}
+            confirmLabel="Borrar conversación"
+            loading={deleting}
+            onConfirm={() => void confirmDelete()}
+            onCancel={() => (deleting ? undefined : setPendingDelete(null))}
           />
         )}
       </div>

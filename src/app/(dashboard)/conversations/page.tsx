@@ -28,6 +28,12 @@ export default function ConversationsPage() {
           setCommentTarget(null);
           setSidebarOpen(false);
         }}
+        onDeleted={(id) => {
+          if (selectedId === id) {
+            setSelectedId(null);
+            setCommentTarget(null);
+          }
+        }}
       />
 
       {selectedId ? (

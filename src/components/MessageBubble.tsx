@@ -10,6 +10,7 @@ import {
   EMPTY_REACTION,
   type MessageReactionState,
 } from "./MessageReactions";
+import { QuickCommentBubble } from "./QuickCommentBubble";
 
 // Burbuja de un mensaje. En vista avanzada, los mensajes del agente con trace
 // se pueden expandir para ver el detalle agentico.
@@ -19,13 +20,20 @@ export function MessageBubble({
   viewMode,
   reactions,
   onReact,
+  onAddNote,
 }: {
   message: Message;
   viewMode: ViewMode;
   reactions?: MessageReactionState;
+  // Para positive/negative: toggle de reaccion. Para note: no hace nada en
+  // el parent (la nota se envia via onAddNote desde la quick-bubble).
   onReact: (messageId: string, kind: CommentKind) => void;
+  onAddNote: (messageId: string, content: string) => Promise<void>;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
+  // Cuando el usuario clickea una de las 3 reacciones, abrimos una burbuja
+  // chica al costado para que pueda (opcionalmente) escribir el por que.
+  const [quickKind, setQuickKind] = useState<CommentKind | null>(null);
   const state = reactions ?? EMPTY_REACTION;
 
   // Mensajes de sistema: el "cartel" de notificación al equipo.
@@ -44,21 +52,37 @@ export function MessageBubble({
   const isAgent = message.role === "assistant";
   const canExpand = viewMode === "advanced" && isAgent && Boolean(message.trace_id);
 
-  // Las reacciones van al costado del bubble: a la IZQUIERDA del mensaje
-  // del usuario (que se alinea a la derecha) y a la DERECHA del mensaje
-  // del agente (que se alinea a la izquierda). Asi siempre quedan entre
-  // el bubble y el borde libre, faciles de ver/clickear.
+  function handleReactInline(kind: CommentKind) {
+    // positive/negative: tambien hace toggle de la reaccion en el parent.
+    if (kind === "positive" || kind === "negative") {
+      onReact(message.id, kind);
+    }
+    // En todos los casos, abrimos la burbuja para nota opcional.
+    setQuickKind(kind);
+  }
+
   const reactionsCol = (
-    <MessageReactions
-      state={state}
-      onReact={(kind) => onReact(message.id, kind)}
-    />
+    <MessageReactions state={state} onReact={handleReactInline} />
   );
+
+  // La quick-bubble se renderiza del lado del "borde libre" del mensaje:
+  // para mensajes del user (alineados a la derecha), la burbuja va a la
+  // IZQUIERDA de los iconos (mas lejos del bubble).
+  // Para mensajes del agente (alineados a la izquierda), va a la DERECHA.
+  const quickBubble = quickKind ? (
+    <QuickCommentBubble
+      kind={quickKind}
+      side={isUser ? "left" : "right"}
+      onSubmit={(content) => onAddNote(message.id, content)}
+      onClose={() => setQuickKind(null)}
+    />
+  ) : null;
 
   return (
     <div
       className={`flex items-end gap-1 ${isUser ? "justify-end" : "justify-start"}`}
     >
+      {isUser && quickBubble}
       {isUser && reactionsCol}
       <div className="max-w-[85%] sm:max-w-[78%]">
         <div
@@ -101,6 +125,7 @@ export function MessageBubble({
         )}
       </div>
       {!isUser && reactionsCol}
+      {!isUser && quickBubble}
     </div>
   );
 }

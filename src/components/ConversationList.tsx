@@ -196,8 +196,10 @@ export function ConversationList({
                         </p>
                       </div>
                     </button>
-                    {/* Boton de borrar: visible en hover (desktop) y siempre
-                        clickeable en mobile via focus-within. */}
+                    {/* Boton de borrar: siempre visible pero apagado (40%);
+                        se prende a full color al hover. Asi se descubre
+                        facil tanto en desktop como en mobile (donde no hay
+                        hover). */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -205,7 +207,7 @@ export function ConversationList({
                       }}
                       title="Borrar conversación"
                       aria-label={`Borrar conversación ${c.display_name}`}
-                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-neutral-400 opacity-0 transition hover:bg-rose-100 hover:text-rose-600 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
+                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-neutral-400 opacity-40 transition hover:bg-rose-100 hover:text-rose-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

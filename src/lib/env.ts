@@ -20,13 +20,20 @@ const clientSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z
     .string()
     .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY es obligatoria"),
+  // JWT firmado con el JWT secret del proyecto, con claim client_slug. Se
+  // envia como Authorization: Bearer para que PostgREST lo lea via
+  // auth.jwt() en las policies de RLS. NO reemplaza al anon key — ese sigue
+  // siendo el "apikey" que el gateway de Supabase exige.
+  NEXT_PUBLIC_SUPABASE_CLIENT_JWT: z
+    .string()
+    .min(1, "NEXT_PUBLIC_SUPABASE_CLIENT_JWT es obligatoria"),
   NEXT_PUBLIC_APP_URL: z
     .string()
     .url("NEXT_PUBLIC_APP_URL invalida")
     .default("http://localhost:3000"),
-  // Slug del cliente activo en este worktree/deploy. Se envia como header
-  // X-Client-Slug en cada request a Supabase y dispara las policies de RLS
-  // que aislan los datos por cliente (ver migration 004).
+  // Slug del cliente activo. Lo usan algunos filtros del frontend (ej:
+  // subscripciones Realtime). El aislamiento real de datos lo hace RLS via
+  // el claim client_slug del CLIENT_JWT (ver migration 004).
   NEXT_PUBLIC_CLIENT_SLUG: z
     .string()
     .min(1, "NEXT_PUBLIC_CLIENT_SLUG es obligatoria (ej: 'ibath', 'quintaglia')")
@@ -39,6 +46,7 @@ function parseClientEnv() {
   const parsed = clientSchema.safeParse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_CLIENT_JWT: process.env.NEXT_PUBLIC_SUPABASE_CLIENT_JWT,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_CLIENT_SLUG: process.env.NEXT_PUBLIC_CLIENT_SLUG,
   });

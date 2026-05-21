@@ -2,8 +2,8 @@ import type { AgentDefinition } from "@anthropic-ai/claude-agent-sdk";
 
 // Registry de subagentes.
 //
-// El agente IBATH (fase 1) no usa subagentes: el orquestador + el evaluator
-// alcanzan. El registry queda preparado para cuando haga falta uno.
+// El agente Quintaglia (fase 1) no usa subagentes: el orquestador + el
+// evaluator alcanzan. El registry queda preparado para cuando haga falta uno.
 //
 // Para agregar un subagente: crear su archivo con un `AgentDefinition`, un
 // `.md` de prompt, y sumarlo al mapa de buildAgentsMap().

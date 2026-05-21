@@ -10,7 +10,7 @@ import type { EvaluationResult, HistoryMessage, RunContext } from "./types";
 import type { Json } from "@/lib/supabase/types";
 
 // ===========================================================================
-// Evaluator — portón de pre-envío (agente IBATH).
+// Evaluator — portón de pre-envío.
 //
 // Corre DESPUÉS de que el orquestador redacta pero ANTES de que el mensaje
 // llegue al cliente. Su trabajo principal y bloqueante es el GROUNDING: cada

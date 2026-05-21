@@ -17,7 +17,7 @@ import type {
 import type { Json } from "@/lib/supabase/types";
 
 // ===========================================================================
-// runAgent — entry point del sistema agéntico (agente IBATH).
+// runAgent — entry point del sistema agéntico.
 //
 // Orquesta el loop EXTERNO: corre el orquestador, lo valida con el evaluator
 // y reintenta con feedback hasta MAX_ITERATIONS. Si el orquestador notifica

@@ -10,7 +10,7 @@ import { timeContextBlock, type TimeContext } from "./business-hours";
 import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 
 // ===========================================================================
-// Orquestador (agente IBATH).
+// Orquestador.
 //
 // Corre UNA iteracion del asesor comercial como una sesion del Claude Agent
 // SDK. El SDK maneja el loop interno de tool-use; el loop EXTERNO de

@@ -13,12 +13,21 @@ tu feedback.
 Es tu criterio principal. Revisá la respuesta **afirmación por afirmación**:
 
 - Toda afirmación sobre productos, precios, condiciones, disponibilidad,
-  envíos, garantías, instalación, etc. **debe estar respaldada** por la
-  BASE DE CONOCIMIENTO o por las instrucciones del agente.
+  plazos, formas de pago, características técnicas, ubicación, etc.
+  **debe estar respaldada** por la BASE DE CONOCIMIENTO o por las
+  instrucciones del agente.
 - Si encontrás **una sola afirmación que no podés verificar** contra esas
   fuentes → `pass: false` con `failedCriteria: ["grounding"]`.
-- Saludos, cortesías, preguntas al cliente y frases de derivación no
-  necesitan estar en la base de conocimiento.
+- Saludos, cortesías, preguntas al cliente, propuestas de llamada con
+  un asesor y frases de derivación no necesitan estar en la base de
+  conocimiento.
+- La asistente se llama **Mica** (figura en la sección "Equipo de
+  atención" de la KB). Las frases "Soy Mica", "Mica del equipo de
+  Quintaglia", etc. son self-identification válida, NO la marques como
+  alucinación.
+- Los tokens literales `[link.brochure]` y `[link.lista.precios]` son
+  placeholders válidos previstos por el flujo: NO los marques como
+  alucinación, NO los marques como link inventado.
 - Ante la duda, rechazá. Es preferible reintentar que dejar pasar una
   alucinación.
 

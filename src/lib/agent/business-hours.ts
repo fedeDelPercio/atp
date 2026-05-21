@@ -1,10 +1,11 @@
 // ===========================================================================
-// Contexto de horario para el agente IBATH.
+// Contexto de horario comercial para el agente.
 //
-// Horario comercial: Lunes a Viernes, 9 a 20 hs, hora de Argentina.
-// Dentro del horario el agente se presenta como Santino Zamboni; fuera de el,
-// como "asistente comercial de iBath". El orquestador recibe este contexto en
-// cada corrida y ajusta su persona segun corresponda.
+// Horario comercial por defecto: Lunes a Viernes, 9 a 20 hs, hora de
+// Argentina. El orquestador recibe este contexto en cada corrida y decide,
+// segun su prompt, como ajustar la respuesta (ej: aclarar tiempos de
+// respuesta fuera de horario). Si el cliente necesita otro horario, ajustar
+// las constantes BUSINESS_START_HOUR / BUSINESS_END_HOUR.
 // ===========================================================================
 
 const TZ = "America/Argentina/Buenos_Aires";

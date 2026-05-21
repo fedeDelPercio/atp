@@ -102,8 +102,11 @@ export function ConversationPanel({
     [profile?.id],
   );
 
-  // Click en un boton de reaccion: positive/negative van al API (toggle),
-  // note abre el panel lateral para escribir texto.
+  // Click en un boton de reaccion:
+  // - note: abre el panel lateral directo (sin guardar nada hasta que escriba).
+  // - positive/negative: guarda la reaccion (toggle) y abre el panel para
+  //   que el usuario pueda opcionalmente escribir el "por que" como nota
+  //   vinculada al mensaje. Si no escribe nada, queda solo la reaccion.
   const handleReact = useCallback(
     async (messageId: string, kind: CommentKind) => {
       if (!profile) {
@@ -127,9 +130,11 @@ export function ConversationPanel({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "No se pudo registrar la reacción");
+        return;
       }
-      // El refetch viene por Realtime; si fallara, igual cae en el proximo
-      // mount o cambio de conversacion.
+      // Despues de toggle on/off, abrimos el panel para que el usuario
+      // pueda agregar (opcionalmente) una nota explicando el por que.
+      onOpenComments({ type: "message", id: messageId, label: "mensaje" });
     },
     [profile, onOpenComments],
   );

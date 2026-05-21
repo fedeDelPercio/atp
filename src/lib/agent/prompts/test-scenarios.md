@@ -31,10 +31,14 @@ Origen simulado: lead aprieta "Quiero más información" en el anuncio.
   Quintaglia.
 - Bloque 2: ofrece el brochure incluyendo el token literal
   `[link.brochure]`.
-- Bloque 3: pregunta abierta listando las 4 tipologías (mono / 2 / 3 /
-  4 ambientes).
+- Bloque 3: pregunta abierta SIN enumerar tipologías. Algo tipo
+  "Alguna de estas opciones es compatible con lo que estás buscando?"
+  apuntando al brochure recién enviado.
 
 **Notify_team esperado:** ninguno.
+
+**Verificar también:** sin signos de apertura `¿` `¡` en ningún
+bloque (solo `?` y `!` de cierre).
 
 ---
 
@@ -45,37 +49,43 @@ Origen simulado: "Quiero hablar con un asesor".
 **Lead:**
 > Quiero hablar con un asesor
 
-**Esperado:** apertura completa (saludo + brochure + opciones), igual
-que el Test 1. La apertura no cambia por el CTA; lo que cambia es la
-velocidad con la que Mica propone la llamada en el turno siguiente.
+**Esperado:** apertura estándar idéntica al Test 1 (saludo + brochure +
+pregunta abierta sin listar). El CTA por sí solo NO debe disparar la
+propuesta de llamada en este turno — sería saltearse el descubrimiento.
 
 **Lead (mensaje 2):**
 > Busco un 2 ambientes
 
 **Esperado:**
-- Confirma desde la KB que hay alternativas de 2 ambientes
-  disponibles (no enumerar piso por piso; sólo confirmar disponibilidad).
-- Propone la llamada inmediatamente, SIN más preguntas de calificación.
-- Ejemplo: *"Tenemos varias alternativas de 2 ambientes. ¿Te parece
-  que un asesor te llame para contarte el detalle?"*
+- Confirma GENÉRICAMENTE que hay alternativas de 2 ambientes
+  ("tenemos varias opciones de 2 ambientes disponibles"). NO enumerar
+  unidad por unidad ni piso por piso, NO listar m² ni precios.
+- Propone la llamada en el MISMO mensaje, SIN preguntas de
+  calificación previa (no preguntar "vivienda o inversión?").
+- Ejemplo: "Tenemos varias alternativas de 2 ambientes disponibles.
+  Te parece que un asesor te llame para contarte el detalle?"
 
 **Notify_team esperado:** ninguno todavía (todavía no aceptó la
 llamada ni dio horario).
 
 ---
 
-# Test 3 — Pedido de precio puntual + lista
+# Test 3 — Pedido de precio puntual
 
 **Lead (después de la apertura):**
-> ¿Cuánto sale un monoambiente en piso 3?
+> Cuánto sale un monoambiente en piso 3?
 
-**Esperado:**
-- Da el precio de las unidades C y D del piso 3 desde la KB
-  (3°C = USD 102.950, 3°D = USD 102.979), aclarando precio "lista".
-  Puede mencionar el precio cash si está en la KB.
-- En otro bloque o en el mismo, comparte la lista oficial con el token
-  `[link.lista.precios]`.
-- Cierra proponiendo la llamada con un asesor.
+**Esperado:** UN solo mensaje (sin separadores `---`) que:
+- Comparte el token literal `[link.lista.precios]`.
+- Propone la llamada con un asesor en el mismo bloque.
+- NO menciona precios específicos en chat (ni 3°C, ni 3°D, ni rangos).
+  La política es siempre derivar a la lista oficial, aunque la KB
+  tenga el dato puntual.
+
+Ejemplo aceptable:
+> "Te comparto la lista oficial de precios de mayo 2026 para que veas
+> todo: [link.lista.precios]. Si te parece coordinamos una llamada con
+> un asesor para que te cuente el detalle y resuelva cualquier duda."
 
 **Notify_team esperado:** ninguno todavía.
 
@@ -87,7 +97,7 @@ llamada ni dio horario).
 > Dale, que me llamen
 
 **Esperado:** Mica pregunta preferencia horaria.
-> *"Perfecto. ¿Preferís que te llamen por la mañana o por la tarde?"*
+> "Perfecto. Preferís que te llamen por la mañana o por la tarde?"
 
 **Lead:**
 > Tarde mejor
@@ -104,35 +114,28 @@ llamada ni dio horario).
 
 ---
 
-# Test 5 — Pregunta fuera de KB + duda sobre si es IA  ⚠️ NEGATIVO
+# Test 5 — Pregunta fuera de KB + duda sobre si es IA
 
 **Lead:**
 > Cuándo entregan? Sos un bot o una persona real?
 
-Acá hay dos consignas en un mismo mensaje, cada una toca una regla
-distinta. El comportamiento esperado es:
+**Esperado (decisión deliberada del cliente):** derivar con
+`notify_team` categoría `fuera_de_conocimiento` sin responder en
+detalle la pregunta del bot. Que el humano lo gestione.
 
-1. **Plazo de entrega** → no está en la KB → derivar con
-   `notify_team` categoría `fuera_de_conocimiento` en algún momento.
-2. **"¿Sos un bot?"** → regla 1 absoluta: NO admitir IA. Redirigir
-   amablemente al desarrollo. Si insistiera en mensajes siguientes,
-   derivar con `escalado_manual`.
+Mensaje aceptable:
+> "Un asesor del equipo se va a comunicar con vos a la brevedad para
+> contarte el detalle. Gracias por tu consulta 🙌"
 
-**⚠️ Tensión real (marcar como negativo):** la guía actual NO dice
-explícitamente cómo manejar los dos en el mismo turno. Hay dos
-caminos válidos:
+Reglas a respetar:
+- NO admite ser IA (regla 1).
+- NO promete plazo de entrega (regla 2 — no está en la KB).
+- Llama a `notify_team` con `fuera_de_conocimiento` y deja al humano
+  manejar el resto.
 
-- (a) Responder primero la pregunta de "¿sos un bot?" con redirección,
-  y EN EL MISMO mensaje aclarar que el dato de plazo lo confirma con
-  el equipo y los hace llamar.
-- (b) Llamar a `notify_team` con `fuera_de_conocimiento` de una y
-  pegar la respuesta de la regla 1 en el mensaje de despedida (pero
-  esto deja al lead colgado en la pregunta "¿sos un bot?", lo cual es
-  raro porque se está justo derivando).
-
-Hoy esperamos que Mica elija (a). Si en la práctica elige (b) o
-revela que es IA, hay que volver a tocar el prompt. Este test sirve
-de canario para esa tensión.
+Esto cambió respecto a la versión anterior del test: ya no se espera
+que responda la pregunta del bot. Silencio + derivación es OK por
+decisión del cliente.
 
 ---
 
@@ -157,7 +160,7 @@ de canario para esa tensión.
 
 **Esperado:** señal nueva de interés alto. Volvé a proponer la llamada
 ("para avanzar con una reserva te conviene hablar con un asesor,
-¿coordinamos un llamado?"). NO contradice el "no insistir" porque el
+coordinamos un llamado?"). NO contradice el "no insistir" porque el
 disparador es nuevo.
 
 ---
@@ -179,13 +182,15 @@ información sobre visitas guiadas. Mica debe NO inventar horarios
 
 # Checklist rápido al correr cada test
 
-- [ ] ¿Se presentó como Mica en el primer turno (cuando aplica)?
-- [ ] ¿Usó los tokens `[link.brochure]` / `[link.lista.precios]`
-      tal cual (sin inventar URLs)?
-- [ ] ¿Cerró empujando la llamada en los focos B y C, salvo
+- [ ] Se presentó como Mica en el primer turno (cuando aplica)?
+- [ ] Usó los tokens `[link.brochure]` / `[link.lista.precios]` tal
+      cual (sin inventar URLs)?
+- [ ] Cerró empujando la llamada en los focos B y C, salvo
       post-rechazo?
-- [ ] ¿Llamó a `notify_team` con la categoría correcta y un summary
+- [ ] Llamó a `notify_team` con la categoría correcta y un summary
       útil?
-- [ ] ¿Evitó negritas (`**...**`) y cursivas markdown?
-- [ ] ¿Evitó afirmar plazos/financiación/cochera que no están en la
-      KB?
+- [ ] Evitó negritas (`**...**`) y cursivas markdown?
+- [ ] Evitó afirmar plazos/financiación/cochera que no están en la KB?
+- [ ] Usó SOLO signos de cierre (`?` `!`), NUNCA de apertura (`¿` `¡`)?
+- [ ] NO enumeró tipologías en la apertura ni precios puntuales en
+      chat?

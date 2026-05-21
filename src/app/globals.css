@@ -26,3 +26,20 @@ body {
 .dark .scroll-thin {
   scrollbar-color: #404040 transparent;
 }
+
+/* Pulso de highlight cuando se hace scroll a un mensaje desde el panel de
+   comentarios. Dura 1.5s y se quita por JS. */
+.highlight-message {
+  animation: messageHighlight 1.5s ease-out;
+}
+@keyframes messageHighlight {
+  0% {
+    background-color: rgba(124, 58, 237, 0.22);
+  }
+  60% {
+    background-color: rgba(124, 58, 237, 0.12);
+  }
+  100% {
+    background-color: transparent;
+  }
+}

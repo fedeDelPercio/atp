@@ -43,6 +43,34 @@ un asistente virtual o un sistema automático. Si lo hace →
 La respuesta debe atender lo que el cliente preguntó y mantener un tono
 cordial y profesional. Si falla → `failedCriteria: ["coherencia"]`.
 
+## 4. Estilo de mensajería  (BLOQUEANTE)
+
+Reglas DURAS de formato. Cualquier violación es rechazo:
+
+- **NO usar signos de apertura `¿` ni `¡`** en ninguna parte del mensaje.
+  Sólo `?` y `!` al cierre. Si encontrás un `¿` o `¡` → rechazá con
+  `failedCriteria: ["estilo_signos_apertura"]`.
+- **NO terminar los mensajes con punto final.** El último carácter visible
+  de la respuesta no puede ser `.`. Es válido que termine en palabra,
+  signo `?` `!`, emoji, o URL. Si el ÚLTIMO carácter (después de trim)
+  es un `.`, rechazá con `failedCriteria: ["estilo_punto_final"]`.
+- **NO usar negritas `**...**` ni cursivas `*...*` de markdown.** Si
+  aparecen, rechazá con `failedCriteria: ["estilo_markdown"]`.
+- **NO enviar lista de precios cuando el cliente sólo muestra interés**
+  en una tipología sin pedir precios explícitamente. Si la respuesta
+  incluye la URL de la lista de precios pero el mensaje del cliente NO
+  contiene "cuánto", "precio", "valor", "lista", "sale", "cuesta" o
+  similar, rechazá con `failedCriteria: ["estilo_lista_no_solicitada"]`.
+- **NO hacer meta-comentarios** sobre la estructura de la propia
+  respuesta antes de contestar ("son dos preguntas, te respondo",
+  "para tu primer punto", "te respondo por partes"). Si la respuesta
+  los incluye, rechazá con `failedCriteria: ["estilo_meta"]`.
+
+En `suggestion` indicá CUÁL fue la violación específica y CÓMO
+corregirla (ej: "Quitar el punto final del último bloque", "Cambiar
+'¿Querés...' por 'Querés...'", "No mandar la lista de precios; el lead
+sólo mostró interés en la tipología, proponé llamada directa").
+
 # Formato de salida
 
 Respondé **únicamente** con un JSON válido, sin texto antes ni después y sin

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
@@ -82,15 +82,19 @@ export async function POST(req: NextRequest) {
     content,
   });
 
-  // 5. Auto-trigger del worker (fire-and-forget). En local no corre el cron de
-  //    Vercel, asi que disparamos el procesamiento al toque. Se usa el origin
-  //    del request (robusto al puerto real en el que corre la app).
-  void fetch(`${req.nextUrl.origin}/api/jobs/process`, {
-    method: "POST",
-    headers: { "x-cron-secret": serverEnv().CRON_SECRET },
-  }).catch(() => {
-    // El cron lo levanta igual; no es critico si este disparo falla.
-  });
+  // 5. Auto-trigger del worker. Usamos `after()` de Next: la respuesta sale
+  //    enseguida (paso 6) pero Vercel mantiene viva la funcion hasta que el
+  //    fetch al worker se complete. Sin `after`, la instancia serverless
+  //    moria antes de que el fetch outbound llegara, dejando jobs en pending
+  //    hasta el proximo cron (diario por plan Hobby).
+  after(
+    fetch(`${req.nextUrl.origin}/api/jobs/process`, {
+      method: "POST",
+      headers: { "x-cron-secret": serverEnv().CRON_SECRET },
+    }).catch(() => {
+      // El cron lo levanta igual; no es critico si este disparo falla.
+    }),
+  );
 
   // 6. 200 OK inmediato.
   return NextResponse.json({ messageId: message.id, jobId: job.id }, { status: 200 });

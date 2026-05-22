@@ -42,11 +42,21 @@ export async function GET(req: Request) {
     });
   }
 
-  // Intento 1: spawn directo con --version
-  const versionResult = await runBinary(found, ["--version"]);
+  // Intento: spawn en modo non-interactive con prompt simple
+  const printResult = await runBinary(
+    found,
+    ["-p", "--output-format", "json", "decime hola en una palabra"],
+    { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
+    30000,
+  );
 
-  // Intento 2: spawn sin args para ver si dispara ayuda
-  const noargsResult = await runBinary(found, []);
+  // Intento: con --bare (modo minimal para entornos no estandar)
+  const bareResult = await runBinary(
+    found,
+    ["--bare", "-p", "--output-format", "json", "decime hola en una palabra"],
+    { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
+    30000,
+  );
 
   return NextResponse.json({
     binary: found,
@@ -55,14 +65,16 @@ export async function GET(req: Request) {
     arch: process.arch,
     env_has_anthropic_key: !!process.env.ANTHROPIC_API_KEY,
     env_path: process.env.PATH,
-    versionResult,
-    noargsResult,
+    printResult,
+    bareResult,
   });
 }
 
 async function runBinary(
   bin: string,
   args: string[],
+  extraEnv: Record<string, string | undefined> = {},
+  timeoutMs = 15000,
 ): Promise<{
   stdout: string;
   stderr: string;
@@ -75,7 +87,8 @@ async function runBinary(
     let stdout = "";
     let stderr = "";
     let resolved = false;
-    const child = spawn(bin, args, { timeout: 15000 });
+    const env = { ...process.env, ...extraEnv } as NodeJS.ProcessEnv;
+    const child = spawn(bin, args, { timeout: timeoutMs, env });
     child.stdout?.on("data", (d) => (stdout += d.toString()));
     child.stderr?.on("data", (d) => (stderr += d.toString()));
     child.on("error", (err) => {

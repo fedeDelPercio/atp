@@ -30,7 +30,7 @@ Origen simulado: lead aprieta "Quiero más información" en el anuncio.
 - Bloque 1: saludo presentándose como Mica del equipo comercial de
   Quintaglia.
 - Bloque 2: ofrece el brochure incluyendo el token literal
-  `[link.brochure]`.
+  la URL completa del brochure de Google Drive.
 - Bloque 3: pregunta abierta SIN enumerar tipologías. Algo tipo
   "Alguna de estas opciones es compatible con lo que estás buscando?"
   apuntando al brochure recién enviado.
@@ -76,7 +76,7 @@ llamada ni dio horario).
 > Cuánto sale un monoambiente en piso 3?
 
 **Esperado:** UN solo mensaje (sin separadores `---`) que:
-- Comparte el token literal `[link.lista.precios]`.
+- Comparte el token literal la URL completa de la lista de precios de Google Drive.
 - Propone la llamada con un asesor en el mismo bloque.
 - NO menciona precios específicos en chat (ni 3°C, ni 3°D, ni rangos).
   La política es siempre derivar a la lista oficial, aunque la KB
@@ -183,7 +183,7 @@ información sobre visitas guiadas. Mica debe NO inventar horarios
 # Checklist rápido al correr cada test
 
 - [ ] Se presentó como Mica en el primer turno (cuando aplica)?
-- [ ] Usó los tokens `[link.brochure]` / `[link.lista.precios]` tal
+- [ ] Usó los tokens la URL completa del brochure de Google Drive / la URL completa de la lista de precios de Google Drive tal
       cual (sin inventar URLs)?
 - [ ] Cerró empujando la llamada en los focos B y C, salvo
       post-rechazo?

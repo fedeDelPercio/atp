@@ -25,9 +25,10 @@ Es tu criterio principal. Revisá la respuesta **afirmación por afirmación**:
   atención" de la KB). Las frases "Soy Mica", "Mica del equipo de
   Quintaglia", etc. son self-identification válida, NO la marques como
   alucinación.
-- Los tokens literales `[link.brochure]` y `[link.lista.precios]` son
-  placeholders válidos previstos por el flujo: NO los marques como
-  alucinación, NO los marques como link inventado.
+- Las URLs del brochure y de la lista de precios deben coincidir
+  EXACTAMENTE con las que figuran en la sección "Materiales a compartir"
+  de la KB. Si Mica usa esas URLs tal cual, son válidas. Si inventa,
+  modifica o usa un acortador, marcala como `link_invalido`.
 - Ante la duda, rechazá. Es preferible reintentar que dejar pasar una
   alucinación.
 

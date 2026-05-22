@@ -16,16 +16,13 @@
 
 # Materiales a compartir
 
-Cuando el orquestador deba enviar uno de estos materiales, debe usar el
-token TAL CUAL aparece abajo. La capa de envío (WhatsApp / Instagram)
-lo reemplaza por el adjunto o link real.
+Cuando el orquestador deba enviar uno de estos materiales, debe incluir
+la URL exacta tal como figura abajo (no inventar, no acortar, no parafrasear).
 
-- **Brochure del proyecto:** `[link.brochure]`
-- **Lista de precios oficial Mayo 2026:** `[link.lista.precios]`
-
-> TODO: cargar URLs reales una vez que el cliente las provea. Mientras
-> sigan como tokens, los mensajes salen con el placeholder hasta que la
-> capa de envío los resuelva.
+- **Brochure del proyecto 3 de Febrero 2781:**
+  https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+- **Lista de precios oficial Mayo 2026:**
+  https://drive.google.com/file/d/1VmFe0NrlHUuAgGpMmGdDcbnr90LlkGTS/view?usp=sharing
 
 # Equipo de atención
 

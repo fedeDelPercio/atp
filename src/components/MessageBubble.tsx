@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronRight, Bell } from "lucide-react";
 import type { Message, CommentKind } from "@/lib/supabase/types";
 import type { ViewMode } from "@/lib/profile";
@@ -14,6 +14,53 @@ import { QuickCommentBubble } from "./QuickCommentBubble";
 
 // Burbuja de un mensaje. En vista avanzada, los mensajes del agente con trace
 // se pueden expandir para ver el detalle agentico.
+
+// Regex de URLs http(s) razonablemente conservador: matchea hasta el primer
+// caracter "raro" (espacio, parentesis, punto y aparte). Captura signos de
+// puntuacion comunes al final solo si vienen pegados.
+const URL_REGEX = /https?:\/\/[^\s<>()]+/g;
+
+/**
+ * Renderiza un texto convirtiendo URLs en <a> clickeables. Preserva el resto
+ * del contenido tal cual (incluye saltos de linea via whitespace-pre-wrap del
+ * contenedor). Para evitar links rotos por puntuacion final, recorta `.,;:!?)`
+ * trailing del match.
+ */
+function renderWithLinks(content: string, isUser: boolean): ReactNode {
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+  const linkClass = isUser
+    ? "underline underline-offset-2 hover:text-white"
+    : "text-violet-600 underline underline-offset-2 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300";
+
+  for (const match of content.matchAll(URL_REGEX)) {
+    const rawUrl = match[0];
+    const trimmed = rawUrl.replace(/[.,;:!?)\]]+$/, "");
+    const trailing = rawUrl.slice(trimmed.length);
+    const start = match.index ?? 0;
+    if (start > lastIndex) {
+      parts.push(content.slice(lastIndex, start));
+    }
+    parts.push(
+      <a
+        key={`url-${key++}`}
+        href={trimmed}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={linkClass}
+      >
+        {trimmed}
+      </a>,
+    );
+    if (trailing) parts.push(trailing);
+    lastIndex = start + rawUrl.length;
+  }
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : content;
+}
 
 export function MessageBubble({
   message,
@@ -89,13 +136,13 @@ export function MessageBubble({
       {isUser && reactionsCol}
       <div className="max-w-[85%] sm:max-w-[78%]">
         <div
-          className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+          className={`whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
             isUser
               ? "rounded-br-md bg-violet-600 text-white"
               : "rounded-bl-md border border-neutral-200 bg-white text-neutral-800 dark:border-neutral-700/70 dark:bg-neutral-800 dark:text-neutral-100"
           }`}
         >
-          {message.content}
+          {renderWithLinks(message.content, isUser)}
         </div>
 
         <div

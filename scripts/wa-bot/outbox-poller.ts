@@ -4,6 +4,13 @@
 // El panel encola mensajes humanos en wa_outbox cuando el operador escribe
 // desde el composer. El bot los toma y los envía. Si falla, incrementa
 // attempts y deja sent_at=null para reintento en el próximo tick.
+//
+// Salvaguardas (incidente del deploy productivo):
+//   - Si la sesión Baileys no está abierta (sock.user vacío), skip el batch
+//     entero. Sino sendMessage lanza "Cannot read properties of undefined".
+//   - Si attempts >= MAX_ATTEMPTS, marcamos sent_at con un error de
+//     "abandonado" para que no se reintente más. Evita loops infinitos
+//     cuando hay un mensaje envenenado (JID inválido, contenido roto, etc.).
 // ===========================================================================
 
 import type { WASocket } from "@whiskeysockets/baileys";
@@ -11,6 +18,7 @@ import { getSupabaseClient, getClientSlug } from "./supabase-client";
 
 const POLL_INTERVAL_MS = 2000;
 const BATCH_SIZE = 10;
+const MAX_ATTEMPTS = 10;
 
 let timer: NodeJS.Timeout | null = null;
 let inFlight = false;
@@ -38,6 +46,11 @@ export function stopOutboxPoller(): void {
 }
 
 async function processBatch(sock: WASocket): Promise<void> {
+  // Si el socket no está autenticado, no intentamos nada: Baileys lanza un
+  // TypeError críptico ("Cannot read properties of undefined (reading 'id')")
+  // que confunde más de lo que ayuda y suma attempts en falso.
+  if (!sock.user) return;
+
   const supabase = getSupabaseClient();
   const slug = getClientSlug();
   const { data: pending, error } = await supabase
@@ -70,12 +83,19 @@ async function processBatch(sock: WASocket): Promise<void> {
       console.log(`[bot] outbox → ${jid}: "${item.content.slice(0, 60)}"`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "error desconocido";
-      console.error(`[bot] outbox falló para ${item.phone}: ${message}`);
+      const nextAttempts = item.attempts + 1;
+      const abandoning = nextAttempts >= MAX_ATTEMPTS;
+      console.error(
+        `[bot] outbox falló para ${item.phone} (attempt ${nextAttempts}/${MAX_ATTEMPTS})${abandoning ? " — abandonando" : ""}: ${message}`,
+      );
       await supabase
         .from("wa_outbox")
         .update({
-          attempts: item.attempts + 1,
-          error: message,
+          attempts: nextAttempts,
+          error: abandoning ? `abandoned after ${MAX_ATTEMPTS} attempts: ${message}` : message,
+          // Marcar sent_at=now() para sacarlo del query. No es "enviado" de
+          // verdad, pero el error queda registrado.
+          sent_at: abandoning ? new Date().toISOString() : null,
         })
         .eq("id", item.id);
     }

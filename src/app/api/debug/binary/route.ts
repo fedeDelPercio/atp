@@ -42,21 +42,35 @@ export async function GET(req: Request) {
     });
   }
 
-  // Intento: spawn en modo non-interactive simple
-  const printResult = await runBinary(
+  // Intento 1: con --debug para ver logs verbose
+  const debugResult = await runBinary(
     found,
-    ["-p", "hola"],
+    ["--debug", "--bare", "-p", "hola"],
     { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
-    45000,
+    50000,
   );
 
-  // Intento: --bare modo minimal
-  const bareResult = await runBinary(
-    found,
-    ["--bare", "-p", "hola"],
-    { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
-    45000,
-  );
+  // Intento 2: test directo de la API key con curl-equivalente
+  let apiKeyTest = "no probado";
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: 10,
+        messages: [{ role: "user", content: "say hi" }],
+      }),
+    });
+    const text = await r.text();
+    apiKeyTest = `status=${r.status} body=${text.slice(0, 500)}`;
+  } catch (err) {
+    apiKeyTest = `error: ${err instanceof Error ? err.message : String(err)}`;
+  }
 
   return NextResponse.json({
     binary: found,
@@ -64,9 +78,10 @@ export async function GET(req: Request) {
     platform: process.platform,
     arch: process.arch,
     env_has_anthropic_key: !!process.env.ANTHROPIC_API_KEY,
+    env_key_prefix: (process.env.ANTHROPIC_API_KEY ?? "").slice(0, 15),
     env_path: process.env.PATH,
-    printResult,
-    bareResult,
+    apiKeyTest,
+    debugResult,
   });
 }
 

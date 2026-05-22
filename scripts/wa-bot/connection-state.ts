@@ -10,12 +10,14 @@
 import { getSupabaseClient, getClientSlug } from "./supabase-client";
 
 export type WaStatus = "disconnected" | "qr" | "connecting" | "connected";
+export type WaDefaultMode = "AI" | "HUMAN";
 
 export interface WaState {
   status: WaStatus;
   qr_string: string | null;
   phone: string | null;
   last_error: string | null;
+  default_mode: WaDefaultMode;
   updated_at: string;
 }
 
@@ -24,7 +26,7 @@ export async function getWaState(): Promise<WaState | null> {
   const slug = getClientSlug();
   const { data, error } = await supabase
     .from("wa_connection_state")
-    .select("status, qr_string, phone, last_error, updated_at")
+    .select("status, qr_string, phone, last_error, default_mode, updated_at")
     .eq("client_slug", slug)
     .maybeSingle();
   if (error) {

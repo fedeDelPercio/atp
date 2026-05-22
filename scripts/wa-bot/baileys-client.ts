@@ -135,7 +135,11 @@ export async function startBot(): Promise<BotHandle> {
   });
 
   sock.ev.on("messages.upsert", async (event) => {
-    if (event.type !== "notify") return;
+    console.log(`[bot] messages.upsert type=${event.type} count=${event.messages.length}`);
+    // 'notify' = mensaje nuevo en tiempo real.
+    // 'append' = mensaje que llegó durante una desconexión y aparece tras
+    //   reconnect (sucede tras code 515 / Stream Errored).
+    if (event.type !== "notify" && event.type !== "append") return;
     for (const msg of event.messages) {
       try {
         await handleIncomingMessages(sock, msg);
@@ -166,8 +170,9 @@ export async function startBot(): Promise<BotHandle> {
 function scheduleReconnect(code: number | null): void {
   if (reconnectTimer) return;
   // Code 440 = connectionReplaced. Si reintentamos muy rápido entramos en
-  // loop porque WhatsApp abre dos WS y kickea uno. Esperar 15s.
-  const delay = code === 440 ? 15000 : 5000;
+  // loop porque WhatsApp abre dos WS y kickea uno. Esperar 60s para bajar
+  // presión sobre la cuenta (anti-ban). Los demás casos: 5s.
+  const delay = code === 440 ? 60000 : 5000;
   console.log(`[bot] reconectando en ${delay / 1000}s...`);
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
@@ -186,7 +191,11 @@ function scheduleReconnect(code: number | null): void {
   }, delay);
 }
 
-/** Borra la sesión de auth y desconecta. El próximo start() pedirá QR nuevo. */
+/**
+ * Borra la sesión de auth, desconecta, y vuelve a arrancar el bot para
+ * generar un QR nuevo. Sin este re-arranque automático el panel quedaría
+ * esperando un QR que nunca llega tras un "Desconectar" desde la UI.
+ */
 export async function fullDisconnect(): Promise<void> {
   if (currentHandle) {
     try {
@@ -206,6 +215,12 @@ export async function fullDisconnect(): Promise<void> {
     phone: null,
     last_error: null,
   });
+
+  // Re-arranque diferido: damos 2s a WhatsApp para procesar el logout antes
+  // de que aparezca una nueva conexión pidiendo QR.
+  setTimeout(() => {
+    startBot().catch((err) => console.error("[bot] error re-arrancando tras disconnect:", err));
+  }, 2000);
 }
 
 export function getCurrentHandle(): BotHandle | null {

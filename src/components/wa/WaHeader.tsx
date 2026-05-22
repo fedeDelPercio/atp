@@ -1,21 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, LogOut, Loader2 } from "lucide-react";
+import { CheckCircle2, LogOut, Loader2, Bot, User } from "lucide-react";
+import toast from "react-hot-toast";
 
-// Header de la sección WhatsApp: muestra el número conectado y un botón
-// "Desconectar" con modal de confirmación. Al desconectar, llama a
-// /api/wa/connection/disconnect y el parent vuelve a renderizar el QR.
+// Header de la sección WhatsApp: muestra el número conectado, un toggle
+// "IA por defecto" (AI/HUMAN para conversaciones nuevas) y el botón
+// "Desconectar" con modal de confirmación.
+
+type DefaultMode = "AI" | "HUMAN";
 
 export function WaHeader({
   phone,
+  defaultMode,
+  onDefaultModeChange,
   onDisconnected,
 }: {
   phone: string;
+  defaultMode: DefaultMode;
+  onDefaultModeChange: (mode: DefaultMode) => void;
   onDisconnected: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [working, setWorking] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  async function handleToggleDefault() {
+    const next: DefaultMode = defaultMode === "AI" ? "HUMAN" : "AI";
+    setSwitching(true);
+    // Optimista.
+    onDefaultModeChange(next);
+    const r = await fetch("/api/wa/connection/default-mode", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: next }),
+    });
+    setSwitching(false);
+    if (!r.ok) {
+      toast.error("No se pudo cambiar el modo por defecto");
+      onDefaultModeChange(defaultMode); // revert
+    }
+  }
 
   async function handleDisconnect() {
     setWorking(true);
@@ -38,13 +63,36 @@ export function WaHeader({
             +{phone}
           </span>
         </div>
-        <button
-          onClick={() => setConfirming(true)}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-neutral-500 transition hover:bg-rose-50 hover:text-rose-600 dark:text-neutral-400 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Desconectar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleDefault}
+            disabled={switching}
+            title={
+              defaultMode === "AI"
+                ? "Chats nuevos arrancan con IA respondiendo"
+                : "Chats nuevos arrancan sin respuesta automática"
+            }
+            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium transition disabled:opacity-50 ${
+              defaultMode === "AI"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300"
+                : "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+            }`}
+          >
+            {defaultMode === "AI" ? (
+              <Bot className="h-3.5 w-3.5" />
+            ) : (
+              <User className="h-3.5 w-3.5" />
+            )}
+            Nuevos chats: {defaultMode === "AI" ? "IA" : "Humano"}
+          </button>
+          <button
+            onClick={() => setConfirming(true)}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-neutral-500 transition hover:bg-rose-50 hover:text-rose-600 dark:text-neutral-400 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Desconectar
+          </button>
+        </div>
       </div>
 
       {confirming && (

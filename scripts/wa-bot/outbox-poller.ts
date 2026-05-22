@@ -55,14 +55,19 @@ async function processBatch(sock: WASocket): Promise<void> {
   if (!pending || pending.length === 0) return;
 
   for (const item of pending) {
-    const jid = `${item.phone}@s.whatsapp.net`;
+    // El panel ya nos pasa el JID completo cuando la conv tiene wa_jid
+    // (acepta @lid o @s.whatsapp.net). Para encolados viejos sin sufijo,
+    // asumimos @s.whatsapp.net (número clásico).
+    const jid = item.phone.includes("@")
+      ? item.phone
+      : `${item.phone}@s.whatsapp.net`;
     try {
       await sock.sendMessage(jid, { text: item.content });
       await supabase
         .from("wa_outbox")
         .update({ sent_at: new Date().toISOString(), error: null })
         .eq("id", item.id);
-      console.log(`[bot] outbox → ${item.phone}: "${item.content.slice(0, 60)}"`);
+      console.log(`[bot] outbox → ${jid}: "${item.content.slice(0, 60)}"`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "error desconocido";
       console.error(`[bot] outbox falló para ${item.phone}: ${message}`);

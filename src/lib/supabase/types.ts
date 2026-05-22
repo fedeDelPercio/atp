@@ -30,6 +30,7 @@ export type Database = {
           display_name: string;
           source: string;
           external_id: string | null;
+          wa_jid: string | null;
           status: string;
           mode: string;
           created_by: string | null;
@@ -42,6 +43,7 @@ export type Database = {
           display_name: string;
           source?: string;
           external_id?: string | null;
+          wa_jid?: string | null;
           status?: string;
           mode?: string;
           created_by?: string | null;
@@ -54,6 +56,7 @@ export type Database = {
           display_name?: string;
           source?: string;
           external_id?: string | null;
+          wa_jid?: string | null;
           status?: string;
           mode?: string;
           created_by?: string | null;
@@ -103,6 +106,7 @@ export type Database = {
           qr_string: string | null;
           phone: string | null;
           last_error: string | null;
+          default_mode: string;
           updated_at: string;
         };
         Insert: {
@@ -111,6 +115,7 @@ export type Database = {
           qr_string?: string | null;
           phone?: string | null;
           last_error?: string | null;
+          default_mode?: string;
           updated_at?: string;
         };
         Update: {
@@ -119,6 +124,7 @@ export type Database = {
           qr_string?: string | null;
           phone?: string | null;
           last_error?: string | null;
+          default_mode?: string;
           updated_at?: string;
         };
         Relationships: [];

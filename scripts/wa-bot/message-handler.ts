@@ -13,11 +13,13 @@
 //      mensaje assistant, enviar cada uno por Baileys y marcar delivered_at.
 // ===========================================================================
 
-import type { WASocket, proto } from "@whiskeysockets/baileys";
+import { downloadMediaMessage, type WASocket, type proto } from "@whiskeysockets/baileys";
 
 import { runAgent } from "../../src/lib/agent/run";
 import type { HistoryMessage } from "../../src/lib/agent/types";
+import { transcribeAudio, TranscriptionError } from "../../src/lib/transcription";
 import { getSupabaseClient, getClientSlug } from "./supabase-client";
+import { getWaState } from "./connection-state";
 
 const HISTORY_LIMIT = 20;
 
@@ -25,30 +27,100 @@ export async function handleIncomingMessages(
   sock: WASocket,
   msg: proto.IWebMessageInfo,
 ): Promise<void> {
-  // === Filtros ===
-  if (!msg.key?.remoteJid) return;
-  if (msg.key.fromMe) return; // mensajes que sale del propio número
-  const remoteJid = msg.key.remoteJid;
-  if (remoteJid.endsWith("@g.us")) return; // grupos
-  if (remoteJid === "status@broadcast") return;
-  if (!remoteJid.endsWith("@s.whatsapp.net")) return; // no es 1:1
-
-  const text = extractText(msg);
-  if (!text) {
-    console.log(`[bot] ignoro msg sin texto (${remoteJid})`);
+  // === Filtros (con log para diagnóstico) ===
+  console.log(`[bot] msg.key=${JSON.stringify(msg.key)} pushName=${msg.pushName ?? "?"}`);
+  const jid = msg.key?.remoteJid ?? "(sin jid)";
+  if (!msg.key?.remoteJid) {
+    console.log(`[bot] descarto: sin remoteJid`);
     return;
+  }
+  if (msg.key.fromMe) {
+    console.log(`[bot] descarto fromMe → ${jid}`);
+    return;
+  }
+  const remoteJid = msg.key.remoteJid;
+  if (remoteJid.endsWith("@g.us")) {
+    console.log(`[bot] descarto grupo ${jid}`);
+    return;
+  }
+  if (remoteJid === "status@broadcast") {
+    console.log(`[bot] descarto status broadcast`);
+    return;
+  }
+  // @s.whatsapp.net = número clásico. @lid = "Linked ID", identificador
+  // opaco de privacidad que WhatsApp usa cuando no expone el phone real
+  // (típico cuando el remitente no está en contactos del receptor).
+  if (
+    !remoteJid.endsWith("@s.whatsapp.net") &&
+    !remoteJid.endsWith("@lid")
+  ) {
+    console.log(`[bot] descarto no 1:1 ${jid}`);
+    return;
+  }
+
+  let text = extractText(msg);
+  let transcribedFromAudio = false;
+
+  // Si no hay texto, intentar transcripción de audio (PTT o audioMessage).
+  if (!text) {
+    const audio = msg.message?.audioMessage;
+    if (audio) {
+      try {
+        console.log(`[bot] audio recibido de ${jid}, transcribiendo...`);
+        const buffer = (await downloadMediaMessage(
+          msg,
+          "buffer",
+          {},
+        )) as Buffer;
+        const mimetype = audio.mimetype ?? "audio/ogg";
+        text = await transcribeAudio(buffer, {
+          language: "es",
+          filename: "voice.ogg",
+          mimeType: mimetype,
+        });
+        transcribedFromAudio = true;
+        console.log(`[bot] audio transcripto (${text.length} chars): "${text.slice(0, 80)}"`);
+      } catch (err) {
+        const msg =
+          err instanceof TranscriptionError ? err.message : String(err);
+        console.error(`[bot] no se pudo transcribir audio de ${jid}: ${msg}`);
+        return;
+      }
+    }
+  }
+
+  if (!text) {
+    const kinds = Object.keys(msg.message ?? {}).join(",");
+    console.log(`[bot] ignoro msg sin texto (${jid}) kinds=[${kinds}]`);
+    return;
+  }
+
+  // Prefijo visual para distinguir audios en el panel.
+  if (transcribedFromAudio) {
+    text = `🎙️ ${text}`;
   }
 
   const phone = remoteJid.split("@")[0] ?? "";
   if (!phone) return;
   const pushName = msg.pushName ?? null;
+  const isLid = remoteJid.endsWith("@lid");
 
   console.log(`[bot] ← ${phone} (${pushName ?? "?"}): "${text.slice(0, 80)}"`);
 
   // === 2. Resolver conversación ===
   const supabase = getSupabaseClient();
   const slug = getClientSlug();
-  const conversationId = await getOrCreateConversation(phone, pushName, slug);
+  // Modo por defecto a aplicar si la conv no existe (account-level toggle).
+  const waState = await getWaState();
+  const defaultMode = waState?.default_mode === "AI" ? "AI" : "HUMAN";
+  const conversationId = await getOrCreateConversation(
+    phone,
+    pushName,
+    slug,
+    isLid,
+    remoteJid,
+    defaultMode,
+  );
   if (!conversationId) {
     console.error(`[bot] no se pudo resolver conversación para ${phone}`);
     return;
@@ -194,26 +266,41 @@ async function getOrCreateConversation(
   phone: string,
   pushName: string | null,
   slug: string,
+  isLid: boolean,
+  remoteJid: string,
+  defaultMode: "AI" | "HUMAN",
 ): Promise<string | null> {
   const supabase = getSupabaseClient();
   // Buscar por (client_slug, source, external_id).
   const { data: existing } = await supabase
     .from("conversations")
-    .select("id")
+    .select("id, wa_jid")
     .eq("client_slug", slug)
     .eq("source", "whatsapp")
     .eq("external_id", phone)
     .maybeSingle();
-  if (existing) return existing.id;
+  if (existing) {
+    // Backfill defensivo: si la conv es vieja y no tiene wa_jid, lo seteamos
+    // ahora que sabemos el JID completo del remitente.
+    if (!existing.wa_jid) {
+      await supabase
+        .from("conversations")
+        .update({ wa_jid: remoteJid })
+        .eq("id", existing.id);
+    }
+    return existing.id;
+  }
 
-  const displayName = pushName?.trim() || `+${phone}`;
+  // Si es LID no mostramos el ID como si fuera un teléfono.
+  const displayName = pushName?.trim() || (isLid ? "Contacto" : `+${phone}`);
   const { data: created, error } = await supabase
     .from("conversations")
     .insert({
       display_name: displayName,
       source: "whatsapp",
       external_id: phone,
-      mode: "AI",
+      wa_jid: remoteJid,
+      mode: defaultMode,
     })
     .select("id")
     .single();

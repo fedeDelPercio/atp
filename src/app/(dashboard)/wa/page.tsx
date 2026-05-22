@@ -14,18 +14,21 @@ import { WaHeader } from "@/components/wa/WaHeader";
 // Cuando se conecta, muestra header + lista de convs + panel.
 
 type WaStatus = "disconnected" | "qr" | "connecting" | "connected";
+type DefaultMode = "AI" | "HUMAN";
 
 interface StatusResponse {
   status: WaStatus;
   phone: string | null;
   qrPng: string | null;
   lastError: string | null;
+  defaultMode: DefaultMode;
   updatedAt: string;
 }
 
 export default function WaPage() {
   const [phase, setPhase] = useState<"loading" | "qr" | "connected">("loading");
   const [phone, setPhone] = useState<string | null>(null);
+  const [defaultMode, setDefaultMode] = useState<DefaultMode>("HUMAN");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,6 +38,7 @@ export default function WaPage() {
     try {
       const r = await fetch("/api/wa/connection/status", { cache: "no-store" });
       const json = (await r.json()) as StatusResponse;
+      setDefaultMode(json.defaultMode === "AI" ? "AI" : "HUMAN");
       if (json.status === "connected" && json.phone) {
         setPhone(json.phone);
         setPhase("connected");
@@ -73,6 +77,8 @@ export default function WaPage() {
     <div className="flex h-full flex-col">
       <WaHeader
         phone={phone}
+        defaultMode={defaultMode}
+        onDefaultModeChange={setDefaultMode}
         onDisconnected={() => {
           setPhone(null);
           setPhase("qr");

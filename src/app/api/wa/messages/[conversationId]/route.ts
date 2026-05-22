@@ -40,7 +40,7 @@ export async function POST(
   // Resolver la conversación para confirmar que es WhatsApp y obtener phone.
   const { data: conv, error: convErr } = await supabase
     .from("conversations")
-    .select("id, source, external_id")
+    .select("id, source, external_id, wa_jid")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -77,9 +77,12 @@ export async function POST(
   }
 
   // 2. Encolar para el bot.
+  // `phone` en outbox se usa como JID directo si tiene "@" — soporta @lid
+  // y @s.whatsapp.net. Para convs viejas sin wa_jid, fallback a digits.
+  const outboxPhone = conv.wa_jid ?? conv.external_id;
   const { error: outboxErr } = await supabase.from("wa_outbox").insert({
     conversation_id: conversationId,
-    phone: conv.external_id,
+    phone: outboxPhone,
     content,
   });
   if (outboxErr) {

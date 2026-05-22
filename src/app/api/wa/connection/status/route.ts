@@ -22,7 +22,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("wa_connection_state")
-    .select("status, qr_string, phone, last_error, updated_at")
+    .select("status, qr_string, phone, last_error, default_mode, updated_at")
     .eq("client_slug", slug)
     .maybeSingle();
 
@@ -35,6 +35,7 @@ export async function GET() {
       phone: null,
       qrPng: null,
       lastError: null,
+      defaultMode: "HUMAN",
       updatedAt: new Date().toISOString(),
     });
   }
@@ -56,6 +57,7 @@ export async function GET() {
     phone: data.phone,
     qrPng,
     lastError: data.last_error,
+    defaultMode: data.default_mode === "AI" ? "AI" : "HUMAN",
     updatedAt: data.updated_at,
   });
 }

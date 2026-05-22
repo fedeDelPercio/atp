@@ -124,11 +124,15 @@ export async function runOrchestrator(params: {
   let responseText = "";
   let usage: unknown = null;
 
+  const seenMessageTypes: string[] = [];
   try {
     for await (const message of query({
       prompt: buildTurnPrompt(params),
       options,
     })) {
+      seenMessageTypes.push(
+        message.type + (("subtype" in message) ? `:${(message as { subtype?: string }).subtype}` : ""),
+      );
       if (message.type === "result") {
         if (message.subtype === "success") {
           responseText = message.result;
@@ -140,6 +144,12 @@ export async function runOrchestrator(params: {
         }
       }
     }
+    console.log(
+      `[orchestrator] mensajes recibidos del SDK (${seenMessageTypes.length}): ${seenMessageTypes.join(", ")}`,
+    );
+    console.log(
+      `[orchestrator] responseText.length=${responseText.length}, primeros 200 chars: ${responseText.slice(0, 200)}`,
+    );
   } finally {
     clearTimeout(timeout);
   }

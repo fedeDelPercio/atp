@@ -90,13 +90,23 @@ export async function evaluateResponse(params: {
   let usage: unknown = null;
   let evaluation: EvaluationResult;
 
+  const seenMessageTypes: string[] = [];
   try {
     for await (const message of query({ prompt: promptData, options })) {
+      seenMessageTypes.push(
+        message.type + (("subtype" in message) ? `:${(message as { subtype?: string }).subtype}` : ""),
+      );
       if (message.type === "result" && message.subtype === "success") {
         rawText = message.result;
         usage = message.usage;
       }
     }
+    console.log(
+      `[evaluator] mensajes recibidos del SDK (${seenMessageTypes.length}): ${seenMessageTypes.join(", ")}`,
+    );
+    console.log(
+      `[evaluator] rawText.length=${rawText.length}, primeros 300 chars: ${rawText.slice(0, 300)}`,
+    );
     const parsed = evaluationSchema.parse(extractJson(rawText));
     evaluation = {
       pass: parsed.pass,

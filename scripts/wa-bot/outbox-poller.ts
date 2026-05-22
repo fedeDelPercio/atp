@@ -24,7 +24,14 @@ let timer: NodeJS.Timeout | null = null;
 let inFlight = false;
 
 export function startOutboxPoller(sock: WASocket): void {
-  if (timer) return;
+  // Si ya había un poller corriendo (de un sock anterior, ej. tras
+  // fullDisconnect→restart), lo paramos y rebindeamos al sock nuevo. Sino
+  // quedaría llamando sendMessage contra un socket cerrado y nada saldría.
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+    inFlight = false;
+  }
   console.log("[bot] outbox poller arrancado (cada 2s)");
   timer = setInterval(() => {
     if (inFlight) return;

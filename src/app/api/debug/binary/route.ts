@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // ===========================================================================
 // GET /api/debug/binary
@@ -42,20 +42,20 @@ export async function GET(req: Request) {
     });
   }
 
-  // Intento: spawn en modo non-interactive con prompt simple
+  // Intento: spawn en modo non-interactive simple
   const printResult = await runBinary(
     found,
-    ["-p", "--output-format", "json", "decime hola en una palabra"],
+    ["-p", "hola"],
     { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
-    30000,
+    45000,
   );
 
-  // Intento: con --bare (modo minimal para entornos no estandar)
+  // Intento: --bare modo minimal
   const bareResult = await runBinary(
     found,
-    ["--bare", "-p", "--output-format", "json", "decime hola en una palabra"],
+    ["--bare", "-p", "hola"],
     { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
-    30000,
+    45000,
   );
 
   return NextResponse.json({
@@ -88,7 +88,13 @@ async function runBinary(
     let stderr = "";
     let resolved = false;
     const env = { ...process.env, ...extraEnv } as NodeJS.ProcessEnv;
-    const child = spawn(bin, args, { timeout: timeoutMs, env });
+    const child = spawn(bin, args, {
+      timeout: timeoutMs,
+      env,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    // cerrar stdin para que el binario no espere input
+    child.stdin?.end();
     child.stdout?.on("data", (d) => (stdout += d.toString()));
     child.stderr?.on("data", (d) => (stderr += d.toString()));
     child.on("error", (err) => {

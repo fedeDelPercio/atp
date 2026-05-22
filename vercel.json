@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install && npm install --no-save --no-package-lock https://registry.npmjs.org/@anthropic-ai/claude-agent-sdk-linux-x64/-/claude-agent-sdk-linux-x64-0.3.143.tgz && ls -la node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/ && chmod +x node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude && ls -la node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+  "installCommand": "bash scripts/vercel-install.sh",
   "crons": [
     {
       "path": "/api/jobs/process",

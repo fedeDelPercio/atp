@@ -108,18 +108,21 @@ export function MessageBubble({
     setQuickKind(kind);
   }
 
-  const reactionsCol = (
+  // Las reacciones (tilde / cruz / nota) son herramientas internas del
+  // panel para que el equipo evalue las respuestas del agente. NO se
+  // muestran sobre los mensajes del cliente real — solo sobre los del
+  // asistente (y los del sistema, que ya tienen su propio render arriba).
+  const showReactions = isAgent;
+  const reactionsCol = showReactions ? (
     <MessageReactions state={state} onReact={handleReactInline} />
-  );
+  ) : null;
 
   // La quick-bubble se renderiza del lado del "borde libre" del mensaje:
-  // para mensajes del user (alineados a la derecha), la burbuja va a la
-  // IZQUIERDA de los iconos (mas lejos del bubble).
-  // Para mensajes del agente (alineados a la izquierda), va a la DERECHA.
-  const quickBubble = quickKind ? (
+  // para mensajes del agente (alineados a la izquierda), va a la DERECHA.
+  const quickBubble = showReactions && quickKind ? (
     <QuickCommentBubble
       kind={quickKind}
-      side={isUser ? "left" : "right"}
+      side="right"
       onSubmit={(content) => onAddNote(message.id, content)}
       onClose={() => setQuickKind(null)}
     />
@@ -132,8 +135,6 @@ export function MessageBubble({
         isUser ? "justify-end" : "justify-start"
       }`}
     >
-      {isUser && quickBubble}
-      {isUser && reactionsCol}
       <div className="max-w-[85%] sm:max-w-[78%]">
         <div
           className={`whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${

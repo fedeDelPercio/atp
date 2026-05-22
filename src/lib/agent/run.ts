@@ -27,11 +27,11 @@ import type { Json } from "@/lib/supabase/types";
 // No inserta nada en `messages`: de eso se encarga el worker de jobs.
 // ===========================================================================
 
-// Mensaje de cierre cuando no se logró una respuesta validada (no hay un
-// texto del agente confiable que usar).
-const HANDOFF_NOTICE =
-  "Dejame derivar tu consulta a un asesor del equipo, que se va a contactar " +
-  "con vos a la brevedad. ¡Gracias!";
+// Cuando la conversación se deriva al equipo NO se le manda ningún mensaje
+// al lead — la notificación interna al equipo es la señal y el humano va a
+// tomar el control. Antes mandábamos un mensaje de despedida, pero pollute
+// la experiencia del cliente final.
+const NO_REPLY_TO_LEAD = "";
 
 const FAILURE_NOTICE =
   "Disculpá, tuvimos un inconveniente para procesar tu mensaje. Reintentá en " +
@@ -142,10 +142,11 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         reason: orch.notification.reason,
         summary: orch.notification.summary,
       });
-      // Texto de despedida que escribió el propio orquestador.
+      // Derivación: no le mandamos nada al lead. La notificación interna
+      // ya fue registrada; el humano tomará la conversación.
       return {
         traceId,
-        assistantMessage: orch.responseText || HANDOFF_NOTICE,
+        assistantMessage: NO_REPLY_TO_LEAD,
         status: "escalated",
         escalationReason: category,
       };
@@ -208,7 +209,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   });
   return {
     traceId,
-    assistantMessage: HANDOFF_NOTICE,
+    assistantMessage: NO_REPLY_TO_LEAD,
     status: "escalated",
     escalationReason: category,
   };

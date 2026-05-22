@@ -133,21 +133,23 @@ async function processJob(job: AgentJob): Promise<void> {
 
   // El agente puede devolver varios mensajes cortos separados por una línea
   // con "---" (estilo mensajería). Se insertan como burbujas separadas.
+  // Si assistantMessage viene vacío (caso típico: derivación a humano sin
+  // respuesta al lead) NO se inserta ninguna burbuja del asistente — el
+  // cartel de notificación (más abajo) es la única señal visible.
   const segments = result.assistantMessage
     .split(/\n\s*---\s*\n/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const finalSegments = segments.length > 0 ? segments : [result.assistantMessage];
 
   let lastMessageId: string | null = null;
-  for (let i = 0; i < finalSegments.length; i++) {
-    const isLast = i === finalSegments.length - 1;
+  for (let i = 0; i < segments.length; i++) {
+    const isLast = i === segments.length - 1;
     const { data: msg } = await supabase
       .from("messages")
       .insert({
         conversation_id: job.conversation_id,
         role: "assistant",
-        content: finalSegments[i] ?? "",
+        content: segments[i] ?? "",
         // Solo el último mensaje del turno lleva el trace.
         trace_id: isLast ? result.traceId : null,
       })

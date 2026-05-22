@@ -15,6 +15,8 @@ import { Avatar } from "./Avatar";
 import { ViewToggle } from "./ViewToggle";
 import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
+import { ModeToggle } from "./wa/ModeToggle";
+import { HumanComposer } from "./wa/HumanComposer";
 import {
   EMPTY_REACTION,
   type MessageReactionState,
@@ -255,7 +257,9 @@ export function ConversationPanel({
               {conversation?.display_name ?? "…"}
             </p>
             <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
-              Conversación de prueba
+              {conversation?.source === "whatsapp"
+                ? `WhatsApp · +${conversation.external_id ?? "?"}`
+                : "Conversación de prueba"}
             </p>
           </div>
           <button
@@ -272,7 +276,30 @@ export function ConversationPanel({
             <MessageSquare className="h-4 w-4" />
           </button>
         </div>
-        <ViewToggle mode={viewMode} onChange={changeView} />
+        <div className="flex items-center gap-2">
+          {conversation?.source === "whatsapp" && (
+            <ModeToggle
+              mode={conversation.mode === "HUMAN" ? "HUMAN" : "AI"}
+              onChange={async (newMode) => {
+                // Optimistic update.
+                setConversation((c) => (c ? { ...c, mode: newMode } : c));
+                const r = await fetch(`/api/wa/mode/${conversationId}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ mode: newMode }),
+                });
+                if (!r.ok) {
+                  toast.error("No se pudo cambiar el modo");
+                  // Revertir.
+                  setConversation((c) =>
+                    c ? { ...c, mode: newMode === "AI" ? "HUMAN" : "AI" } : c,
+                  );
+                }
+              }}
+            />
+          )}
+          <ViewToggle mode={viewMode} onChange={changeView} />
+        </div>
       </div>
 
       {/* Mensajes */}
@@ -310,7 +337,14 @@ export function ConversationPanel({
         <div ref={bottomRef} />
       </div>
 
-      <MessageComposer conversationId={conversationId} />
+      {conversation?.source === "whatsapp" ? (
+        <HumanComposer
+          conversationId={conversationId}
+          mode={conversation.mode === "HUMAN" ? "HUMAN" : "AI"}
+        />
+      ) : (
+        <MessageComposer conversationId={conversationId} />
+      )}
     </div>
   );
 }

@@ -39,3 +39,7 @@ Thumbs.db
 # material crudo del cliente (brochures, PDFs, etc.) — la KB destilada
 # se commitea en src/lib/agent/prompts/knowledge-base.md
 /_kb-source/
+
+# Bot de WhatsApp (Baileys) — sesion auth y archivos runtime
+/auth/
+/data/

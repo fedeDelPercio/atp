@@ -3,11 +3,9 @@ import "server-only";
 // ===========================================================================
 // token-tracker.
 //
-// El Agent SDK no expone un hook de "fin de turno" con el uso de tokens. En
-// cambio, los mensajes del stream de query() traen `usage` (en los mensajes
-// `assistant`) y un total en el mensaje `result`. Este modulo normaliza ese
-// objeto `usage` a totales simples de entrada/salida, que run.ts acumula en
-// el trace.
+// Normaliza el objeto `usage` que devuelve `messages.create()` del SDK de
+// Anthropic a totales planos. Los tokens de cache (read + create) se
+// contabilizan como tokens de entrada para el costo total.
 // ===========================================================================
 
 export interface TokenTotals {

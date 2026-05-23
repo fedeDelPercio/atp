@@ -1,5 +1,5 @@
 // ===========================================================================
-// Rubric del evaluator (agente IBATH).
+// Rubric del evaluator.
 //
 // Los criterios estan aca como DATOS estructurados: documentan y permiten
 // validar los ids que el evaluator devuelve en `failedCriteria`. El "source

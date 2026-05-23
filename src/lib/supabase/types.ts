@@ -30,7 +30,9 @@ export type Database = {
           display_name: string;
           source: string;
           external_id: string | null;
+          wa_jid: string | null;
           status: string;
+          mode: string;
           created_by: string | null;
           client_slug: string;
           created_at: string;
@@ -41,7 +43,9 @@ export type Database = {
           display_name: string;
           source?: string;
           external_id?: string | null;
+          wa_jid?: string | null;
           status?: string;
+          mode?: string;
           created_by?: string | null;
           client_slug?: string;
           created_at?: string;
@@ -52,7 +56,9 @@ export type Database = {
           display_name?: string;
           source?: string;
           external_id?: string | null;
+          wa_jid?: string | null;
           status?: string;
+          mode?: string;
           created_by?: string | null;
           client_slug?: string;
           created_at?: string;
@@ -67,6 +73,7 @@ export type Database = {
           role: string;
           content: string;
           trace_id: string | null;
+          delivered_at: string | null;
           client_slug: string;
           created_at: string;
         };
@@ -76,6 +83,7 @@ export type Database = {
           role: string;
           content: string;
           trace_id?: string | null;
+          delivered_at?: string | null;
           client_slug?: string;
           created_at?: string;
         };
@@ -85,6 +93,73 @@ export type Database = {
           role?: string;
           content?: string;
           trace_id?: string | null;
+          delivered_at?: string | null;
+          client_slug?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      wa_connection_state: {
+        Row: {
+          client_slug: string;
+          status: string;
+          qr_string: string | null;
+          phone: string | null;
+          last_error: string | null;
+          default_mode: string;
+          updated_at: string;
+        };
+        Insert: {
+          client_slug?: string;
+          status?: string;
+          qr_string?: string | null;
+          phone?: string | null;
+          last_error?: string | null;
+          default_mode?: string;
+          updated_at?: string;
+        };
+        Update: {
+          client_slug?: string;
+          status?: string;
+          qr_string?: string | null;
+          phone?: string | null;
+          last_error?: string | null;
+          default_mode?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      wa_outbox: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          phone: string;
+          content: string;
+          sent_at: string | null;
+          error: string | null;
+          attempts: number;
+          client_slug: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          phone: string;
+          content: string;
+          sent_at?: string | null;
+          error?: string | null;
+          attempts?: number;
+          client_slug?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          phone?: string;
+          content?: string;
+          sent_at?: string | null;
+          error?: string | null;
+          attempts?: number;
           client_slug?: string;
           created_at?: string;
         };
@@ -407,10 +482,14 @@ export type Comment = Row<"comments">;
 export type AgentNotification = Row<"agent_notifications">;
 export type OutboundWebhook = Row<"outbound_webhooks">;
 export type OutboundWebhookDelivery = Row<"outbound_webhook_deliveries">;
+export type WaConnectionState = Row<"wa_connection_state">;
+export type WaOutbox = Row<"wa_outbox">;
 
 // Uniones de valores cerrados (los CHECK constraints del schema).
 export type ProfileRole = "dev" | "client";
 export type ConversationSource = "test" | "whatsapp";
+export type ConversationMode = "AI" | "HUMAN";
+export type WaConnectionStatus = "disconnected" | "qr" | "connecting" | "connected";
 export type MessageRole = "user" | "assistant" | "system" | "human";
 export type TraceStatus = "running" | "completed" | "escalated" | "failed";
 export type StepType = "orchestrator" | "subagent" | "tool" | "evaluator";
@@ -423,9 +502,10 @@ export type CommentTargetType = "conversation" | "message";
  */
 export type CommentKind = "positive" | "negative" | "note";
 export type Provider = "anthropic" | "openrouter";
-export type NotificationCategory =
-  | "arquitecto_desarrollador"
-  | "cantidad_equipos"
-  | "interes_compra"
-  | "cliente_existente"
-  | "fuera_de_conocimiento";
+/**
+ * Categoría de una notificación al equipo. Texto libre en snake_case: cada
+ * cliente define sus propias categorías en el prompt del orquestador. El
+ * worker tiene etiquetas legibles para las comunes y un fallback que
+ * humaniza el snake_case.
+ */
+export type NotificationCategory = string;

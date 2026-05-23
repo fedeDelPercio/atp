@@ -1,16 +1,18 @@
 import "server-only";
 
-import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 import { z } from "zod";
+
 import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getAnthropicClient } from "./llm-client";
 import { loadPrompt } from "./prompts";
 import { usageToTotals } from "./hooks/token-tracker";
 import type { EvaluationResult, HistoryMessage, RunContext } from "./types";
 import type { Json } from "@/lib/supabase/types";
 
 // ===========================================================================
-// Evaluator — portón de pre-envío (agente IBATH).
+// Evaluator — portón de pre-envío.
 //
 // Corre DESPUÉS de que el orquestador redacta pero ANTES de que el mensaje
 // llegue al cliente. Su trabajo principal y bloqueante es el GROUNDING: cada
@@ -19,9 +21,11 @@ import type { Json } from "@/lib/supabase/types";
 // regenera con el feedback. Si tras los reintentos no se logra una respuesta
 // aprobada, run.ts notifica al equipo (categoría fuera_de_conocimiento).
 //
-// El evaluator recibe la base de conocimiento para poder verificar grounding.
-// Es una sesión separada del SDK, sin tools, con el modelo barato (Haiku).
+// El evaluator usa `tool_choice` forzado sobre una tool ficticia
+// `evaluation_result`. Eso garantiza output estructurado sin parseo manual.
 // ===========================================================================
+
+const EVALUATOR_MAX_TOKENS = 512;
 
 const evaluationSchema = z.object({
   pass: z.boolean(),
@@ -29,15 +33,38 @@ const evaluationSchema = z.object({
   suggestion: z.string().nullable().default(null),
 });
 
-/** Extrae el primer objeto JSON de un texto (tolera markdown o texto extra). */
-function extractJson(text: string): unknown {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error("la respuesta del evaluator no contiene JSON");
-  }
-  return JSON.parse(text.slice(start, end + 1));
-}
+const EVALUATION_TOOL_NAME = "evaluation_result";
+
+const EVALUATION_TOOL_SCHEMA: Tool = {
+  name: EVALUATION_TOOL_NAME,
+  description:
+    "Reporta el resultado de la validación de la respuesta del asesor. " +
+    "Llamala SIEMPRE, esta es la única forma de devolver el veredicto.",
+  input_schema: {
+    type: "object",
+    properties: {
+      pass: {
+        type: "boolean",
+        description:
+          "true si la respuesta es válida (puede enviarse al cliente). " +
+          "false si rompe alguna regla (grounding, persona, etc.).",
+      },
+      failedCriteria: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "IDs de los criterios que falló (snake_case). Vacío si pass=true.",
+      },
+      suggestion: {
+        type: "string",
+        description:
+          "Si pass=false, qué tiene que corregir el orquestador en el " +
+          "próximo intento. Si pass=true, podés dejar string vacío.",
+      },
+    },
+    required: ["pass", "failedCriteria", "suggestion"],
+  },
+};
 
 /**
  * Valida una respuesta del orquestador. Nunca lanza: ante cualquier problema
@@ -57,7 +84,7 @@ export async function evaluateResponse(params: {
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), env.AGENT_TIMEOUT_MS);
 
-  const promptData = [
+  const userPrompt = [
     "Validá la siguiente respuesta del asesor ANTES de que llegue al cliente.",
     "",
     "=== Mensaje del cliente ===",
@@ -69,40 +96,43 @@ export async function evaluateResponse(params: {
     "=== BASE DE CONOCIMIENTO (única fuente válida para afirmaciones de producto) ===",
     loadPrompt("knowledge-base"),
     "",
-    'Respondé ÚNICAMENTE con el JSON: {"pass": boolean, "failedCriteria": string[], "suggestion": string|null}',
+    "Devolvé tu veredicto invocando la tool `evaluation_result`.",
   ].join("\n");
 
-  const options: Options = {
-    systemPrompt: loadPrompt("evaluator"),
-    model,
-    maxTurns: 2,
-    tools: [],
-    permissionMode: "bypassPermissions",
-    allowDangerouslySkipPermissions: true,
-    settingSources: [],
-    abortController,
-    includePartialMessages: false,
-  };
-
-  let rawText = "";
-  let usage: unknown = null;
   let evaluation: EvaluationResult;
+  let usage: unknown = null;
 
   try {
-    for await (const message of query({ prompt: promptData, options })) {
-      if (message.type === "result" && message.subtype === "success") {
-        rawText = message.result;
-        usage = message.usage;
-      }
+    const response = await getAnthropicClient().messages.create(
+      {
+        model,
+        max_tokens: EVALUATOR_MAX_TOKENS,
+        system: loadPrompt("evaluator"),
+        messages: [{ role: "user", content: userPrompt }],
+        tools: [EVALUATION_TOOL_SCHEMA],
+        tool_choice: { type: "tool", name: EVALUATION_TOOL_NAME },
+      },
+      { signal: abortController.signal },
+    );
+    usage = response.usage;
+
+    // Con tool_choice forzado siempre debería venir un bloque tool_use.
+    const toolBlock = response.content.find(
+      (b): b is Extract<typeof b, { type: "tool_use" }> =>
+        b.type === "tool_use" && b.name === EVALUATION_TOOL_NAME,
+    );
+    if (!toolBlock) {
+      throw new Error("el evaluator no invocó la tool evaluation_result");
     }
-    const parsed = evaluationSchema.parse(extractJson(rawText));
+
+    const parsed = evaluationSchema.parse(toolBlock.input);
     evaluation = {
       pass: parsed.pass,
       failedCriteria: parsed.failedCriteria,
-      suggestion: parsed.suggestion,
+      suggestion: parsed.suggestion === "" ? null : parsed.suggestion,
     };
   } catch (err) {
-    // Output malformado o error de la sesión: se trata como rechazo.
+    // Output malformado, abort, o cualquier error: se trata como rechazo.
     evaluation = {
       pass: false,
       failedCriteria: ["malformed_output"],

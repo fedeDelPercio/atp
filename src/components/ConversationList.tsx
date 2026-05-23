@@ -23,6 +23,10 @@ export function ConversationList({
   onDeleted,
   open,
   onClose,
+  sourceFilter,
+  hideNewButton = false,
+  emptyLabel,
+  title,
 }: {
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -31,6 +35,14 @@ export function ConversationList({
   onDeleted?: (id: string) => void;
   open: boolean;
   onClose: () => void;
+  /** Si se pasa, filtra por conversations.source (ej 'whatsapp'). */
+  sourceFilter?: "test" | "whatsapp";
+  /** En las secciones que no crean conversaciones manualmente (WhatsApp). */
+  hideNewButton?: boolean;
+  /** Texto a mostrar cuando no hay conversaciones. */
+  emptyLabel?: string;
+  /** Header de la columna. */
+  title?: string;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [previews, setPreviews] = useState<Record<string, Preview>>({});
@@ -41,10 +53,14 @@ export function ConversationList({
 
   const refetch = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
-    const { data: convs } = await supabase
+    const query = supabase
       .from("conversations")
       .select("*")
       .order("updated_at", { ascending: false });
+    if (sourceFilter) {
+      query.eq("source", sourceFilter);
+    }
+    const { data: convs } = await query;
     const list = convs ?? [];
     setConversations(list);
 
@@ -66,7 +82,7 @@ export function ConversationList({
       });
       setPreviews(map);
     }
-  }, []);
+  }, [sourceFilter]);
 
   useEffect(() => {
     void refetch();
@@ -138,28 +154,28 @@ export function ConversationList({
         <div className="flex items-center justify-between px-4 py-3.5">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-              Conversaciones
+              {title ?? "Conversaciones"}
             </h2>
             <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
               {conversations.length}
             </span>
           </div>
-          <button
-            onClick={() => setModalOpen(true)}
-            title="Nueva conversación de prueba"
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white transition hover:bg-violet-700"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          {!hideNewButton && (
+            <button
+              onClick={() => setModalOpen(true)}
+              title="Nueva conversación de prueba"
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white transition hover:bg-violet-700"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Lista */}
         <div className="scroll-thin flex-1 overflow-y-auto px-2 pb-2">
           {conversations.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-neutral-400 dark:text-neutral-500">
-              Todavía no hay conversaciones.
-              <br />
-              Creá la primera con el botón +.
+              {emptyLabel ?? "Todavía no hay conversaciones. Creá la primera con el botón +."}
             </p>
           ) : (
             <ul className="space-y-0.5">

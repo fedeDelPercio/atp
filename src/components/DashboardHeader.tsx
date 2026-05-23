@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChevronDown, MessagesSquare, Webhook, LogOut } from "lucide-react";
+import { ChevronDown, MessagesSquare, Webhook, LogOut, MessageCircle } from "lucide-react";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
 import { ThemeToggle } from "./ThemeToggle";
@@ -12,7 +12,8 @@ import { ThemeToggle } from "./ThemeToggle";
 // El tab "Webhooks" solo se muestra a perfiles con role 'dev'.
 
 const TABS = [
-  { href: "/conversations", label: "Conversaciones", icon: MessagesSquare, devOnly: false },
+  { href: "/conversations", label: "Testing", icon: MessagesSquare, devOnly: false },
+  { href: "/wa", label: "WhatsApp", icon: MessageCircle, devOnly: true },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, devOnly: true },
 ];
 

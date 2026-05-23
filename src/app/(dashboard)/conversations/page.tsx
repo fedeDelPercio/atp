@@ -23,10 +23,18 @@ export default function ConversationsPage() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         selectedId={selectedId}
+        sourceFilter="test"
+        title="Testing"
         onSelect={(id) => {
           setSelectedId(id);
           setCommentTarget(null);
           setSidebarOpen(false);
+        }}
+        onDeleted={(id) => {
+          if (selectedId === id) {
+            setSelectedId(null);
+            setCommentTarget(null);
+          }
         }}
       />
 

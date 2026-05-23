@@ -3,10 +3,11 @@
 import { Check, X, StickyNote } from "lucide-react";
 import type { CommentKind } from "@/lib/supabase/types";
 
-// Columna vertical de 3 acciones que se renderiza al costado de cada
-// MessageBubble. Las dos primeras (positive/negative) son toggle y
-// mutuamente excluyentes. La tercera (note) abre el panel de comentarios
-// para escribir una nota larga sobre el mensaje.
+// Fila horizontal de 3 acciones que se renderiza al costado de cada
+// MessageBubble del asistente. Las dos primeras (positive/negative) son
+// toggle y mutuamente excluyentes. La tercera (note) abre el panel de
+// comentarios para escribir una nota larga sobre el mensaje. Horizontal
+// para que la altura total no exceda la de la burbuja.
 
 export type MessageReactionState = {
   positiveCount: number;
@@ -30,7 +31,7 @@ export function MessageReactions({
   onReact: (kind: CommentKind) => void;
 }) {
   return (
-    <div className="flex shrink-0 flex-col items-center gap-0.5 self-center opacity-40 transition hover:opacity-100">
+    <div className="flex shrink-0 flex-row items-center gap-0.5 self-end pb-1 opacity-40 transition hover:opacity-100">
       <ReactionButton
         kind="positive"
         active={state.myKind === "positive"}

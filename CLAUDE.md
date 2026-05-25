@@ -194,6 +194,72 @@ recortar al simbolo/mark sin el wordmark.
 bg-neutral-900 dark:bg-neutral-50`). Solo las branches de cliente con marca
 propia introducen `BrandLogo`.
 
+### Splash de bienvenida (opcional, por-cliente)
+
+Pareado con `brand-logo.png`: pantalla negra full-screen con el logo
+centrado, se desmonta luego de ~1.6s. Mejora el efecto "wow" cuando el
+cliente abre el panel. Vive en `src/components/SplashScreen.tsx` (per-client,
+junto a `BrandLogo`) y se monta una vez en el root layout.
+
+```tsx
+// src/components/SplashScreen.tsx (per-client)
+"use client";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+
+type Phase = "loading" | "showing" | "fading" | "gone";
+
+export function SplashScreen() {
+  const [phase, setPhase] = useState<Phase>("loading");
+  useEffect(() => {
+    if (phase !== "showing") return;
+    const t1 = setTimeout(() => setPhase("fading"), 1100);
+    const t2 = setTimeout(() => setPhase("gone"), 1600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [phase]);
+  if (phase === "gone") return null;
+  return (
+    <div
+      aria-hidden
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-500 ease-in-out ${
+        phase !== "fading" ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    >
+      <Image
+        src="/brand-logo.png"
+        alt=""
+        width={2048}
+        height={574}
+        priority
+        onLoad={() => setPhase("showing")}
+        onError={() => setPhase("gone")}
+        className={`h-16 w-auto transition-opacity duration-500 ease-out sm:h-20 ${
+          phase === "showing" || phase === "fading" ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </div>
+  );
+}
+```
+
+En `src/app/layout.tsx` se monta arriba del `{children}`:
+
+```tsx
+<body className="font-sans">
+  <SplashScreen />
+  {children}
+  ...
+</body>
+```
+
+- Como Next.js no remonta el root layout durante navegaciones cliente, el
+  splash corre **solo en cargas completas** (primera visita, hard refresh).
+  No interrumpe el flujo normal del usuario.
+- El logo se anima con `transition-opacity`: fade-in (al cargar el PNG),
+  hold, fade-out del wrapper completo.
+- Si el PNG no existe (rama sin marca), `onError` corta al unmount inmediato
+  y el flash negro dura solo un instante.
+
 ### Iconos
 
 - Todos via `lucide-react`.

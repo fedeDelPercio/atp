@@ -41,14 +41,14 @@ export function ConfirmDeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
-            <AlertTriangle className="h-5 w-5" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-200 text-red-600 dark:border-red-500/30 dark:text-red-400">
+            <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.75} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+            <h2 className="text-[15px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
               {title}
             </h2>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="mt-1 text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400">
               {description}
             </p>
           </div>
@@ -57,16 +57,16 @@ export function ConfirmDeleteModal({
           <button
             onClick={onCancel}
             disabled={loading}
-            className="rounded-lg px-3 py-2 text-sm text-neutral-600 transition hover:bg-neutral-100 disabled:opacity-60 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            className="rounded-md px-3 py-2 text-[13px] text-neutral-600 transition hover:bg-neutral-100 disabled:opacity-60 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-md bg-red-600 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />}
             {confirmLabel}
           </button>
         </div>

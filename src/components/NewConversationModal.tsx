@@ -4,6 +4,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { Loader2, X } from "lucide-react";
 import { useProfile } from "./ProfileProvider";
+import { DateTimeField } from "./DateTimeField";
 
 // Modal para crear una conversación de prueba.
 // Además del nombre del cliente simulado, permite definir:
@@ -113,19 +114,15 @@ export function NewConversationModal({
           className="mt-1.5 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-neutral-600"
         />
 
-        {/* Día y hora simulados */}
-        <label className="mt-3 block text-[11.5px] font-medium text-neutral-700 dark:text-neutral-300">
-          Día y hora del mensaje
-        </label>
-        <input
-          type="datetime-local"
-          value={simulatedAt}
-          onChange={(e) => setSimulatedAt(e.target.value)}
-          className="mt-1.5 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600 dark:[color-scheme:dark]"
-        />
-        <p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-500">
-          El agente lo usa para decidir saludo y si está dentro o fuera de horario
-        </p>
+        {/* Día y hora simulados (popover propio, no datetime-local nativo) */}
+        <div className="mt-3">
+          <DateTimeField
+            value={simulatedAt}
+            onChange={setSimulatedAt}
+            label="Día y hora del mensaje"
+            helpText="El agente lo usa para decidir saludo y si está dentro o fuera de horario"
+          />
+        </div>
 
         {/* Cliente existente */}
         <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-md border border-neutral-200 bg-neutral-50/40 px-3 py-2.5 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900/60 dark:hover:border-neutral-700">

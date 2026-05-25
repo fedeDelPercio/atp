@@ -40,10 +40,11 @@ export function ConfirmDeleteModal({
         className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-5 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-200 text-red-600 dark:border-red-500/30 dark:text-red-400">
-            <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </div>
+        <div className="flex items-start gap-2.5">
+          <AlertTriangle
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500 dark:text-red-400"
+            strokeWidth={1.75}
+          />
           <div className="min-w-0 flex-1">
             <h2 className="text-[15px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
               {title}

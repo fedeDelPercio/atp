@@ -152,6 +152,48 @@ em dash, sin period final, sin caps lock. Ejemplo bueno:
 `Derivado al equipo: Cliente existente`. Ejemplo malo:
 `🔔 NOTIFICACIÓN AL EQUIPO — Cliente existente. La conversación fue derivada.`
 
+### Logo de cliente (brand-logo)
+
+Convencion: cada client branch deja **su** logo en `public/brand-logo.png`,
+formato horizontal, blanco con fondo transparente, sin padding interno. El
+header del dashboard lo renderiza al lado del titulo "Agentic Panel" con un
+componente `BrandLogo` (presente en la branch del cliente):
+
+```tsx
+// src/components/BrandLogo.tsx (per-client)
+import Image from "next/image";
+
+export function BrandLogo() {
+  return (
+    <Image
+      src="/brand-logo.png"
+      alt="iBath"
+      width={2048}
+      height={574}
+      priority
+      className="h-5 w-auto invert dark:invert-0"
+    />
+  );
+}
+```
+
+- `h-5` (20px) fija la altura para que entre en el header sin agrandarlo.
+  `w-auto` mantiene el aspect ratio del archivo.
+- `invert dark:invert-0` aprovecha que el PNG es blanco: en light mode se
+  invierte a negro, en dark mode queda blanco.
+- `width`/`height` reciben las dimensiones intrinsecas del archivo (next/image
+  los usa para reservar layout; el tamaño real lo decide el CSS).
+
+**Si pasan un logo nuevo:** descalarlo a un tamaño razonable (~200-500px de
+ancho) para no inflar el repo, dejarlo en `public/brand-logo.png`, y verificar
+que el aspect ratio funcione a `h-5`. Si el logo es muy alto/cuadrado, ajustar
+la altura via la prop `className` del componente. Si es muy ancho, considerar
+recortar al simbolo/mark sin el wordmark.
+
+**Default en main:** el dot neutro original (`h-1.5 w-1.5 rounded-full
+bg-neutral-900 dark:bg-neutral-50`). Solo las branches de cliente con marca
+propia introducen `BrandLogo`.
+
 ### Iconos
 
 - Todos via `lucide-react`.

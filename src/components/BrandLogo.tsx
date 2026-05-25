@@ -20,7 +20,7 @@ export function BrandLogo() {
       width={2048}
       height={574}
       priority
-      className="h-5 w-auto invert dark:invert-0"
+      className="h-6 w-auto invert dark:invert-0"
     />
   );
 }

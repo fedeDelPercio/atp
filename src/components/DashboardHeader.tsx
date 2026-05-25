@@ -33,6 +33,10 @@ export function DashboardHeader() {
           className="hidden items-center gap-2.5 py-4 text-[13px] font-medium tracking-tight-er text-neutral-900 transition hover:opacity-80 sm:flex dark:text-neutral-50"
         >
           <BrandLogo />
+          <span
+            aria-hidden
+            className="h-4 w-px bg-neutral-300 dark:bg-neutral-700"
+          />
           Agentic&nbsp;Panel
         </Link>
         <nav className="-mb-px flex items-center">

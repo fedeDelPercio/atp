@@ -13,10 +13,10 @@ import Image from "next/image";
 //
 // Timeline (desde que el logo carga):
 //   t=0       logo invisible (loading)
-//   t=0..500  logo fade in
-//   t=500..1100  hold
-//   t=1100..1600 wrapper fade out (logo se va con el)
-//   t=1600    unmount
+//   t=0..700  logo fade in
+//   t=700..1500  hold
+//   t=1500..2200 wrapper fade out (logo se va con el)
+//   t=2200    unmount
 
 type Phase = "loading" | "showing" | "fading" | "gone";
 
@@ -25,8 +25,8 @@ export function SplashScreen() {
 
   useEffect(() => {
     if (phase !== "showing") return;
-    const t1 = setTimeout(() => setPhase("fading"), 1100);
-    const t2 = setTimeout(() => setPhase("gone"), 1600);
+    const t1 = setTimeout(() => setPhase("fading"), 1500);
+    const t2 = setTimeout(() => setPhase("gone"), 2200);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -41,7 +41,7 @@ export function SplashScreen() {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-500 ease-in-out ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-700 ease-in-out ${
         wrapperVisible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
@@ -53,7 +53,7 @@ export function SplashScreen() {
         priority
         onLoad={() => setPhase("showing")}
         onError={() => setPhase("gone")}
-        className={`h-16 w-auto transition-opacity duration-500 ease-out sm:h-20 ${
+        className={`h-16 w-auto transition-opacity duration-700 ease-out sm:h-20 ${
           logoVisible ? "opacity-100" : "opacity-0"
         }`}
       />

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { UserPlus, Loader2, ChevronRight } from "lucide-react";
+import { UserPlus, Loader2, ChevronRight, X } from "lucide-react";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
 import type { Profile, ProfileRole } from "@/lib/supabase/types";
@@ -14,6 +14,10 @@ export function ProfileGate() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  // Cuando es true, el row "Crear perfil nuevo" se transforma en el form.
+  // En el estado inicial mostramos solo el row (estilo perfiles existentes)
+  // para que la pantalla quede mas calma y enfocada en elegir un perfil.
+  const [creatingMode, setCreatingMode] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<ProfileRole>("client");
 
@@ -48,6 +52,13 @@ export function ProfileGate() {
     } finally {
       setCreating(false);
     }
+  }
+
+  function cancelCreate() {
+    if (creating) return;
+    setCreatingMode(false);
+    setName("");
+    setRole("client");
   }
 
   return (
@@ -110,44 +121,84 @@ export function ProfileGate() {
         </div>
 
         <div className="mt-6 border-t border-neutral-200 pt-5 dark:border-neutral-800">
-          <p className="text-[12px] font-medium text-neutral-700 dark:text-neutral-300">
-            Crear perfil nuevo
-          </p>
-          <div className="mt-3 space-y-2.5">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Tu nombre"
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              {(["client", "dev"] as ProfileRole[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={`rounded-lg border px-3 py-2 text-[13px] transition ${
-                    role === r
-                      ? "border-neutral-900 bg-neutral-900 font-medium text-white dark:border-neutral-50 dark:bg-neutral-50 dark:text-neutral-950"
-                      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
-                  }`}
-                >
-                  {r === "dev" ? "Desarrollador" : "Cliente"}
-                </button>
-              ))}
-            </div>
+          {!creatingMode ? (
             <button
-              onClick={createProfile}
-              disabled={creating}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-neutral-900 px-3 py-2.5 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
+              onClick={() => setCreatingMode(true)}
+              className="group flex w-full items-center gap-3 rounded-lg border border-dashed border-neutral-300 px-3 py-2.5 text-left transition hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-900"
             >
-              {creating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
-              ) : (
-                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-              )}
-              Crear y entrar
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-neutral-300 text-neutral-500 transition group-hover:border-neutral-400 group-hover:text-neutral-700 dark:border-neutral-700 dark:text-neutral-400 dark:group-hover:border-neutral-600 dark:group-hover:text-neutral-200">
+                <UserPlus className="h-4 w-4" strokeWidth={1.75} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-neutral-900 dark:text-neutral-100">
+                  Crear perfil nuevo
+                </p>
+                <p className="mt-0.5 font-mono text-[10.5px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
+                  Nombre + rol
+                </p>
+              </div>
+              <ChevronRight
+                className="h-4 w-4 text-neutral-300 transition group-hover:text-neutral-700 dark:text-neutral-700 dark:group-hover:text-neutral-300"
+                strokeWidth={1.75}
+              />
             </button>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-[12px] font-medium text-neutral-700 dark:text-neutral-300">
+                  Crear perfil nuevo
+                </p>
+                <button
+                  onClick={cancelCreate}
+                  disabled={creating}
+                  className="rounded p-0.5 text-neutral-400 transition hover:text-neutral-700 disabled:opacity-40 dark:hover:text-neutral-300"
+                  aria-label="Cancelar"
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </button>
+              </div>
+              <div className="mt-3 space-y-2.5">
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void createProfile();
+                    if (e.key === "Escape") cancelCreate();
+                  }}
+                  placeholder="Tu nombre"
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  {(["client", "dev"] as ProfileRole[]).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRole(r)}
+                      className={`rounded-lg border px-3 py-2 text-[13px] transition ${
+                        role === r
+                          ? "border-neutral-900 bg-neutral-900 font-medium text-white dark:border-neutral-50 dark:bg-neutral-50 dark:text-neutral-950"
+                          : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
+                      }`}
+                    >
+                      {r === "dev" ? "Desarrollador" : "Cliente"}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={createProfile}
+                  disabled={creating}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-neutral-900 px-3 py-2.5 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
+                >
+                  {creating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  )}
+                  Crear y entrar
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

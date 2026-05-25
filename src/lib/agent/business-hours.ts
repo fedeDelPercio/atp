@@ -1,16 +1,15 @@
 // ===========================================================================
 // Contexto de horario comercial para el agente.
 //
-// Horario comercial por defecto: Lunes a Viernes, 9 a 20 hs, hora de
+// Horario comercial de iBath: Lunes a Viernes, 9 a 18 hs, hora de
 // Argentina. El orquestador recibe este contexto en cada corrida y decide,
-// segun su prompt, como ajustar la respuesta (ej: aclarar tiempos de
-// respuesta fuera de horario). Si el cliente necesita otro horario, ajustar
-// las constantes BUSINESS_START_HOUR / BUSINESS_END_HOUR.
+// segun su prompt, como ajustar la respuesta (identidad como "Santino" vs
+// "asistente de iBath", aviso de re-contacto al dia siguiente, etc).
 // ===========================================================================
 
 const TZ = "America/Argentina/Buenos_Aires";
 const BUSINESS_START_HOUR = 9;
-const BUSINESS_END_HOUR = 20; // exclusivo: 20:00 ya es fuera de horario
+const BUSINESS_END_HOUR = 18; // exclusivo: 18:00 ya es fuera de horario
 
 // Nombres tal cual los devuelve Intl con locale es-AR (con tildes).
 const WEEKDAYS = [
@@ -69,7 +68,7 @@ export function timeContextBlock(tc: TimeContext): string {
     "=== Contexto de horario ===",
     `Ahora es ${tc.dayName} ${tc.localTime} (hora de Argentina).`,
     tc.isBusinessHours
-      ? "Estás DENTRO del horario comercial (Lun a Vie, 9 a 20 hs)."
-      : "Estás FUERA del horario comercial (Lun a Vie, 9 a 20 hs).",
+      ? "Estás DENTRO del horario comercial (Lun a Vie, 9 a 18 hs)."
+      : "Estás FUERA del horario comercial (Lun a Vie, 9 a 18 hs).",
   ].join("\n");
 }

@@ -46,23 +46,24 @@ export default function ConversationsPage() {
           onOpenSidebar={() => setSidebarOpen(true)}
         />
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-neutral-50 p-6 text-center dark:bg-neutral-950">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300">
-            <MessagesSquare className="h-7 w-7" />
-          </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6 text-center dark:bg-neutral-950">
+          <MessagesSquare
+            className="h-8 w-8 text-neutral-900 dark:text-neutral-50"
+            strokeWidth={1.5}
+          />
           <div>
-            <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            <p className="text-[13px] font-medium text-neutral-900 dark:text-neutral-50">
               Ninguna conversación seleccionada
             </p>
-            <p className="mt-0.5 text-sm text-neutral-400 dark:text-neutral-500">
-              Elegí una de la lista o creá una nueva para empezar.
+            <p className="mt-1 text-[12px] text-neutral-500 dark:text-neutral-500">
+              Elegí una de la lista o creá una nueva para empezar
             </p>
           </div>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition hover:bg-neutral-100 md:hidden dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            className="flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-2 text-[13px] text-neutral-600 transition hover:border-neutral-300 hover:bg-neutral-50 md:hidden dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
           >
-            <Menu className="h-4 w-4" /> Ver conversaciones
+            <Menu className="h-3.5 w-3.5" strokeWidth={1.75} /> Ver conversaciones
           </button>
         </div>
       )}

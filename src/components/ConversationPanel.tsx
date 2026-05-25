@@ -319,6 +319,8 @@ export function ConversationPanel({
                 : "Conversación de prueba"}
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={() =>
               onOpenComments({
@@ -327,13 +329,11 @@ export function ConversationPanel({
                 label: conversation?.display_name ?? "conversación",
               })
             }
-            className="ml-1 shrink-0 rounded-md p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
+            className="rounded-md p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
             title="Comentarios de la conversación"
           >
             <MessageSquare className="h-4 w-4" strokeWidth={1.75} />
           </button>
-        </div>
-        <div className="flex items-center gap-2">
           {conversation?.source === "whatsapp" && (
             <ModeToggle
               mode={conversation.mode === "HUMAN" ? "HUMAN" : "AI"}

@@ -171,13 +171,13 @@ export function BrandLogo() {
       width={2048}
       height={574}
       priority
-      className="h-5 w-auto invert dark:invert-0"
+      className="h-6 w-auto invert dark:invert-0"
     />
   );
 }
 ```
 
-- `h-5` (20px) fija la altura para que entre en el header sin agrandarlo.
+- `h-6` (24px) fija la altura para que entre en el header sin agrandarlo.
   `w-auto` mantiene el aspect ratio del archivo.
 - `invert dark:invert-0` aprovecha que el PNG es blanco: en light mode se
   invierte a negro, en dark mode queda blanco.
@@ -213,15 +213,15 @@ export function SplashScreen() {
   const [phase, setPhase] = useState<Phase>("loading");
   useEffect(() => {
     if (phase !== "showing") return;
-    const t1 = setTimeout(() => setPhase("fading"), 1100);
-    const t2 = setTimeout(() => setPhase("gone"), 1600);
+    const t1 = setTimeout(() => setPhase("fading"), 1500);
+    const t2 = setTimeout(() => setPhase("gone"), 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [phase]);
   if (phase === "gone") return null;
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-500 ease-in-out ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-700 ease-in-out ${
         phase !== "fading" ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
@@ -233,7 +233,7 @@ export function SplashScreen() {
         priority
         onLoad={() => setPhase("showing")}
         onError={() => setPhase("gone")}
-        className={`h-16 w-auto transition-opacity duration-500 ease-out sm:h-20 ${
+        className={`h-16 w-auto transition-opacity duration-700 ease-out sm:h-20 ${
           phase === "showing" || phase === "fading" ? "opacity-100" : "opacity-0"
         }`}
       />

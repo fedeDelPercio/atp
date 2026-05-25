@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, MessagesSquare } from "lucide-react";
+import { Plus, X, MessagesSquare } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -239,9 +239,9 @@ export function ConversationList({
                       }}
                       title="Borrar conversación"
                       aria-label={`Borrar conversación ${c.display_name}`}
-                      className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+                      className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 opacity-0 transition hover:text-rose-500 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:text-rose-400"
                     >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                     </button>
                   </li>
                 );

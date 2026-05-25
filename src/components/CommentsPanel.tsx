@@ -248,6 +248,8 @@ export function CommentsPanel({
                 target.type === "conversation" && c.target_type === "message";
 
               // Reacciones: una linea compacta con el icono coloreado.
+              // Si la reaccion ademas trae content (el user dejo un comentario
+              // junto con el voto), lo renderizamos abajo como un bubble chico.
               if (c.kind === "positive" || c.kind === "negative") {
                 const isPositive = c.kind === "positive";
                 return (
@@ -286,6 +288,11 @@ export function CommentsPanel({
                           <XIcon className="h-3 w-3" strokeWidth={1.75} />
                         </button>
                       </div>
+                      {c.content && (
+                        <p className="mt-1 whitespace-pre-wrap rounded-md rounded-tl-sm bg-neutral-100 px-2.5 py-1.5 text-[13px] text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                          {c.content}
+                        </p>
+                      )}
                       {showsMessageContext && (
                         <MessageContext messageId={c.target_id} />
                       )}

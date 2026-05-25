@@ -104,17 +104,16 @@ export function ConversationPanel({
     [profile?.id],
   );
 
-  // Click en una reaccion (positive/negative) desde la columna inline.
-  // El MessageBubble se encarga ademas de abrir una burbuja chica al
-  // costado para que el usuario pueda escribir (opcional) el por que como
-  // nota. Esta funcion solo hace el toggle en la DB.
-  const handleReact = useCallback(
-    async (messageId: string, kind: CommentKind) => {
+  // Submit unificado de la QuickCommentBubble: el usuario eligio sentimiento
+  // (positive/negative/note=neutro) y opcionalmente escribio un comentario.
+  // El backend en /api/comments hace el upsert/toggle si corresponde
+  // (positive/negative son votos unicos por usuario; note acepta varias).
+  const handleSubmitReaction = useCallback(
+    async (messageId: string, kind: CommentKind, content: string | null) => {
       if (!profile) {
         toast.error("Necesitás un perfil para comentar.");
         return;
       }
-      if (kind === "note") return; // las notas se mandan via handleAddNote
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -123,39 +122,12 @@ export function ConversationPanel({
           target_id: messageId,
           author_id: profile.id,
           kind,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "No se pudo registrar la reacción");
-      }
-    },
-    [profile],
-  );
-
-  // Submit de la burbuja inline: guarda una nota de texto libre vinculada
-  // al mensaje. La burbuja en MessageBubble cierra y se actualiza via
-  // Realtime.
-  const handleAddNote = useCallback(
-    async (messageId: string, content: string) => {
-      if (!profile) {
-        toast.error("Necesitás un perfil para comentar.");
-        return;
-      }
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          target_type: "message",
-          target_id: messageId,
-          author_id: profile.id,
-          kind: "note",
           content,
         }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "No se pudo guardar la nota");
+        toast.error(data.error ?? "No se pudo registrar la reacción");
       }
     },
     [profile],
@@ -324,8 +296,7 @@ export function ConversationPanel({
               message={m}
               viewMode={viewMode}
               reactions={reactions[m.id]}
-              onReact={handleReact}
-              onAddNote={handleAddNote}
+              onSubmitReaction={handleSubmitReaction}
             />
           ))
         )}

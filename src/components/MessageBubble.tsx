@@ -66,21 +66,24 @@ export function MessageBubble({
   message,
   viewMode,
   reactions,
-  onReact,
-  onAddNote,
+  onSubmitReaction,
 }: {
   message: Message;
   viewMode: ViewMode;
   reactions?: MessageReactionState;
-  // Para positive/negative: toggle de reaccion. Para note: no hace nada en
-  // el parent (la nota se envia via onAddNote desde la quick-bubble).
-  onReact: (messageId: string, kind: CommentKind) => void;
-  onAddNote: (messageId: string, content: string) => Promise<void>;
+  // El usuario abre la burbuja y elige sentimiento (positivo/neutro/negativo)
+  // + texto opcional. La burbuja llama este callback unico con el kind ya
+  // resuelto y el content si es que escribio algo.
+  onSubmitReaction: (
+    messageId: string,
+    kind: CommentKind,
+    content: string | null,
+  ) => Promise<void>;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
-  // Cuando el usuario clickea una de las 3 reacciones, abrimos una burbuja
-  // chica al costado para que pueda (opcionalmente) escribir el por que.
-  const [quickKind, setQuickKind] = useState<CommentKind | null>(null);
+  // Al hacer click en el unico boton inline, abrimos la burbuja con el
+  // selector de sentimiento.
+  const [quickOpen, setQuickOpen] = useState(false);
   const state = reactions ?? EMPTY_REACTION;
 
   // Mensajes de sistema: el "cartel" de notificación al equipo.
@@ -99,32 +102,35 @@ export function MessageBubble({
   const isAgent = message.role === "assistant";
   const canExpand = viewMode === "advanced" && isAgent && Boolean(message.trace_id);
 
-  function handleReactInline(kind: CommentKind) {
-    // positive/negative: tambien hace toggle de la reaccion en el parent.
-    if (kind === "positive" || kind === "negative") {
-      onReact(message.id, kind);
-    }
-    // En todos los casos, abrimos la burbuja para nota opcional.
-    setQuickKind(kind);
-  }
-
-  // Las reacciones (tilde / cruz / nota) son herramientas internas del
-  // panel para que el equipo evalue las respuestas del agente. NO se
-  // muestran sobre los mensajes del cliente real — solo sobre los del
-  // asistente (y los del sistema, que ya tienen su propio render arriba).
+  // El boton inline solo abre la burbuja. La logica de elegir sentimiento y
+  // mandar comentario vive dentro de QuickCommentBubble.
+  // Las reacciones son herramientas internas del panel para que el equipo
+  // evalue las respuestas del agente. NO se muestran sobre los mensajes del
+  // cliente real — solo sobre los del asistente (los del sistema tienen su
+  // propio render arriba).
   const showReactions = isAgent;
   const reactionsCol = showReactions ? (
-    <MessageReactions state={state} onReact={handleReactInline} />
+    <MessageReactions state={state} onOpen={() => setQuickOpen(true)} />
   ) : null;
+
+  // Si el usuario ya tiene una reaccion positiva o negativa, la burbuja arranca
+  // con esa opcion preseleccionada. Note no se preselecciona (puede haber
+  // varias notas por mensaje).
+  const initialSentiment =
+    state.myKind === "positive"
+      ? "positive"
+      : state.myKind === "negative"
+        ? "negative"
+        : undefined;
 
   // La quick-bubble se renderiza del lado del "borde libre" del mensaje:
   // para mensajes del agente (alineados a la izquierda), va a la DERECHA.
-  const quickBubble = showReactions && quickKind ? (
+  const quickBubble = showReactions && quickOpen ? (
     <QuickCommentBubble
-      kind={quickKind}
       side="right"
-      onSubmit={(content) => onAddNote(message.id, content)}
-      onClose={() => setQuickKind(null)}
+      initialSentiment={initialSentiment}
+      onSubmit={(kind, content) => onSubmitReaction(message.id, kind, content)}
+      onClose={() => setQuickOpen(false)}
     />
   ) : null;
 

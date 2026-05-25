@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 import {
   X,
   ArrowUp,
-  Trash2,
   Loader2,
   Check,
   X as XIcon,
@@ -149,8 +148,22 @@ export function CommentsPanel({
   }
 
   async function remove(id: string) {
-    const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
-    if (!res.ok) toast.error("No se pudo borrar el comentario");
+    // Optimistic: sacamos del state inmediato para feedback rápido. Si la
+    // request falla, restauramos y mostramos toast. El realtime no es
+    // confiable solo (RLS, latencia), así que el optimistic da UX consistente.
+    const prev = comments;
+    setComments(prev.filter((c) => c.id !== id));
+    try {
+      const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setComments(prev);
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "No se pudo borrar el comentario");
+      }
+    } catch {
+      setComments(prev);
+      toast.error("Error de red al borrar");
+    }
   }
 
   // Scroll al mensaje al que apunta la entrada + highlight breve.
@@ -266,10 +279,11 @@ export function CommentsPanel({
                         </span>
                         <button
                           onClick={() => remove(c.id)}
-                          className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
+                          className="ml-auto text-neutral-300 opacity-0 transition hover:text-rose-500 group-hover:opacity-100 focus:opacity-100 dark:text-neutral-600 dark:hover:text-rose-400"
                           aria-label="Borrar reacción"
+                          title="Borrar reacción"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <XIcon className="h-3 w-3" strokeWidth={1.75} />
                         </button>
                       </div>
                       {showsMessageContext && (
@@ -296,9 +310,11 @@ export function CommentsPanel({
                       </span>
                       <button
                         onClick={() => remove(c.id)}
-                        className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 dark:text-neutral-600"
+                        className="ml-auto text-neutral-300 opacity-0 transition hover:text-rose-500 group-hover:opacity-100 focus:opacity-100 dark:text-neutral-600 dark:hover:text-rose-400"
+                        aria-label="Borrar comentario"
+                        title="Borrar comentario"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <XIcon className="h-3 w-3" strokeWidth={1.75} />
                       </button>
                     </div>
                     <p className="mt-0.5 whitespace-pre-wrap rounded-lg rounded-tl-sm bg-neutral-100 px-2.5 py-1.5 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">

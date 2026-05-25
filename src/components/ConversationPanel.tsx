@@ -32,13 +32,6 @@ export type CommentTarget = {
 // Panel de conversacion: mensajes + composer. Escucha Realtime para ver
 // aparecer la respuesta del agente y el indicador "Agente pensando…".
 
-// Recorta el contenido de un mensaje para usar como label en el CommentTarget
-// cuando se abre el panel de comentarios desde una burbuja.
-function snippet(content: string): string {
-  const trimmed = content.trim().replace(/\s+/g, " ");
-  return trimmed.length > 60 ? trimmed.slice(0, 60) + "…" : trimmed;
-}
-
 export function ConversationPanel({
   conversationId,
   onOpenComments,
@@ -112,12 +105,12 @@ export function ConversationPanel({
   );
 
   // Submit del menú compacto: el usuario eligió sentimiento
-  // (positive/negative/note=neutro). El backend hace toggle off si ya tenía
-  // ese mismo voto, reemplaza si tenía el opuesto, o inserta. Note acumula.
-  // El texto del comentario ahora vive en el CommentsPanel lateral (acción
-  // "Comentar" del menú), no en este flow.
+  // (positive/negative/note=neutro) y opcionalmente está agregando texto. El
+  // backend: si llega sin content para un positive/negative que ya existe,
+  // hace toggle off; si llega con content, actualiza el comment existente o
+  // crea uno nuevo. Note siempre acumula.
   const handleSubmitReaction = useCallback(
-    async (messageId: string, kind: CommentKind) => {
+    async (messageId: string, kind: CommentKind, content: string | null) => {
       if (!profile) {
         toast.error("Necesitás un perfil para comentar.");
         return;
@@ -130,6 +123,7 @@ export function ConversationPanel({
           target_id: messageId,
           author_id: profile.id,
           kind,
+          content,
         }),
       });
       if (!res.ok) {
@@ -304,13 +298,6 @@ export function ConversationPanel({
               viewMode={viewMode}
               reactions={reactions[m.id]}
               onSubmitReaction={handleSubmitReaction}
-              onOpenComments={() =>
-                onOpenComments({
-                  type: "message",
-                  id: m.id,
-                  label: snippet(m.content),
-                })
-              }
             />
           ))
         )}

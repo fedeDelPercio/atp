@@ -67,18 +67,19 @@ export function MessageBubble({
   viewMode,
   reactions,
   onSubmitReaction,
-  onOpenComments,
 }: {
   message: Message;
   viewMode: ViewMode;
   reactions?: MessageReactionState;
   // El usuario abre el menú y elige sentimiento (positivo/neutro/negativo).
-  // Para positive/negative, el backend hace toggle: si ya tenía ese voto
-  // lo borra, si tenía el opuesto lo reemplaza. Note acumula notas.
-  onSubmitReaction: (messageId: string, kind: CommentKind) => Promise<void>;
-  // Abre el CommentsPanel lateral apuntado a este mensaje. Lo dispara la
-  // opción "Comentar" del menú.
-  onOpenComments: () => void;
+  // Al elegir, se dispara con content=null (voto inmediato). Si después
+  // escribe un comentario y lo manda, se vuelve a llamar con content=texto
+  // y el backend actualiza el comment existente.
+  onSubmitReaction: (
+    messageId: string,
+    kind: CommentKind,
+    content: string | null,
+  ) => Promise<void>;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
   // Al hacer click en el unico boton inline, abrimos la burbuja con el
@@ -129,8 +130,7 @@ export function MessageBubble({
     <QuickCommentBubble
       side="right"
       currentSentiment={currentSentiment}
-      onSubmit={(kind) => onSubmitReaction(message.id, kind)}
-      onOpenComments={onOpenComments}
+      onSubmit={(kind, content) => onSubmitReaction(message.id, kind, content)}
       onClose={() => setQuickOpen(false)}
     />
   ) : null;

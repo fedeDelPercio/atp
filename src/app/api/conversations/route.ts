@@ -19,9 +19,14 @@ export async function GET() {
 const createSchema = z.object({
   display_name: z.string().min(1).max(120),
   created_by: z.string().uuid().nullable().optional(),
+  // Solo para source=test: simula el "ahora" del cliente y si ya está
+  // registrado en el CRM (Kommo). En producción, ambos campos los maneja la
+  // integración Kommo aparte.
+  simulated_timestamp: z.string().datetime({ offset: true }).nullable().optional(),
+  is_existing_customer: z.boolean().optional(),
 });
 
-// POST /api/conversations — crea una conversacion de prueba.
+// POST /api/conversations — crea una conversación de prueba.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -39,6 +44,8 @@ export async function POST(req: NextRequest) {
       display_name: parsed.data.display_name,
       source: "test",
       created_by: parsed.data.created_by ?? null,
+      simulated_timestamp: parsed.data.simulated_timestamp ?? null,
+      is_existing_customer: parsed.data.is_existing_customer ?? false,
     })
     .select("*")
     .single();

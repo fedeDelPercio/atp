@@ -32,7 +32,11 @@ import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 const ORCHESTRATOR_MAX_TOKENS = 2048;
 
 /** System prompt = instrucciones del asesor + base de conocimiento + contexto del turno. */
-function buildSystemPrompt(timeContext: TimeContext, customerMessageCount: number): string {
+function buildSystemPrompt(
+  timeContext: TimeContext,
+  customerMessageCount: number,
+  isExistingCustomer: boolean,
+): string {
   const sections = [
     loadPrompt("orchestrator"),
     "# BASE DE CONOCIMIENTO",
@@ -41,8 +45,29 @@ function buildSystemPrompt(timeContext: TimeContext, customerMessageCount: numbe
     `# Actividad del cliente\n\nEl cliente envió ${customerMessageCount} mensaje(s) en esta ` +
       `conversación (contando el actual). Usalo como guía para el disparador de interés ` +
       `de compra.`,
+    customerContextBlock(isExistingCustomer),
   ];
   return sections.join("\n\n");
+}
+
+/** Bloque con info de si el contacto ya está registrado en el CRM. */
+function customerContextBlock(isExisting: boolean): string {
+  if (isExisting) {
+    return [
+      "=== Estado del contacto ===",
+      "ATENCIÓN: el contacto YA ESTÁ REGISTRADO en nuestro CRM (Kommo).",
+      "Es un cliente existente, no un lead nuevo.",
+      "Disparador obligatorio: llamá a `notify_team` con",
+      "`category: \"cliente_existente\"` de inmediato, sin iniciar el flow",
+      "comercial de descubrimiento. En `summary` aclará que es un cliente",
+      "ya registrado que volvió a contactarse.",
+    ].join("\n");
+  }
+  return [
+    "=== Estado del contacto ===",
+    "El contacto NO está registrado en nuestro CRM. Tratalo como un lead",
+    "nuevo y seguí el flow comercial normal del orquestador.",
+  ].join("\n");
 }
 
 /** Mapea el historial de la conversación a mensajes API-compatibles. */
@@ -130,6 +155,7 @@ export async function runOrchestrator(params: {
   evaluatorFeedback: string | null;
   timeContext: TimeContext;
   customerMessageCount: number;
+  isExistingCustomer: boolean;
 }): Promise<OrchestratorResult> {
   const env = serverEnv();
   const { ctx } = params;
@@ -146,7 +172,11 @@ export async function runOrchestrator(params: {
       {
         model,
         max_tokens: ORCHESTRATOR_MAX_TOKENS,
-        system: buildSystemPrompt(params.timeContext, params.customerMessageCount),
+        system: buildSystemPrompt(
+          params.timeContext,
+          params.customerMessageCount,
+          params.isExistingCustomer,
+        ),
         messages: buildMessages(params),
         tools,
       },

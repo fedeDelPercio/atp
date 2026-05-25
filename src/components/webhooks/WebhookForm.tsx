@@ -61,40 +61,43 @@ export function WebhookForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const inputClass =
+    "rounded-md border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-neutral-600";
+
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+    <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <h3 className="text-[13px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
         Nuevo webhook saliente
       </h3>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nombre"
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-violet-400 dark:focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+          className={inputClass}
         />
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://… (URL destino)"
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-violet-400 dark:focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+          className={inputClass}
         />
       </div>
       <input
         value={secret}
         onChange={(e) => setSecret(e.target.value)}
         placeholder="Secret para firma HMAC (opcional)"
-        className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-violet-400 dark:focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+        className={`mt-2 w-full ${inputClass}`}
       />
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {EVENTS.map((ev) => (
           <button
             key={ev}
             onClick={() => toggleEvent(ev)}
-            className={`rounded-full border px-2.5 py-1 text-xs transition ${
+            className={`rounded-md border px-2 py-1 font-mono text-[11px] transition ${
               events.includes(ev)
-                ? "border-violet-400 bg-violet-50 font-medium text-violet-700 dark:border-violet-500/50 dark:bg-violet-500/10 dark:text-violet-300"
-                : "border-neutral-300 text-neutral-500 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400"
+                ? "border-neutral-900 bg-neutral-900 font-medium text-white dark:border-neutral-50 dark:bg-neutral-50 dark:text-neutral-950"
+                : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
             }`}
           >
             {ev}
@@ -104,9 +107,13 @@ export function WebhookForm({ onCreated }: { onCreated: () => void }) {
       <button
         onClick={submit}
         disabled={saving}
-        className="mt-4 flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-700 disabled:opacity-60"
+        className="mt-4 flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
       >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+        {saving ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+        ) : (
+          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+        )}
         Crear webhook
       </button>
     </div>

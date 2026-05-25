@@ -67,18 +67,18 @@ export function MessageBubble({
   viewMode,
   reactions,
   onSubmitReaction,
+  onOpenComments,
 }: {
   message: Message;
   viewMode: ViewMode;
   reactions?: MessageReactionState;
-  // El usuario abre la burbuja y elige sentimiento (positivo/neutro/negativo)
-  // + texto opcional. La burbuja llama este callback unico con el kind ya
-  // resuelto y el content si es que escribio algo.
-  onSubmitReaction: (
-    messageId: string,
-    kind: CommentKind,
-    content: string | null,
-  ) => Promise<void>;
+  // El usuario abre el menú y elige sentimiento (positivo/neutro/negativo).
+  // Para positive/negative, el backend hace toggle: si ya tenía ese voto
+  // lo borra, si tenía el opuesto lo reemplaza. Note acumula notas.
+  onSubmitReaction: (messageId: string, kind: CommentKind) => Promise<void>;
+  // Abre el CommentsPanel lateral apuntado a este mensaje. Lo dispara la
+  // opción "Comentar" del menú.
+  onOpenComments: () => void;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
   // Al hacer click en el unico boton inline, abrimos la burbuja con el
@@ -113,23 +113,24 @@ export function MessageBubble({
     <MessageReactions state={state} onOpen={() => setQuickOpen(true)} />
   ) : null;
 
-  // Si el usuario ya tiene una reaccion positiva o negativa, la burbuja arranca
-  // con esa opcion preseleccionada. Note no se preselecciona (puede haber
-  // varias notas por mensaje).
-  const initialSentiment =
+  // Si el usuario ya tiene un voto positivo o negativo, el item correspondiente
+  // del menú se resalta como "estado actual". Note no se preselecciona (puede
+  // haber varias notas por mensaje).
+  const currentSentiment =
     state.myKind === "positive"
       ? "positive"
       : state.myKind === "negative"
         ? "negative"
         : undefined;
 
-  // La quick-bubble se renderiza del lado del "borde libre" del mensaje:
-  // para mensajes del agente (alineados a la izquierda), va a la DERECHA.
+  // El menú se renderiza del lado del "borde libre" del mensaje: para mensajes
+  // del agente (alineados a la izquierda), va a la DERECHA.
   const quickBubble = showReactions && quickOpen ? (
     <QuickCommentBubble
       side="right"
-      initialSentiment={initialSentiment}
-      onSubmit={(kind, content) => onSubmitReaction(message.id, kind, content)}
+      currentSentiment={currentSentiment}
+      onSubmit={(kind) => onSubmitReaction(message.id, kind)}
+      onOpenComments={onOpenComments}
       onClose={() => setQuickOpen(false)}
     />
   ) : null;

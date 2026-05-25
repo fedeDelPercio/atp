@@ -89,11 +89,17 @@ export function QuickCommentBubble({
   }, [onClose]);
 
   async function pickSentiment(s: Sentiment) {
-    await onSubmit(SENTIMENT_TO_KIND[s]);
+    // Disparamos el voto y abrimos el panel de comentarios "en paralelo": el
+    // user puede dejar texto si quiere, o ignorar. Si el voto falla, el panel
+    // igual queda abierto (mostramos toast de error pero no bloqueamos el
+    // comentario).
+    void onSubmit(SENTIMENT_TO_KIND[s]);
+    onOpenComments();
     onClose();
   }
 
   function openCommentsPanel() {
+    // Atajo cuando el user solo quiere comentar sin votar.
     onOpenComments();
     onClose();
   }

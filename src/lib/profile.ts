@@ -5,8 +5,9 @@ import type { ProfileRole } from "@/lib/supabase/types";
 // ===========================================================================
 // Helpers de perfil (fase 1, sin auth real).
 //
-// El perfil activo se guarda en localStorage. Cada perfil ademas recuerda su
-// preferencia de vista (simple / avanzada).
+// El perfil activo se guarda en localStorage. El modo de vista (simple vs
+// avanzada) se deriva del role del profile en ConversationPanel — no se
+// persiste por perfil ni se elige manualmente.
 // ===========================================================================
 
 export interface StoredProfile {
@@ -18,7 +19,6 @@ export interface StoredProfile {
 export type ViewMode = "simple" | "advanced";
 
 const PROFILE_KEY = "atp.profile";
-const VIEW_KEY_PREFIX = "atp.view.";
 
 /** Devuelve el perfil activo guardado, o null si no hay. */
 export function getStoredProfile(): StoredProfile | null {
@@ -46,18 +46,4 @@ export function setStoredProfile(profile: StoredProfile): void {
 export function clearStoredProfile(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(PROFILE_KEY);
-}
-
-/** Devuelve la preferencia de vista del perfil (default: 'simple'). */
-export function getViewMode(profileId: string): ViewMode {
-  if (typeof window === "undefined") return "simple";
-  return window.localStorage.getItem(VIEW_KEY_PREFIX + profileId) === "advanced"
-    ? "advanced"
-    : "simple";
-}
-
-/** Persiste la preferencia de vista del perfil. */
-export function setViewMode(profileId: string, mode: ViewMode): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(VIEW_KEY_PREFIX + profileId, mode);
 }

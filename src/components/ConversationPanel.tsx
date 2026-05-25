@@ -5,14 +5,9 @@ import { MessageSquare, Loader2, Menu } from "lucide-react";
 import toast from "react-hot-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { CommentKind, Conversation, Message } from "@/lib/supabase/types";
-import {
-  getViewMode,
-  setViewMode as persistViewMode,
-  type ViewMode,
-} from "@/lib/profile";
+import type { ViewMode } from "@/lib/profile";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
-import { ViewToggle } from "./ViewToggle";
 import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
 import { ModeToggle } from "./wa/ModeToggle";
@@ -47,19 +42,12 @@ export function ConversationPanel({
   const [reactions, setReactions] = useState<Record<string, MessageReactionState>>(
     {},
   );
-  const [viewMode, setViewMode] = useState<ViewMode>("simple");
+  // viewMode se deriva del role: dev ve siempre la vista avanzada (con trace),
+  // el cliente ve la vista simple. Sin toggle: la elección es por rol.
+  const viewMode: ViewMode = profile?.role === "dev" ? "advanced" : "simple";
   const [thinking, setThinking] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (profile) setViewMode(getViewMode(profile.id));
-  }, [profile]);
-
-  function changeView(mode: ViewMode) {
-    setViewMode(mode);
-    if (profile) persistViewMode(profile.id, mode);
-  }
 
   const refreshThinking = useCallback(async () => {
     const { count } = await getSupabaseBrowserClient()
@@ -271,7 +259,6 @@ export function ConversationPanel({
               }}
             />
           )}
-          <ViewToggle mode={viewMode} onChange={changeView} />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
   Minus,
@@ -76,21 +76,6 @@ export function QuickCommentBubble({
   );
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Click afuera => cerrar.
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) onClose();
-    }
-    // Diferimos al siguiente tick para no capturar el click que abrió la burbuja.
-    const t = setTimeout(() => document.addEventListener("click", onDocClick), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener("click", onDocClick);
-    };
-  }, [onClose]);
 
   // ESC cierra.
   useEffect(() => {
@@ -134,27 +119,35 @@ export function QuickCommentBubble({
   // STEP 1: menú vertical de selección.
   if (!picked) {
     return (
-      <div
-        ref={ref}
-        className={`relative w-40 shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
-          side === "left" ? "mr-1" : "ml-1"
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {OPTIONS.map((opt) => {
-          const Icon = opt.Icon;
-          return (
-            <button
-              key={opt.id}
-              onClick={() => pickSentiment(opt.id)}
-              className={`flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left text-[12px] text-neutral-600 transition hover:bg-neutral-50 ${opt.hoverText} dark:text-neutral-400 dark:hover:bg-neutral-800/60`}
-            >
-              <Icon className="h-3 w-3 shrink-0" strokeWidth={2} />
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+      <>
+        {/* Overlay transparente fullscreen: captura el click-afuera para
+            cerrar la burbuja. Más confiable que un document listener
+            (no compite con el bubbling del click que dispara setPicked). */}
+        <div
+          className="fixed inset-0 z-30"
+          onClick={onClose}
+          aria-hidden
+        />
+        <div
+          className={`relative z-40 w-40 shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
+            side === "left" ? "mr-1" : "ml-1"
+          }`}
+        >
+          {OPTIONS.map((opt) => {
+            const Icon = opt.Icon;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => pickSentiment(opt.id)}
+                className={`flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left text-[12px] text-neutral-600 transition hover:bg-neutral-50 ${opt.hoverText} dark:text-neutral-400 dark:hover:bg-neutral-800/60`}
+              >
+                <Icon className="h-3 w-3 shrink-0" strokeWidth={2} />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </>
     );
   }
 
@@ -162,13 +155,13 @@ export function QuickCommentBubble({
   const opt = OPTIONS.find((o) => o.id === picked)!;
   const Icon = opt.Icon;
   return (
-    <div
-      ref={ref}
-      className={`relative w-64 shrink-0 rounded-md border border-neutral-200 bg-white p-2 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
-        side === "left" ? "mr-1" : "ml-1"
-      }`}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <>
+      <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden />
+      <div
+        className={`relative z-40 w-64 shrink-0 rounded-md border border-neutral-200 bg-white p-2 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
+          side === "left" ? "mr-1" : "ml-1"
+        }`}
+      >
       <div className="flex items-center justify-between gap-2 px-0.5">
         <button
           onClick={goBack}
@@ -217,6 +210,7 @@ export function QuickCommentBubble({
           )}
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

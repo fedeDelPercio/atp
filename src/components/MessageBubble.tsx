@@ -137,7 +137,7 @@ export function MessageBubble({
     >
       <div className="max-w-[85%] sm:max-w-[78%]">
         <div
-          className={`whitespace-pre-wrap break-words rounded-xl px-3.5 py-2.5 text-[13.5px] leading-relaxed ${
+          className={`whitespace-pre-wrap break-words rounded-lg px-3.5 py-2.5 text-[13.5px] leading-relaxed ${
             isUser
               ? "rounded-br-sm bg-neutral-900 text-white dark:bg-neutral-50 dark:text-neutral-950"
               : "rounded-bl-sm border border-neutral-200 bg-white text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"

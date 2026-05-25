@@ -71,7 +71,7 @@ export function QuickCommentBubble({
   return (
     <div
       ref={ref}
-      className={`relative w-60 shrink-0 rounded-xl border border-neutral-200 bg-white p-2.5 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
+      className={`relative w-60 shrink-0 rounded-lg border border-neutral-200 bg-white p-2.5 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
         side === "left" ? "mr-1" : "ml-1"
       }`}
       // Stop propagation no es estrictamente necesario porque el listener de

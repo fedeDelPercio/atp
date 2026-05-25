@@ -315,7 +315,7 @@ export function CommentsPanel({
         </div>
 
         <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
-          <div className="flex items-end gap-2 rounded-xl border border-neutral-200 bg-white p-1.5 pl-3 transition focus-within:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:focus-within:border-neutral-600">
+          <div className="flex items-end gap-2 rounded-lg border border-neutral-200 bg-white p-1.5 pl-3 transition focus-within:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:focus-within:border-neutral-600">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}

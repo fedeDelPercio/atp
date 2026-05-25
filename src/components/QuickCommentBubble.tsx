@@ -71,26 +71,26 @@ export function QuickCommentBubble({
   return (
     <div
       ref={ref}
-      className={`relative w-60 shrink-0 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-800 ${
+      className={`relative w-60 shrink-0 rounded-xl border border-neutral-200 bg-white p-2.5 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
         side === "left" ? "mr-1" : "ml-1"
       }`}
       // Stop propagation no es estrictamente necesario porque el listener de
-      // click-afuera ya excluye este nodo, pero ayuda con eventos sinteticos.
+      // click-afuera ya excluye este nodo, pero ayuda con eventos sintéticos.
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
+        <span className="text-[11px] font-medium tracking-tight-er text-neutral-700 dark:text-neutral-300">
           {label}
         </span>
         <button
           onClick={onClose}
-          className="rounded p-0.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
+          className="rounded p-0.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
           aria-label="Cerrar"
         >
-          <X className="h-3 w-3" />
+          <X className="h-3 w-3" strokeWidth={1.75} />
         </button>
       </div>
-      <div className="mt-1 flex items-end gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 p-1 dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="mt-1.5 flex items-end gap-1.5 rounded-lg border border-neutral-200 bg-white p-1 transition focus-within:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:focus-within:border-neutral-600">
         <textarea
           autoFocus
           value={text}
@@ -102,19 +102,19 @@ export function QuickCommentBubble({
             }
           }}
           rows={2}
-          placeholder="Escribí…"
-          className="scroll-thin max-h-24 min-h-[36px] flex-1 resize-none bg-transparent px-1.5 py-1 text-xs outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          placeholder="Escribí"
+          className="scroll-thin max-h-24 min-h-[36px] flex-1 resize-none bg-transparent px-1.5 py-1 text-[12px] outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <button
           onClick={send}
           disabled={sending || !text.trim()}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-600 text-white transition hover:bg-violet-700 disabled:opacity-40"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
           aria-label="Enviar nota"
         >
           {sending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
           ) : (
-            <ArrowUp className="h-3.5 w-3.5" />
+            <ArrowUp className="h-3.5 w-3.5" strokeWidth={2} />
           )}
         </button>
       </div>

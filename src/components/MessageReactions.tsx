@@ -73,22 +73,23 @@ function ReactionButton({
         ? "Marcar como negativo"
         : "Escribir una nota";
 
-  // Paleta segun el tipo.
+  // Paleta sutil por tipo. Positive y negative conservan color semántico
+  // (verde / rojo) pero con saturación baja. Note es neutral.
   const palette = {
     positive: {
-      activeBg: "bg-emerald-100 dark:bg-emerald-500/15",
-      activeText: "text-emerald-600 dark:text-emerald-400",
-      hoverText: "hover:text-emerald-600 dark:hover:text-emerald-400",
+      activeBg: "bg-emerald-50 dark:bg-emerald-500/10",
+      activeText: "text-emerald-700 dark:text-emerald-300",
+      hoverText: "hover:text-emerald-700 dark:hover:text-emerald-300",
     },
     negative: {
-      activeBg: "bg-rose-100 dark:bg-rose-500/15",
-      activeText: "text-rose-600 dark:text-rose-400",
-      hoverText: "hover:text-rose-600 dark:hover:text-rose-400",
+      activeBg: "bg-rose-50 dark:bg-rose-500/10",
+      activeText: "text-rose-700 dark:text-rose-300",
+      hoverText: "hover:text-rose-700 dark:hover:text-rose-300",
     },
     note: {
-      activeBg: "bg-violet-100 dark:bg-violet-500/15",
-      activeText: "text-violet-600 dark:text-violet-400",
-      hoverText: "hover:text-violet-600 dark:hover:text-violet-400",
+      activeBg: "bg-neutral-100 dark:bg-neutral-800",
+      activeText: "text-neutral-700 dark:text-neutral-200",
+      hoverText: "hover:text-neutral-700 dark:hover:text-neutral-200",
     },
   }[kind];
 

@@ -80,8 +80,8 @@ export function NewConversationModal({
           onKeyDown={(e) => {
             if (e.key === "Enter") void create();
           }}
-          placeholder='Ej: "Juan — busca 2 ambientes"'
-          className="mt-4 w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+          placeholder='Ej: "Juan, busca 2 ambientes"'
+          className="mt-4 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
         />
         <div className="mt-4 flex justify-end gap-2">
           <button
@@ -93,9 +93,9 @@ export function NewConversationModal({
           <button
             onClick={create}
             disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-violet-700 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
           >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />}
             Crear
           </button>
         </div>

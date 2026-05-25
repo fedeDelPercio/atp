@@ -9,17 +9,27 @@ import type { AgentTrace, AgentTraceStep } from "@/lib/supabase/types";
 // (steps del orquestador, subagentes, tools y evaluator) con sus metricas.
 
 const STATUS_STYLE: Record<string, string> = {
-  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  escalated: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
-  running: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300",
+  completed:
+    "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+  escalated:
+    "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
+  failed: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300",
+  running:
+    "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
 };
 
+// Tipos de step: paleta monocromática con una variante (evaluator) que sí
+// merece color por ser semánticamente "el revisor". El resto se distingue
+// por la tipografía mono uppercase, no por color saturado.
 const STEP_STYLE: Record<string, string> = {
-  orchestrator: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
-  subagent: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
-  tool: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300",
-  evaluator: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  orchestrator:
+    "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200",
+  subagent:
+    "bg-neutral-100 text-neutral-600 dark:bg-neutral-800/70 dark:text-neutral-300",
+  tool:
+    "bg-neutral-50 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400",
+  evaluator:
+    "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
 };
 
 export function MessageTrace({ traceId }: { traceId: string }) {
@@ -67,9 +77,9 @@ export function MessageTrace({ traceId }: { traceId: string }) {
   return (
     <div className="mt-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900">
       {/* Resumen */}
-      <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+      <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-neutral-500 dark:text-neutral-400">
         <span
-          className={`rounded-full px-2 py-0.5 font-medium ${
+          className={`rounded-full px-2 py-0.5 font-medium uppercase tracking-wide ${
             STATUS_STYLE[trace.status] ?? STATUS_STYLE.running
           }`}
         >
@@ -126,7 +136,7 @@ function StepRow({ step }: { step: AgentTraceStep }) {
           className={`h-3.5 w-3.5 shrink-0 text-neutral-400 transition ${open ? "rotate-90" : ""}`}
         />
         <span
-          className={`rounded px-1.5 py-0.5 font-medium ${
+          className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide ${
             STEP_STYLE[step.step_type] ?? STEP_STYLE.tool
           }`}
         >

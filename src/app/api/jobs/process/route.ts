@@ -166,14 +166,14 @@ async function processJob(job: AgentJob): Promise<void> {
   }
 
   // Si hubo notificación, se inserta un "cartel" de sistema visible en el panel.
+  // Mensaje sobrio (sin emoji, sin caps, sin em dash). El render le agrega el
+  // ícono y la chip — ver MessageBubble role==="system".
   if (result.status === "escalated") {
     const label = humanizeCategory(result.escalationReason ?? "Notificación");
     await supabase.from("messages").insert({
       conversation_id: job.conversation_id,
       role: "system",
-      content:
-        `🔔 NOTIFICACIÓN AL EQUIPO — ${label}. ` +
-        `La conversación fue derivada a un humano.`,
+      content: `Derivado al equipo: ${label}`,
     });
   }
 

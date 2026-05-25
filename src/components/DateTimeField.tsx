@@ -35,7 +35,7 @@ function parseLocal(s: string | null | undefined): Date {
   if (!date || !time) return new Date();
   const [y, m, d] = date.split("-").map(Number);
   const [hh, mm] = time.split(":").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0);
 }
 
 const WEEK_DAYS = ["L", "M", "M", "J", "V", "S", "D"];

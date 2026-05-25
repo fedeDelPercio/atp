@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import type { ConversationMode } from "@/lib/supabase/types";
 
-// Composer del modo HUMAN: input + boton enviar. Encola el mensaje en
+// Composer del modo HUMAN: textarea + botón enviar. Encola el mensaje en
 // /api/wa/messages/[id] (que escribe en wa_outbox); el bot lo envía via
 // Baileys en su próximo tick (~2s).
 //
@@ -52,29 +52,34 @@ export function HumanComposer({
 
   if (disabled) {
     return (
-      <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400">
+      <div className="border-t border-neutral-200 bg-white px-4 py-3 text-center text-[12px] text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500">
         Mica responde automáticamente. Cambiá a modo Humano para escribir vos.
       </div>
     );
   }
 
   return (
-    <div className="border-t border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex items-end gap-2">
+    <div className="border-t border-neutral-200 bg-white px-4 py-4 sm:px-8 sm:py-5 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="flex items-end gap-2 rounded-md border border-amber-200/70 bg-white p-1.5 pl-3.5 transition focus-within:border-amber-400 dark:border-amber-500/30 dark:bg-neutral-900 dark:focus-within:border-amber-400/70">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKey}
           rows={1}
-          placeholder="Escribí como humano del equipo..."
-          className="flex-1 resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 placeholder:text-neutral-400 focus:border-amber-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+          placeholder="Escribí como humano del equipo"
+          className="scroll-thin max-h-32 min-h-[36px] flex-1 resize-none self-center bg-transparent py-2 text-[13.5px] outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <button
           onClick={() => void send()}
           disabled={sending || !text.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white transition hover:bg-amber-600 disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-amber-500 text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Enviar como humano"
         >
-          <Send className="h-4 w-4" />
+          {sending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+          ) : (
+            <ArrowUp className="h-3.5 w-3.5" strokeWidth={2} />
+          )}
         </button>
       </div>
     </div>

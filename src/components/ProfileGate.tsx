@@ -51,26 +51,32 @@ export function ProfileGate() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-100 p-4 dark:bg-neutral-950">
-      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white">
-          <span className="text-lg font-bold">A</span>
+    <div className="flex min-h-screen items-center justify-center bg-white p-4 dark:bg-neutral-950">
+      <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-6 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-neutral-50"
+          />
+          <span className="text-[11px] font-mono uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
+            Agentic Panel
+          </span>
         </div>
-        <h1 className="mt-4 text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+        <h1 className="mt-5 text-[20px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
           ¿Quién sos?
         </h1>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="mt-1 text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
           Elegí tu perfil para entrar. Los comentarios y las conversaciones
           quedan firmados con él.
         </p>
 
-        <div className="mt-5">
+        <div className="mt-6">
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-neutral-400 dark:text-neutral-500">
-              <Loader2 className="h-4 w-4 animate-spin" /> Cargando perfiles…
+            <div className="flex items-center gap-2 text-[13px] text-neutral-500 dark:text-neutral-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} /> Cargando perfiles…
             </div>
           ) : profiles.length === 0 ? (
-            <p className="rounded-xl bg-neutral-50 px-3 py-4 text-center text-sm text-neutral-400 dark:bg-neutral-800/50 dark:text-neutral-500">
+            <p className="rounded-lg border border-dashed border-neutral-200 px-3 py-4 text-center text-[12px] text-neutral-500 dark:border-neutral-800 dark:text-neutral-500">
               Todavía no hay perfiles. Creá el primero abajo.
             </p>
           ) : (
@@ -81,18 +87,21 @@ export function ProfileGate() {
                     onClick={() =>
                       selectProfile({ id: p.id, name: p.name, role: p.role as ProfileRole })
                     }
-                    className="group flex w-full items-center gap-3 rounded-xl border border-neutral-200 px-3 py-2.5 text-left transition hover:border-violet-300 hover:bg-violet-50 dark:border-neutral-800 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10"
+                    className="group flex w-full items-center gap-3 rounded-lg border border-neutral-200 px-3 py-2.5 text-left transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
                   >
                     <Avatar name={p.name} size="md" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                      <p className="truncate text-[13px] font-medium text-neutral-900 dark:text-neutral-100">
                         {p.name}
                       </p>
-                      <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+                      <p className="mt-0.5 font-mono text-[10.5px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
                         {p.role === "dev" ? "Desarrollador" : "Cliente"}
                       </p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-300 transition group-hover:text-violet-500 dark:text-neutral-600" />
+                    <ChevronRight
+                      className="h-4 w-4 text-neutral-300 transition group-hover:text-neutral-700 dark:text-neutral-700 dark:group-hover:text-neutral-300"
+                      strokeWidth={1.75}
+                    />
                   </button>
                 </li>
               ))}
@@ -100,26 +109,26 @@ export function ProfileGate() {
           )}
         </div>
 
-        <div className="mt-6 border-t border-neutral-100 pt-5 dark:border-neutral-800">
-          <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        <div className="mt-6 border-t border-neutral-200 pt-5 dark:border-neutral-800">
+          <p className="text-[12px] font-medium text-neutral-700 dark:text-neutral-300">
             Crear perfil nuevo
           </p>
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-2.5">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Tu nombre"
-              className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
             />
             <div className="grid grid-cols-2 gap-2">
               {(["client", "dev"] as ProfileRole[]).map((r) => (
                 <button
                   key={r}
                   onClick={() => setRole(r)}
-                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  className={`rounded-lg border px-3 py-2 text-[13px] transition ${
                     role === r
-                      ? "border-violet-400 bg-violet-50 font-medium text-violet-700 dark:border-violet-500/50 dark:bg-violet-500/10 dark:text-violet-300"
-                      : "border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300"
+                      ? "border-neutral-900 bg-neutral-900 font-medium text-white dark:border-neutral-50 dark:bg-neutral-50 dark:text-neutral-950"
+                      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
                   }`}
                 >
                   {r === "dev" ? "Desarrollador" : "Cliente"}
@@ -129,12 +138,12 @@ export function ProfileGate() {
             <button
               onClick={createProfile}
               disabled={creating}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-violet-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-neutral-900 px-3 py-2.5 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
             >
               {creating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
               ) : (
-                <UserPlus className="h-4 w-4" />
+                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
               )}
               Crear y entrar
             </button>

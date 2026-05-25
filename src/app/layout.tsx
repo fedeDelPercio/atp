@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Agentic Testing Panel",
@@ -17,15 +16,17 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-// Script anti-flash: aplica el tema (dark/light) antes del primer paint,
-// según la preferencia guardada o, si no hay, la del sistema.
+// Script anti-flash: aplica el tema (dark/light) antes del primer paint.
+// Default: dark. Si el usuario eligió light explícitamente, lo respeta.
 const themeScript = `
 try {
   var t = localStorage.getItem('atp.theme');
-  if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  if (t !== 'light') {
     document.documentElement.classList.add('dark');
   }
-} catch (e) {}
+} catch (e) {
+  document.documentElement.classList.add('dark');
+}
 `;
 
 export default function RootLayout({
@@ -36,16 +37,26 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: el script de tema agrega la clase `dark` al
     // <html> antes de la hidratación; ese desajuste es intencional.
-    <html lang="es" suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">
         {children}
         <Toaster
           position="top-right"
           toastOptions={{
-            style: { fontSize: "13px", borderRadius: "10px" },
+            style: {
+              fontSize: "13px",
+              borderRadius: "10px",
+              background: "rgb(23 23 23)",
+              color: "rgb(245 245 245)",
+              border: "1px solid rgb(38 38 38)",
+            },
           }}
         />
       </body>

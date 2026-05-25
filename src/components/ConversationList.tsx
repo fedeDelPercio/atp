@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, X, MessagesSquare } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -12,7 +12,7 @@ import { Avatar } from "./Avatar";
 import { NewConversationModal } from "./NewConversationModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
-// Lista de conversaciones de prueba.
+// Lista de conversaciones (de prueba o WhatsApp según `sourceFilter`).
 // En desktop es una columna fija; en mobile es un drawer (open / onClose).
 
 type Preview = { content: string; role: string };
@@ -30,8 +30,8 @@ export function ConversationList({
 }: {
   selectedId: string | null;
   onSelect: (id: string) => void;
-  // Se llama tras borrar la conversacion (para que el parent limpie su
-  // seleccion si esa era la conversacion activa).
+  // Se llama tras borrar la conversación (para que el parent limpie su
+  // selección si esa era la conversación activa).
   onDeleted?: (id: string) => void;
   open: boolean;
   onClose: () => void;
@@ -47,7 +47,7 @@ export function ConversationList({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [previews, setPreviews] = useState<Record<string, Preview>>({});
   const [modalOpen, setModalOpen] = useState(false);
-  // Conversacion pendiente de confirmar borrado.
+  // Conversación pendiente de confirmar borrado.
   const [pendingDelete, setPendingDelete] = useState<Conversation | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -140,45 +140,56 @@ export function ConversationList({
     <>
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-neutral-900/40 md:hidden"
+          className="fixed inset-0 z-30 bg-neutral-900/40 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
 
       <div
-        className={`fixed inset-y-0 left-0 z-40 flex h-full w-72 shrink-0 flex-col border-r border-neutral-200 bg-white transition-transform duration-200 md:static md:z-auto md:translate-x-0 dark:border-neutral-800 dark:bg-neutral-900 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-full w-80 shrink-0 flex-col border-r border-neutral-200 bg-white transition-transform duration-200 md:static md:z-auto md:translate-x-0 dark:border-neutral-800 dark:bg-neutral-950 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Header de la columna */}
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div className="flex items-baseline gap-2.5">
+            <h2 className="text-[13px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
               {title ?? "Conversaciones"}
             </h2>
-            <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-              {conversations.length}
+            <span className="font-mono text-[11px] text-neutral-400 dark:text-neutral-500">
+              {conversations.length.toString().padStart(2, "0")}
             </span>
           </div>
           {!hideNewButton && (
             <button
               onClick={() => setModalOpen(true)}
               title="Nueva conversación de prueba"
-              className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white transition hover:bg-violet-700"
+              aria-label="Nueva conversación"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-600 transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
           )}
         </div>
 
         {/* Lista */}
-        <div className="scroll-thin flex-1 overflow-y-auto px-2 pb-2">
+        <div className="scroll-thin flex-1 overflow-y-auto px-2.5 pb-3">
           {conversations.length === 0 ? (
-            <p className="px-2 py-6 text-center text-sm text-neutral-400 dark:text-neutral-500">
-              {emptyLabel ?? "Todavía no hay conversaciones. Creá la primera con el botón +."}
-            </p>
+            <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 dark:border-neutral-800 dark:text-neutral-600">
+                <MessagesSquare className="h-4 w-4" strokeWidth={1.5} />
+              </div>
+              <p className="text-[13px] font-medium text-neutral-900 dark:text-neutral-200">
+                {emptyLabel ?? "Sin conversaciones todavía"}
+              </p>
+              {!hideNewButton && !emptyLabel && (
+                <p className="mt-1 text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-500">
+                  Creá la primera con el botón <span className="font-mono">+</span> de arriba a la derecha
+                </p>
+              )}
+            </div>
           ) : (
-            <ul className="space-y-0.5">
+            <ul className="space-y-px">
               {conversations.map((c) => {
                 const preview = previews[c.id];
                 const selected = selectedId === c.id;
@@ -186,37 +197,41 @@ export function ConversationList({
                   <li key={c.id} className="group relative">
                     <button
                       onClick={() => onSelect(c.id)}
-                      className={`flex w-full items-start gap-3 rounded-xl py-2.5 pl-2.5 pr-9 text-left transition ${
+                      className={`flex w-full items-start gap-3 rounded-md py-2.5 pl-3 pr-10 text-left transition ${
                         selected
-                          ? "bg-violet-50 dark:bg-violet-500/10"
-                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                          ? "bg-neutral-100 dark:bg-neutral-900"
+                          : "hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
                       }`}
                     >
+                      {selected && (
+                        <span
+                          aria-hidden
+                          className="absolute inset-y-2 left-0 w-px bg-neutral-900 dark:bg-neutral-50"
+                        />
+                      )}
                       <Avatar name={c.display_name} size="md" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                          <span className="truncate text-[13px] font-medium text-neutral-900 dark:text-neutral-100">
                             {c.display_name}
                           </span>
-                          <span className="ml-auto shrink-0 text-[11px] text-neutral-400 dark:text-neutral-500">
+                          <span className="ml-auto shrink-0 font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                             {formatDistanceToNow(new Date(c.updated_at), {
                               addSuffix: false,
                               locale: es,
                             })}
                           </span>
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-neutral-500 dark:text-neutral-400">
+                        <p className="mt-0.5 truncate text-[12px] text-neutral-500 dark:text-neutral-500">
                           {preview
-                            ? `${preview.role === "user" ? "Cliente: " : preview.role === "assistant" ? "Agente: " : ""}${preview.content}`
+                            ? `${preview.role === "user" ? "Cliente · " : preview.role === "assistant" ? "Agente · " : ""}${preview.content}`
                             : "Sin mensajes aún"}
                         </p>
                       </div>
                     </button>
-                    {/* Boton de borrar: posicionado en el espacio reservado
-                        a la derecha del item (pr-9 del boton de seleccion).
-                        Centrado vertical para no chocar con timestamp arriba
-                        ni con el preview abajo. Apagado (40%) en idle, full
-                        color al hover. */}
+                    {/* Botón de borrar: en el espacio reservado a la derecha
+                        (pr-10 del botón de selección). Apagado en idle, full
+                        opacity en hover del item o focus propio. */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -224,9 +239,9 @@ export function ConversationList({
                       }}
                       title="Borrar conversación"
                       aria-label={`Borrar conversación ${c.display_name}`}
-                      className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 opacity-40 transition hover:bg-rose-100 hover:text-rose-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
+                      className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 opacity-0 transition hover:text-rose-500 focus:opacity-100 group-hover:opacity-100 dark:text-neutral-500 dark:hover:text-rose-400"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                     </button>
                   </li>
                 );

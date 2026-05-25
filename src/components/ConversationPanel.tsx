@@ -5,14 +5,9 @@ import { MessageSquare, Loader2, Menu } from "lucide-react";
 import toast from "react-hot-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { CommentKind, Conversation, Message } from "@/lib/supabase/types";
-import {
-  getViewMode,
-  setViewMode as persistViewMode,
-  type ViewMode,
-} from "@/lib/profile";
+import type { ViewMode } from "@/lib/profile";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
-import { ViewToggle } from "./ViewToggle";
 import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
 import { ModeToggle } from "./wa/ModeToggle";
@@ -47,19 +42,12 @@ export function ConversationPanel({
   const [reactions, setReactions] = useState<Record<string, MessageReactionState>>(
     {},
   );
-  const [viewMode, setViewMode] = useState<ViewMode>("simple");
+  // viewMode se deriva del role: dev ve siempre la vista avanzada (con trace),
+  // el cliente ve la vista simple. Sin toggle: la elección es por rol.
+  const viewMode: ViewMode = profile?.role === "dev" ? "advanced" : "simple";
   const [thinking, setThinking] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (profile) setViewMode(getViewMode(profile.id));
-  }, [profile]);
-
-  function changeView(mode: ViewMode) {
-    setViewMode(mode);
-    if (profile) persistViewMode(profile.id, mode);
-  }
 
   const refreshThinking = useCallback(async () => {
     const { count } = await getSupabaseBrowserClient()
@@ -104,17 +92,17 @@ export function ConversationPanel({
     [profile?.id],
   );
 
-  // Click en una reaccion (positive/negative) desde la columna inline.
-  // El MessageBubble se encarga ademas de abrir una burbuja chica al
-  // costado para que el usuario pueda escribir (opcional) el por que como
-  // nota. Esta funcion solo hace el toggle en la DB.
-  const handleReact = useCallback(
-    async (messageId: string, kind: CommentKind) => {
+  // Submit del menú compacto: el usuario eligió sentimiento
+  // (positive/negative/note=neutro) y opcionalmente está agregando texto. El
+  // backend: si llega sin content para un positive/negative que ya existe,
+  // hace toggle off; si llega con content, actualiza el comment existente o
+  // crea uno nuevo. Note siempre acumula.
+  const handleSubmitReaction = useCallback(
+    async (messageId: string, kind: CommentKind, content: string | null) => {
       if (!profile) {
         toast.error("Necesitás un perfil para comentar.");
         return;
       }
-      if (kind === "note") return; // las notas se mandan via handleAddNote
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -123,39 +111,12 @@ export function ConversationPanel({
           target_id: messageId,
           author_id: profile.id,
           kind,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "No se pudo registrar la reacción");
-      }
-    },
-    [profile],
-  );
-
-  // Submit de la burbuja inline: guarda una nota de texto libre vinculada
-  // al mensaje. La burbuja en MessageBubble cierra y se actualiza via
-  // Realtime.
-  const handleAddNote = useCallback(
-    async (messageId: string, content: string) => {
-      if (!profile) {
-        toast.error("Necesitás un perfil para comentar.");
-        return;
-      }
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          target_type: "message",
-          target_id: messageId,
-          author_id: profile.id,
-          kind: "note",
           content,
         }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "No se pudo guardar la nota");
+        toast.error(data.error ?? "No se pudo registrar la reacción");
       }
     },
     [profile],
@@ -240,23 +201,23 @@ export function ConversationPanel({
   }, [messages, thinking]);
 
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col bg-neutral-50 dark:bg-neutral-950">
+    <div className="flex h-full min-w-0 flex-1 flex-col bg-white dark:bg-neutral-950">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 py-2.5 sm:px-4 dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-neutral-200 bg-white/80 px-4 py-3.5 backdrop-blur sm:px-6 dark:border-neutral-800 dark:bg-neutral-950/80">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onOpenSidebar}
-            className="-ml-1 rounded-lg p-1.5 text-neutral-500 transition hover:bg-neutral-100 md:hidden dark:text-neutral-400 dark:hover:bg-neutral-800"
+            className="-ml-1 rounded-md p-1.5 text-neutral-500 transition hover:bg-neutral-100 md:hidden dark:text-neutral-400 dark:hover:bg-neutral-900"
             aria-label="Ver conversaciones"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" strokeWidth={1.75} />
           </button>
           {conversation && <Avatar name={conversation.display_name} size="sm" />}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+            <p className="truncate text-[13px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
               {conversation?.display_name ?? "…"}
             </p>
-            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+            <p className="mt-0.5 font-mono text-[10.5px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
               {conversation?.source === "whatsapp"
                 ? `WhatsApp · +${conversation.external_id ?? "?"}`
                 : "Conversación de prueba"}
@@ -270,10 +231,10 @@ export function ConversationPanel({
                 label: conversation?.display_name ?? "conversación",
               })
             }
-            className="shrink-0 rounded-lg p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+            className="ml-1 shrink-0 rounded-md p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
             title="Comentarios de la conversación"
           >
-            <MessageSquare className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" strokeWidth={1.75} />
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -298,20 +259,24 @@ export function ConversationPanel({
               }}
             />
           )}
-          <ViewToggle mode={viewMode} onChange={changeView} />
         </div>
       </div>
 
       {/* Mensajes */}
-      <div className="scroll-thin flex-1 space-y-2.5 overflow-y-auto px-3 py-4 sm:px-6">
+      <div className="scroll-thin flex-1 space-y-3 overflow-y-auto px-4 py-6 sm:px-8">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-neutral-400 dark:text-neutral-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+          <div className="flex items-center gap-2 text-[13px] text-neutral-500 dark:text-neutral-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} /> Cargando…
           </div>
         ) : messages.length === 0 ? (
-          <p className="py-10 text-center text-sm text-neutral-400 dark:text-neutral-500">
-            Sin mensajes. Escribí el primero desde abajo.
-          </p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-[13px] font-medium text-neutral-700 dark:text-neutral-300">
+              Sin mensajes todavía
+            </p>
+            <p className="mt-1 text-[12px] text-neutral-500 dark:text-neutral-500">
+              Escribí el primero desde abajo para arrancar la prueba
+            </p>
+          </div>
         ) : (
           messages.map((m) => (
             <MessageBubble
@@ -319,19 +284,18 @@ export function ConversationPanel({
               message={m}
               viewMode={viewMode}
               reactions={reactions[m.id]}
-              onReact={handleReact}
-              onAddNote={handleAddNote}
+              onSubmitReaction={handleSubmitReaction}
             />
           ))
         )}
         {thinking && (
-          <div className="flex items-center gap-2 px-1 text-xs text-neutral-400 dark:text-neutral-500">
+          <div className="flex items-center gap-2 px-1 text-[12px] text-neutral-500 dark:text-neutral-500">
             <span className="flex gap-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-400 [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-400 [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-400" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-neutral-400 dark:bg-neutral-500 [animation-delay:-0.3s]" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-neutral-400 dark:bg-neutral-500 [animation-delay:-0.15s]" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-neutral-400 dark:bg-neutral-500" />
             </span>
-            El agente está escribiendo…
+            El agente está escribiendo
           </div>
         )}
         <div ref={bottomRef} />

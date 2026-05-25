@@ -31,8 +31,8 @@ function renderWithLinks(content: string, isUser: boolean): ReactNode {
   let lastIndex = 0;
   let key = 0;
   const linkClass = isUser
-    ? "underline underline-offset-2 hover:text-white"
-    : "text-violet-600 underline underline-offset-2 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300";
+    ? "underline underline-offset-2 decoration-1 opacity-90 hover:opacity-100"
+    : "underline underline-offset-2 decoration-1 text-neutral-900 hover:decoration-2 dark:text-neutral-50";
 
   for (const match of content.matchAll(URL_REGEX)) {
     const rawUrl = match[0];
@@ -66,29 +66,33 @@ export function MessageBubble({
   message,
   viewMode,
   reactions,
-  onReact,
-  onAddNote,
+  onSubmitReaction,
 }: {
   message: Message;
   viewMode: ViewMode;
   reactions?: MessageReactionState;
-  // Para positive/negative: toggle de reaccion. Para note: no hace nada en
-  // el parent (la nota se envia via onAddNote desde la quick-bubble).
-  onReact: (messageId: string, kind: CommentKind) => void;
-  onAddNote: (messageId: string, content: string) => Promise<void>;
+  // El usuario abre el menú y elige sentimiento (positivo/neutro/negativo).
+  // Al elegir, se dispara con content=null (voto inmediato). Si después
+  // escribe un comentario y lo manda, se vuelve a llamar con content=texto
+  // y el backend actualiza el comment existente.
+  onSubmitReaction: (
+    messageId: string,
+    kind: CommentKind,
+    content: string | null,
+  ) => Promise<void>;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
-  // Cuando el usuario clickea una de las 3 reacciones, abrimos una burbuja
-  // chica al costado para que pueda (opcionalmente) escribir el por que.
-  const [quickKind, setQuickKind] = useState<CommentKind | null>(null);
+  // Al hacer click en el unico boton inline, abrimos la burbuja con el
+  // selector de sentimiento.
+  const [quickOpen, setQuickOpen] = useState(false);
   const state = reactions ?? EMPTY_REACTION;
 
   // Mensajes de sistema: el "cartel" de notificación al equipo.
   if (message.role === "system") {
     return (
-      <div className="flex justify-center py-1">
-        <div className="flex max-w-[92%] items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-          <Bell className="h-3.5 w-3.5 shrink-0" />
+      <div className="flex justify-center py-2">
+        <div className="flex max-w-[92%] items-center gap-2 rounded-full border border-amber-200/70 bg-amber-50/60 px-3.5 py-1.5 text-[11.5px] font-medium tracking-tight-er text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/[0.04] dark:text-amber-300/90">
+          <Bell className="h-3 w-3 shrink-0" strokeWidth={1.75} />
           <span>{message.content}</span>
         </div>
       </div>
@@ -99,55 +103,58 @@ export function MessageBubble({
   const isAgent = message.role === "assistant";
   const canExpand = viewMode === "advanced" && isAgent && Boolean(message.trace_id);
 
-  function handleReactInline(kind: CommentKind) {
-    // positive/negative: tambien hace toggle de la reaccion en el parent.
-    if (kind === "positive" || kind === "negative") {
-      onReact(message.id, kind);
-    }
-    // En todos los casos, abrimos la burbuja para nota opcional.
-    setQuickKind(kind);
-  }
-
-  // Las reacciones (tilde / cruz / nota) son herramientas internas del
-  // panel para que el equipo evalue las respuestas del agente. NO se
-  // muestran sobre los mensajes del cliente real — solo sobre los del
-  // asistente (y los del sistema, que ya tienen su propio render arriba).
+  // El boton inline solo abre la burbuja. La logica de elegir sentimiento y
+  // mandar comentario vive dentro de QuickCommentBubble.
+  // Las reacciones son herramientas internas del panel para que el equipo
+  // evalue las respuestas del agente. NO se muestran sobre los mensajes del
+  // cliente real — solo sobre los del asistente (los del sistema tienen su
+  // propio render arriba).
   const showReactions = isAgent;
   const reactionsCol = showReactions ? (
-    <MessageReactions state={state} onReact={handleReactInline} />
+    <MessageReactions state={state} onOpen={() => setQuickOpen(true)} />
   ) : null;
 
-  // La quick-bubble se renderiza del lado del "borde libre" del mensaje:
-  // para mensajes del agente (alineados a la izquierda), va a la DERECHA.
-  const quickBubble = showReactions && quickKind ? (
+  // Si el usuario ya tiene un voto positivo o negativo, el item correspondiente
+  // del menú se resalta como "estado actual". Note no se preselecciona (puede
+  // haber varias notas por mensaje).
+  const currentSentiment =
+    state.myKind === "positive"
+      ? "positive"
+      : state.myKind === "negative"
+        ? "negative"
+        : undefined;
+
+  // El menú se renderiza del lado del "borde libre" del mensaje: para mensajes
+  // del agente (alineados a la izquierda), va a la DERECHA.
+  const quickBubble = showReactions && quickOpen ? (
     <QuickCommentBubble
-      kind={quickKind}
       side="right"
-      onSubmit={(content) => onAddNote(message.id, content)}
-      onClose={() => setQuickKind(null)}
+      currentSentiment={currentSentiment}
+      onSubmit={(kind, content) => onSubmitReaction(message.id, kind, content)}
+      onClose={() => setQuickOpen(false)}
     />
   ) : null;
 
   return (
     <div
       id={`message-${message.id}`}
-      className={`flex items-end gap-1 rounded-2xl px-1 py-0.5 ${
+      className={`flex items-end gap-1 px-1 py-0.5 ${
         isUser ? "justify-end" : "justify-start"
       }`}
     >
       <div className="max-w-[85%] sm:max-w-[78%]">
         <div
-          className={`whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+          className={`whitespace-pre-wrap break-words rounded-md px-3.5 py-2.5 text-[13.5px] leading-relaxed ${
             isUser
-              ? "rounded-br-md bg-violet-600 text-white"
-              : "rounded-bl-md border border-neutral-200 bg-white text-neutral-800 dark:border-neutral-700/70 dark:bg-neutral-800 dark:text-neutral-100"
+              ? "rounded-br-sm bg-neutral-900 text-white dark:bg-neutral-50 dark:text-neutral-950"
+              : "rounded-bl-sm border border-neutral-200 bg-white text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
           }`}
         >
           {renderWithLinks(message.content, isUser)}
         </div>
 
         <div
-          className={`mt-1 flex items-center gap-2 px-1 text-[11px] text-neutral-400 dark:text-neutral-500 ${
+          className={`mt-1 flex items-center gap-2 px-1 font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500 ${
             isUser ? "justify-end" : "justify-start"
           }`}
         >
@@ -161,10 +168,11 @@ export function MessageBubble({
           {canExpand && (
             <button
               onClick={() => setTraceOpen((v) => !v)}
-              className="flex items-center gap-0.5 transition hover:text-violet-600 dark:hover:text-violet-400"
+              className="flex items-center gap-0.5 transition hover:text-neutral-700 dark:hover:text-neutral-200"
             >
               <ChevronRight
                 className={`h-3 w-3 transition ${traceOpen ? "rotate-90" : ""}`}
+                strokeWidth={1.75}
               />
               trace
             </button>

@@ -1,43 +1,81 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { X, ArrowUp, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Check,
+  Minus,
+  X,
+  ArrowUp,
+  ArrowLeft,
+  Loader2,
+} from "lucide-react";
 import type { CommentKind } from "@/lib/supabase/types";
 
-// Burbuja inline que aparece al costado del bubble de un mensaje cuando el
-// usuario clickea una reaccion o el icono de nota. Permite agregar
-// (opcionalmente) un texto que se guarda como nota vinculada al mensaje.
-// Si se cierra sin escribir, la reaccion previa (positive/negative) queda
-// igual; la nota es opcional.
+// Burbuja con dos pasos dentro del mismo recuadro:
+// 1. Menú vertical compacto: elegir Positivo / Neutro / Negativo.
+// 2. Tras elegir: header con back + sentimiento + cerrar, textarea opcional
+//    y send. El voto se dispara apenas se elige (sin esperar texto), así si
+//    el usuario cierra sin escribir, el voto igual queda guardado.
+
+type Sentiment = "positive" | "neutral" | "negative";
+
+const SENTIMENT_TO_KIND: Record<Sentiment, CommentKind> = {
+  positive: "positive",
+  neutral: "note",
+  negative: "negative",
+};
+
+type OptionConfig = {
+  id: Sentiment;
+  label: string;
+  Icon: typeof Check;
+  text: string;
+  hoverText: string;
+};
+
+const OPTIONS: OptionConfig[] = [
+  {
+    id: "positive",
+    label: "Positivo",
+    Icon: Check,
+    text: "text-emerald-700 dark:text-emerald-300",
+    hoverText: "hover:text-emerald-700 dark:hover:text-emerald-300",
+  },
+  {
+    id: "neutral",
+    label: "Neutro",
+    Icon: Minus,
+    text: "text-neutral-900 dark:text-neutral-50",
+    hoverText: "hover:text-neutral-900 dark:hover:text-neutral-50",
+  },
+  {
+    id: "negative",
+    label: "Negativo",
+    Icon: X,
+    text: "text-rose-700 dark:text-rose-300",
+    hoverText: "hover:text-rose-700 dark:hover:text-rose-300",
+  },
+];
 
 export function QuickCommentBubble({
-  kind,
   side,
+  currentSentiment,
   onSubmit,
   onClose,
 }: {
-  kind: CommentKind;
-  side: "left" | "right"; // donde se posiciona el caret respecto al bubble
-  onSubmit: (text: string) => Promise<void>;
+  side: "left" | "right"; // dónde se posiciona respecto al bubble del mensaje
+  // Si el usuario ya tiene voto previo, arrancamos directo en el step 2 con
+  // ese sentimiento; así puede actualizar el comentario o ir back para cambiar
+  // el voto.
+  currentSentiment?: Sentiment;
+  onSubmit: (kind: CommentKind, content: string | null) => Promise<void>;
   onClose: () => void;
 }) {
+  const [picked, setPicked] = useState<Sentiment | null>(
+    currentSentiment ?? null,
+  );
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Click afuera => cerrar (sin guardar; la reaccion ya quedo aparte).
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) onClose();
-    }
-    // Diferimos al siguiente tick para no capturar el click que abrio la burbuja.
-    const t = setTimeout(() => document.addEventListener("click", onDocClick), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener("click", onDocClick);
-    };
-  }, [onClose]);
 
   // ESC cierra.
   useEffect(() => {
@@ -48,49 +86,103 @@ export function QuickCommentBubble({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const label =
-    kind === "positive"
-      ? "¿Por qué positivo? (opcional)"
-      : kind === "negative"
-        ? "¿Por qué negativo? (opcional)"
-        : "Agregá una nota";
+  function pickSentiment(s: Sentiment) {
+    // Disparamos el voto inmediato (sin content). Si el user cierra sin
+    // escribir, el voto igual quedó guardado. Si después escribe y manda,
+    // se actualiza el content del mismo voto.
+    void onSubmit(SENTIMENT_TO_KIND[s], null);
+    setPicked(s);
+  }
 
-  async function send() {
+  function goBack() {
+    setPicked(null);
+    setText("");
+  }
+
+  async function sendComment() {
+    if (!picked || sending) return;
     const content = text.trim();
-    if (!content || sending) return;
+    if (!content) {
+      // Sin texto pero ya votó al hacer pick: cerramos sin pegarle al backend.
+      onClose();
+      return;
+    }
     setSending(true);
     try {
-      await onSubmit(content);
-      setText("");
+      await onSubmit(SENTIMENT_TO_KIND[picked], content);
       onClose();
     } finally {
       setSending(false);
     }
   }
 
+  // STEP 1: menú vertical de selección.
+  if (!picked) {
+    return (
+      <>
+        {/* Overlay transparente fullscreen: captura el click-afuera para
+            cerrar la burbuja. Más confiable que un document listener
+            (no compite con el bubbling del click que dispara setPicked). */}
+        <div
+          className="fixed inset-0 z-30"
+          onClick={onClose}
+          aria-hidden
+        />
+        <div
+          className={`relative z-40 w-40 shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
+            side === "left" ? "mr-1" : "ml-1"
+          }`}
+        >
+          {OPTIONS.map((opt) => {
+            const Icon = opt.Icon;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => pickSentiment(opt.id)}
+                className={`flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left text-[12px] text-neutral-600 transition hover:bg-neutral-50 ${opt.hoverText} dark:text-neutral-400 dark:hover:bg-neutral-800/60`}
+              >
+                <Icon className="h-3 w-3 shrink-0" strokeWidth={2} />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </>
+    );
+  }
+
+  // STEP 2: header (back + sentimiento + cerrar) + textarea + send.
+  const opt = OPTIONS.find((o) => o.id === picked)!;
+  const Icon = opt.Icon;
   return (
-    <div
-      ref={ref}
-      className={`relative w-60 shrink-0 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-800 ${
-        side === "left" ? "mr-1" : "ml-1"
-      }`}
-      // Stop propagation no es estrictamente necesario porque el listener de
-      // click-afuera ya excluye este nodo, pero ayuda con eventos sinteticos.
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
-          {label}
-        </span>
+    <>
+      <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden />
+      <div
+        className={`relative z-40 w-64 shrink-0 rounded-md border border-neutral-200 bg-white p-2 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark ${
+          side === "left" ? "mr-1" : "ml-1"
+        }`}
+      >
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <button
+          onClick={goBack}
+          title="Cambiar reacción"
+          className="flex items-center gap-1.5 rounded-md py-0.5 text-neutral-500 transition hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          <ArrowLeft className="h-3 w-3" strokeWidth={1.75} />
+          <Icon className={`h-3 w-3 ${opt.text}`} strokeWidth={2} />
+          <span className={`text-[11.5px] font-medium ${opt.text}`}>
+            {opt.label}
+          </span>
+        </button>
         <button
           onClick={onClose}
-          className="rounded p-0.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
+          className="rounded p-0.5 text-neutral-400 transition hover:text-neutral-700 dark:hover:text-neutral-200"
           aria-label="Cerrar"
         >
-          <X className="h-3 w-3" />
+          <X className="h-3 w-3" strokeWidth={1.75} />
         </button>
       </div>
-      <div className="mt-1 flex items-end gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 p-1 dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="mt-2 flex items-end gap-1.5 rounded-md border border-neutral-200 bg-white p-1 transition focus-within:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:focus-within:border-neutral-600">
         <textarea
           autoFocus
           value={text}
@@ -98,26 +190,27 @@ export function QuickCommentBubble({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              void send();
+              void sendComment();
             }
           }}
           rows={2}
-          placeholder="Escribí…"
-          className="scroll-thin max-h-24 min-h-[36px] flex-1 resize-none bg-transparent px-1.5 py-1 text-xs outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          placeholder="Comentario opcional"
+          className="scroll-thin max-h-24 min-h-[36px] flex-1 resize-none bg-transparent px-1.5 py-1 text-[12px] outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <button
-          onClick={send}
+          onClick={() => void sendComment()}
           disabled={sending || !text.trim()}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-600 text-white transition hover:bg-violet-700 disabled:opacity-40"
-          aria-label="Enviar nota"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
+          aria-label="Enviar comentario"
         >
           {sending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
           ) : (
-            <ArrowUp className="h-3.5 w-3.5" />
+            <ArrowUp className="h-3.5 w-3.5" strokeWidth={2} />
           )}
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

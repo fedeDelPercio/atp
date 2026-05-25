@@ -8,8 +8,8 @@ import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
 import { ThemeToggle } from "./ThemeToggle";
 
-// Header del dashboard: tabs de navegacion + tema + perfil activo.
-// El tab "Webhooks" solo se muestra a perfiles con role 'dev'.
+// Header del dashboard: tabs de navegación + tema + perfil activo.
+// El tab "Webhooks" y "WhatsApp" solo se muestran a perfiles con role 'dev'.
 
 const TABS = [
   { href: "/conversations", label: "Testing", icon: MessagesSquare, devOnly: false },
@@ -25,12 +25,19 @@ export function DashboardHeader() {
   if (!profile) return null;
 
   return (
-    <header className="flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 sm:px-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex items-center gap-3 sm:gap-5">
-        <span className="hidden py-3.5 text-sm font-semibold tracking-tight text-neutral-900 sm:block dark:text-neutral-100">
+    <header className="flex items-center justify-between gap-2 border-b border-neutral-200/70 bg-white/80 px-4 backdrop-blur sm:px-6 dark:border-neutral-800/70 dark:bg-neutral-950/80">
+      <div className="flex items-center gap-4 sm:gap-7">
+        <Link
+          href="/conversations"
+          className="hidden items-center gap-2 py-4 text-[13px] font-medium tracking-tight-er text-neutral-900 transition hover:opacity-80 sm:flex dark:text-neutral-50"
+        >
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-neutral-50"
+          />
           Agentic&nbsp;Panel
-        </span>
-        <nav className="flex">
+        </Link>
+        <nav className="-mb-px flex items-center">
           {TABS.filter((t) => !t.devOnly || profile.role === "dev").map((tab) => {
             const active = pathname.startsWith(tab.href);
             const Icon = tab.icon;
@@ -38,14 +45,20 @@ export function DashboardHeader() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex items-center gap-1.5 border-b-2 px-2 py-3.5 text-sm transition sm:px-3 ${
+                className={`relative flex items-center gap-2 px-3 py-4 text-[13px] transition sm:px-3.5 ${
                   active
-                    ? "border-violet-500 font-medium text-violet-700 dark:border-violet-400 dark:text-violet-300"
-                    : "border-transparent text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                    ? "text-neutral-900 dark:text-neutral-50"
+                    : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                 <span className="hidden min-[380px]:inline">{tab.label}</span>
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-3 -bottom-px h-px bg-neutral-900 dark:bg-neutral-50"
+                  />
+                )}
               </Link>
             );
           })}
@@ -57,35 +70,35 @@ export function DashboardHeader() {
         <div className="relative">
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg p-1 pr-1.5 text-sm transition hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="flex items-center gap-2 rounded-lg p-1 pr-2 text-[13px] transition hover:bg-neutral-100 dark:hover:bg-neutral-900"
           >
             <Avatar name={profile.name} size="sm" />
-            <span className="hidden text-sm font-medium text-neutral-700 sm:block dark:text-neutral-200">
+            <span className="hidden text-neutral-700 sm:block dark:text-neutral-200">
               {profile.name}
             </span>
-            <ChevronDown className="h-3.5 w-3.5 text-neutral-400" />
+            <ChevronDown className="h-3 w-3 text-neutral-400" strokeWidth={2} />
           </button>
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 z-20 mt-1.5 w-52 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
-                <div className="flex items-center gap-2 px-3 py-2">
+              <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+                <div className="flex items-center gap-2.5 px-3 py-2.5">
                   <Avatar name={profile.name} size="sm" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                    <p className="truncate text-[13px] font-medium text-neutral-900 dark:text-neutral-100">
                       {profile.name}
                     </p>
-                    <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+                    <p className="text-[11px] text-neutral-500 dark:text-neutral-500">
                       {profile.role === "dev" ? "Desarrollador" : "Cliente"}
                     </p>
                   </div>
                 </div>
-                <div className="my-1 border-t border-neutral-100 dark:border-neutral-700" />
+                <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
                 <button
                   onClick={changeProfile}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-neutral-600 transition hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Cambiar perfil
                 </button>
               </div>

@@ -59,71 +59,74 @@ export function QRScreen({
   const stalledMs = Date.now() - waitingSince;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 bg-neutral-50 px-6 py-12 dark:bg-neutral-950">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 dark:bg-violet-500/10">
-          <QrCode className="h-6 w-6 text-violet-600 dark:text-violet-400" />
-        </div>
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+    <div className="flex h-full flex-col items-center justify-center gap-6 bg-white px-6 py-12 dark:bg-neutral-950">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <QrCode
+          className="h-8 w-8 text-neutral-900 dark:text-neutral-50"
+          strokeWidth={1.5}
+        />
+        <h1 className="text-[20px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
           Conectar WhatsApp
         </h1>
-        <p className="max-w-md text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="max-w-md text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-500">
           Escaneá el QR desde la app de WhatsApp del número que vas a usar.
-          Abrí Configuración → Dispositivos vinculados → Vincular dispositivo.
+          Abrí Configuración, Dispositivos vinculados, Vincular dispositivo.
         </p>
       </div>
 
-      <div className="flex h-[340px] w-[340px] items-center justify-center rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex h-[340px] w-[340px] items-center justify-center rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         {qrPng ? (
           <img src={qrPng} alt="QR de WhatsApp" className="h-full w-full" />
         ) : status === "connecting" ? (
-          <div className="flex flex-col items-center gap-2 text-sm text-blue-500">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            Conectando...
+          <div className="flex flex-col items-center gap-2 text-[13px] text-neutral-500 dark:text-neutral-500">
+            <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.75} />
+            Conectando
           </div>
         ) : status === "connected" ? (
-          <div className="text-sm text-emerald-500">¡Conectado!</div>
+          <div className="text-[13px] font-medium text-emerald-700 dark:text-emerald-300">
+            Conectado
+          </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 text-sm text-neutral-400">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            Esperando al bot...
+          <div className="flex flex-col items-center gap-2 text-[13px] text-neutral-500 dark:text-neutral-500">
+            <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.75} />
+            Esperando al bot
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+      <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
         <span
-          className={`h-2 w-2 rounded-full ${
+          className={`h-1.5 w-1.5 rounded-full ${
             status === "qr"
               ? "animate-pulse bg-amber-500"
               : status === "connecting"
-                ? "bg-blue-500"
+                ? "bg-neutral-500"
                 : status === "connected"
                   ? "bg-emerald-500"
                   : "bg-neutral-400"
           }`}
         />
         <span>
-          {status === "qr" && "Esperando escaneo..."}
-          {status === "connecting" && "Estableciendo conexión..."}
+          {status === "qr" && "Esperando escaneo"}
+          {status === "connecting" && "Estableciendo conexión"}
           {status === "connected" && "Conexión establecida"}
           {status === "disconnected" && "Sin conexión activa"}
         </span>
       </div>
 
       {status === "disconnected" && stalledMs > 10000 && (
-        <div className="flex max-w-md items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex max-w-md items-start gap-2 rounded-md border border-amber-200/70 bg-amber-50/60 px-3 py-2 text-[12px] text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/[0.04] dark:text-amber-300/90">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
           <span>
             El bot no responde. Verificá que el proceso del bot esté
-            corriendo (`npm run start:bot` en local, o el contenedor en
-            Easypanel).
+            corriendo (<span className="font-mono">npm run start:bot</span> en local,
+            o el contenedor en Easypanel).
           </span>
         </div>
       )}
 
       {data?.lastError && (
-        <div className="max-w-md text-center text-xs text-rose-500">
+        <div className="max-w-md text-center text-[11px] text-rose-500 dark:text-rose-400">
           Último error: {data.lastError}
         </div>
       )}

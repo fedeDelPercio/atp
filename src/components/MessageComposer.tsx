@@ -115,8 +115,8 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
   const micDisabled = sending || transcribing;
 
   return (
-    <div className="border-t border-neutral-200 bg-white p-3 sm:px-6 sm:py-3.5 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex items-end gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5 pl-3.5 transition focus-within:border-violet-400 focus-within:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:focus-within:border-violet-500 dark:focus-within:bg-neutral-800">
+    <div className="border-t border-neutral-200 bg-white px-4 py-4 sm:px-8 sm:py-5 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="flex items-end gap-2 rounded-md border border-neutral-200 bg-white p-1.5 pl-3.5 transition focus-within:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:focus-within:border-neutral-600">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -132,40 +132,40 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
               ? "Grabando…"
               : transcribing
                 ? "Transcribiendo…"
-                : "Escribí como si fueras el cliente…"
+                : "Escribí como si fueras el cliente"
           }
           disabled={recording || transcribing}
-          className="scroll-thin max-h-32 min-h-[36px] flex-1 resize-none self-center bg-transparent py-2 text-sm outline-none placeholder:text-neutral-400 disabled:opacity-60 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          className="scroll-thin max-h-32 min-h-[36px] flex-1 resize-none self-center bg-transparent py-2 text-[13.5px] outline-none placeholder:text-neutral-400 disabled:opacity-60 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <button
           onClick={recording ? stopRecording : startRecording}
           disabled={micDisabled}
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-40 ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition disabled:opacity-40 ${
             recording
-              ? "bg-rose-500 text-white hover:bg-rose-600 animate-pulse"
-              : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
+              ? "animate-pulse bg-rose-500 text-white hover:bg-rose-600"
+              : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
           }`}
           aria-label={recording ? "Detener grabación" : "Grabar audio"}
           title={recording ? "Detener grabación" : "Grabar audio"}
         >
           {transcribing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
           ) : recording ? (
-            <Square className="h-4 w-4" />
+            <Square className="h-3.5 w-3.5" strokeWidth={1.75} />
           ) : (
-            <Mic className="h-4 w-4" />
+            <Mic className="h-3.5 w-3.5" strokeWidth={1.75} />
           )}
         </button>
         <button
           onClick={send}
           disabled={!canSend}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition hover:bg-violet-700 disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
           aria-label="Enviar"
         >
           {sending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
           ) : (
-            <ArrowUp className="h-4 w-4" />
+            <ArrowUp className="h-3.5 w-3.5" strokeWidth={2} />
           )}
         </button>
       </div>

@@ -108,6 +108,15 @@ export function ConversationList({
         },
         () => void refetch(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+        },
+        () => void refetch(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageSquare, Loader2, Menu } from "lucide-react";
+import { MessageSquare, Loader2, Menu, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { CommentKind, Conversation, Message } from "@/lib/supabase/types";
@@ -48,6 +48,67 @@ export function ConversationPanel({
   const [thinking, setThinking] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Edit inline del display_name. Cancelacion via Escape o blur (escapeRef
+  // marca que el blur viene de un cancel y no debe disparar save).
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const cancelingNameRef = useRef(false);
+
+  useEffect(() => {
+    if (editingName) {
+      nameInputRef.current?.select();
+    }
+  }, [editingName]);
+
+  function startEditName() {
+    if (!conversation) return;
+    setNameInput(conversation.display_name);
+    cancelingNameRef.current = false;
+    setEditingName(true);
+  }
+
+  function cancelEditName() {
+    cancelingNameRef.current = true;
+    setEditingName(false);
+  }
+
+  async function saveName() {
+    if (cancelingNameRef.current) {
+      cancelingNameRef.current = false;
+      return;
+    }
+    if (!conversation) {
+      setEditingName(false);
+      return;
+    }
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === conversation.display_name) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ display_name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo renombrar");
+        return;
+      }
+      setConversation((c) => (c ? { ...c, display_name: trimmed } : c));
+      setEditingName(false);
+    } catch {
+      toast.error("Error de red al renombrar");
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   const refreshThinking = useCallback(async () => {
     const { count } = await getSupabaseBrowserClient()
@@ -214,9 +275,44 @@ export function ConversationPanel({
           </button>
           {conversation && <Avatar name={conversation.display_name} size="sm" />}
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
-              {conversation?.display_name ?? "…"}
-            </p>
+            {editingName ? (
+              <input
+                ref={nameInputRef}
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void saveName();
+                  if (e.key === "Escape") cancelEditName();
+                }}
+                onBlur={() => void saveName()}
+                disabled={savingName}
+                maxLength={120}
+                placeholder="Nombre de la conversación"
+                className="w-full max-w-[260px] truncate bg-transparent text-[13px] font-medium tracking-tight-er text-neutral-900 outline-none placeholder:text-neutral-400 disabled:opacity-60 dark:text-neutral-50 dark:placeholder:text-neutral-500"
+              />
+            ) : (
+              <button
+                onClick={startEditName}
+                disabled={!conversation}
+                className="group/title flex max-w-full items-center gap-1.5 text-left text-[13px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50"
+                title="Editar nombre"
+              >
+                <span className="truncate">
+                  {conversation?.display_name ?? "…"}
+                </span>
+                {savingName ? (
+                  <Loader2
+                    className="h-3 w-3 shrink-0 animate-spin text-neutral-400 dark:text-neutral-500"
+                    strokeWidth={1.75}
+                  />
+                ) : (
+                  <Pencil
+                    className="h-3 w-3 shrink-0 text-neutral-300 opacity-0 transition group-hover/title:opacity-100 dark:text-neutral-600"
+                    strokeWidth={1.75}
+                  />
+                )}
+              </button>
+            )}
             <p className="mt-0.5 font-mono text-[10.5px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
               {conversation?.source === "whatsapp"
                 ? `WhatsApp · +${conversation.external_id ?? "?"}`

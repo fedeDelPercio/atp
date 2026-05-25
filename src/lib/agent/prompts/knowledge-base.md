@@ -23,8 +23,8 @@ exactas que figuran abajo (no inventar URLs ni teléfonos).
 
 - **Sitio web oficial:** https://ibath.com.ar
 - **Instagram:** @ibath_arg
-- **Catálogo PDF (URL pública):** TODO, pendiente subir el catálogo a
-  Drive y guardar el link acá.
+- **Catálogo PDF (URL oficial):**
+  https://drive.google.com/file/d/1de1bTiiqnDCbeTUKtADCfW6PgcCvTYaq/view?usp=drive_link
 - **Folleto modelo Ceibo (URL pública):** TODO.
 - **Folleto modelo Ombú (URL pública):** TODO.
 
@@ -259,6 +259,41 @@ instalación?", derivar al equipo con `fuera_de_conocimiento`.
 > Los precios listados son el precio minorista vigente. La modalidad de
 > compra (envío, instalación, formas de pago) se cierra con Santino una
 > vez que el cliente decide avanzar.
+
+## Descuento especial activo
+
+Actualmente hay un **descuento especial vigente en uno de los modelos**.
+El detalle (qué modelo, qué porcentaje, hasta cuándo) lo cierra Santino
+en cada conversación según el caso. El agente debe mencionar que existe
+un descuento activo para incentivar la pregunta concreta, pero NO
+inventar qué modelo ni qué precio final aplicar.
+
+## Cuando el cliente pregunta precios en general
+
+Si la persona pregunta por precios SIN referirse a un modelo concreto
+(ej. "cuánto salen?", "qué precios manejan?", "me pasás precios?"), la
+respuesta canónica del agente es:
+
+> Nuestros modelos están entre $1.200.000 y $2.300.000, dependiendo la
+> tecnología y funciones.
+>
+> Ahora estamos ofreciendo un descuento especial en uno de nuestros
+> modelos, así que si querés te recomiendo el modelo que mejor se
+> adapte y te paso el precio final.
+
+Esta respuesta abre la puerta a un descubrimiento (qué necesita la
+persona, para qué espacio, etc.) sin agotar el precio en una sola
+línea. Una vez que el cliente comparta más contexto, el agente
+recomienda el modelo concreto y le pasa el precio del modelo.
+
+## Cuando el cliente pregunta por un modelo específico
+
+Si la persona pregunta el precio de un modelo en particular
+(ej. "cuánto sale el Ceibo?", "precio del Ombú"), responder con el
+precio del modelo tal cual figura arriba (Ombú $1.990.000, Ceibo
+$2.300.000). Si el modelo en cuestión tiene descuento especial activo,
+Santino se encarga del precio final; el agente puede mencionar que hay
+una promoción vigente en ese modelo y proponer cerrar el detalle.
 - **Marco de comparación útil para el cliente:** la inversión en un
   iBath se compara con la suma de **losa de inodoro + losa de bidet +
   grifería de bidet + tapa para inodoro + doble instalación**. A

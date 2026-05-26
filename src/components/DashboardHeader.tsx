@@ -7,7 +7,6 @@ import { ChevronDown, MessagesSquare, Webhook, LogOut, MessageCircle } from "luc
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
 import { ThemeToggle } from "./ThemeToggle";
-import { BrandLogo } from "./BrandLogo";
 
 // Header del dashboard: tabs de navegación + tema + perfil activo.
 // El tab "Webhooks" y "WhatsApp" solo se muestran a perfiles con role 'dev'.
@@ -30,12 +29,11 @@ export function DashboardHeader() {
       <div className="flex items-center gap-4 sm:gap-7">
         <Link
           href="/conversations"
-          className="hidden items-center gap-2.5 py-4 text-[13px] font-medium tracking-tight-er text-neutral-900 transition hover:opacity-80 sm:flex dark:text-neutral-50"
+          className="hidden items-center gap-2 py-4 text-[13px] font-medium tracking-tight-er text-neutral-900 transition hover:opacity-80 sm:flex dark:text-neutral-50"
         >
-          <BrandLogo />
           <span
             aria-hidden
-            className="h-4 w-px bg-neutral-300 dark:bg-neutral-700"
+            className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-neutral-50"
           />
           Agentic&nbsp;Panel
         </Link>
@@ -82,8 +80,8 @@ export function DashboardHeader() {
           </button>
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+              <div className="fixed inset-0 z-[55]" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 z-[60] mt-2 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
                 <div className="flex items-center gap-2.5 px-3 py-2.5">
                   <Avatar name={profile.name} size="sm" />
                   <div className="min-w-0">

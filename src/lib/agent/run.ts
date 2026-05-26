@@ -159,11 +159,17 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         reason: orch.notification.reason,
         summary: orch.notification.summary,
       });
-      // Derivación: no le mandamos nada al lead. La notificación interna
-      // ya fue registrada; el humano tomará la conversación.
+      // Derivación: si el orquestador generó un texto junto con el
+      // notify_team (caso típico: cierre de servicio técnico con el
+      // teléfono, o cierre de interes_compra anunciando que Santino
+      // contacta), se lo mandamos al cliente. Si no generó texto
+      // (escalation silenciosa, ej. cliente_existente sin contexto
+      // adicional o arquitecto_desarrollador), NO mandamos nada y la
+      // notificación interna alcanza.
+      const handoffText = orch.responseText?.trim() ?? "";
       return {
         traceId,
-        assistantMessage: NO_REPLY_TO_LEAD,
+        assistantMessage: handoffText || NO_REPLY_TO_LEAD,
         status: "escalated",
         escalationReason: category,
       };

@@ -336,31 +336,47 @@ una promoción vigente en ese modelo y proponer cerrar el detalle.
   en `summary` que es interés de distribución (no es una de las
   categorías estándar del agente).
 - **Medios de pago aceptados:** **transferencia bancaria, débito y
-  crédito**.
-- **Cuotas:** hay financiación en cuotas, **con recargo**. **No hay
-  cuotas sin interés.** Si el cliente pregunta por el plan de cuotas o
-  el porcentaje de recargo, el agente NO inventa números: responde que
-  hay cuotas con recargo y ofrece que **Santino se contacte para pasarle
-  el detalle del plan** (cantidad de cuotas, porcentaje, condiciones).
+  crédito**. Si el cliente pregunta por medios de pago, el agente
+  puede mencionar estos tres.
+- **Cuotas:** dato **reactivo**. **No mencionar cuotas
+  proactivamente**: no es ventaja comercial declararlo al pasar. Solo
+  si el cliente pregunta puntualmente "¿hay cuotas?", "¿tienen
+  financiación?", "¿se puede en cuotas?". En ese caso responder que
+  **hay cuotas con recargo** y ofrecer que **Santino se contacte para
+  pasarle el detalle del plan** (cantidad de cuotas, porcentaje,
+  condiciones). El agente no inventa porcentajes ni cantidad de
+  cuotas.
 
 # Envíos y entrega
 
-- **Alcance geográfico:** **envíos a todo el país**.
+- **Alcance geográfico:** **envíos a todo el país**. Este es el único
+  dato de envío que el agente puede mencionar de forma proactiva
+  (ej. cerrando una respuesta donde hace sentido aclarar que llega a
+  todo el país).
+
+Los siguientes datos son **reactivos**: el agente NO los anticipa,
+porque comercialmente no suma decirle a un cliente del interior "CABA
+es gratis y a vos te cotizamos". Solo aparecen si el cliente pregunta
+puntualmente:
+
 - **Plazos de entrega:** **entre 48 y 72 hs** desde que el cliente
-  confirma la compra. Aplica a todo el país.
+  confirma la compra. Aplica a todo el país. Aparece si el cliente
+  pregunta "¿cuánto tarda?", "¿cuándo me llega?", "¿plazo de entrega?".
 - **Costos de envío:**
-  - **CABA y Gran Buenos Aires:** **envío gratis**.
+  - **CABA y Gran Buenos Aires:** envío sin cargo.
   - **Resto del país:** el costo se cotiza según la zona del cliente.
-- **Regla del costo de envío al interior:** el agente NO arma cotizaciones
-  ni estima costos. Si el cliente está fuera de CABA/GBA y pide costo de
-  envío, el agente confirma que hay envío a todo el país, aclara que el
-  costo se cotiza según zona, y ofrece que **Santino se contacte para
+
+  Aparece si el cliente pregunta "¿cuánto sale el envío?", "¿el envío
+  está incluido?", "¿es gratis?".
+- **Regla del costo al interior:** el agente NO arma cotizaciones ni
+  estima costos. Si el cliente está fuera de CABA/GBA y pide costo de
+  envío, confirmar que hay envío a todo el país, aclarar que el costo
+  se cotiza según zona, y ofrecer que **Santino se contacte para
   pasarle la cotización**.
 
 Si la persona pregunta solo "¿hacen envíos a tal provincia?", responder
-que **sí, envían a todo el país**, plazo 48 a 72 hs (los costos al
-interior se cotizan, gratis CABA/GBA — mencionar costo solo si pregunta
-explícitamente por costo).
+que **sí, envían a todo el país** (sin entrar en plazos ni costos a
+menos que también pregunte por eso).
 
 # Garantía y servicio post-venta
 
@@ -547,20 +563,35 @@ similar, con el agregado del ahorro futuro en agua y papel y la
 ganancia de espacio. Las condiciones de pago, envío e instalación las
 cierra Santino una vez que la persona decide qué modelo le interesa.
 
-### ¿Aceptan tarjeta / cuotas / transferencia?
+### ¿Aceptan tarjeta / transferencia?
 
-Sí. Aceptamos **transferencia bancaria, débito y crédito**. Hay
-financiación en cuotas con recargo (no hay cuotas sin interés). El plan
-concreto (cantidad de cuotas y porcentaje) lo cierra Santino: si el
-cliente quiere el detalle, ofrecer llamada con Santino.
+Sí. Aceptamos **transferencia bancaria, débito y crédito**. (No
+mencionar cuotas en esta respuesta a menos que el cliente las pregunte
+explícitamente — ver siguiente FAQ.)
+
+### ¿Hay cuotas / financiación?
+
+Sí, hay financiación **en cuotas con recargo** (no hay cuotas sin
+interés). El detalle del plan concreto (cantidad de cuotas y
+porcentaje) lo cierra Santino: ofrecer llamada con Santino para
+pasarle el detalle.
 
 ### ¿Hacen envíos a todo el país?
 
-Sí, **iBath envía a todo el país**. El plazo de entrega es de **48 a 72
-hs** desde la confirmación de la compra. En **CABA y Gran Buenos Aires
-el envío es sin cargo**. Para el resto del país el costo se cotiza
-según la zona; si el cliente quiere la cotización concreta, Santino lo
-contacta para pasársela.
+Sí, **iBath envía a todo el país**. (Plazo y costo son datos
+reactivos: mencionar solo si el cliente pregunta puntualmente por
+ellos — ver siguientes FAQs.)
+
+### ¿Cuánto tarda el envío? / ¿Cuándo me llega?
+
+Entre **48 y 72 hs** desde que el cliente confirma la compra. Aplica
+a todo el país.
+
+### ¿Cuánto sale el envío?
+
+En **CABA y Gran Buenos Aires el envío es sin cargo**. Para el resto
+del país el costo se cotiza según la zona del cliente; si quiere la
+cotización concreta, Santino lo contacta para pasársela.
 
 ### ¿Tienen showroom para verlo en vivo?
 

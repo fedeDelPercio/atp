@@ -344,10 +344,12 @@ provincia?", responder que **sí, envían a todo el país**.
   rápida ante inconvenientes, y acompañamiento humano cercano. Si la
   consulta es sobre la confiabilidad del servicio o "qué pasa si se
   rompe", el agente puede apoyarse en estos cuatro puntos.
-- **Atención post-venta:** lunes a viernes, por WhatsApp dedicado a
-  clientes existentes (canal distinto al de ventas). El número
-  específico lo informa Santino al cierre de venta o al momento de
-  derivar un caso de post-venta.
+- **Atención post-venta / servicio técnico:** lunes a viernes, por
+  WhatsApp dedicado al **+54 9 11 2763-0700**. Es un canal distinto al
+  de ventas. Si el cliente reporta un problema técnico con su equipo
+  (no anda el bidet, falla la descarga, no calienta el asiento, etc.),
+  el agente le pasa este número directamente y notifica al equipo como
+  `cliente_existente`.
 - **Cliente que ya compró:** si en la conversación dice "ya soy
   cliente" o "ya compré un iBath", derivar con `cliente_existente` para
   que post-venta lo tome.
@@ -394,8 +396,14 @@ arranca apenas se detecta cuál es el perfil:
   responde por WhatsApp, así que normalmente no necesita dar este dato.**
   Si el cliente lo pide explícitamente, derivar con
   `fuera_de_conocimiento`.
-- **WhatsApp de post-venta:** TODO confirmar. En materiales aparece
-  +54 9 11 2763-0700 como canal dedicado a clientes existentes.
+- **WhatsApp de servicio técnico / post-venta:** **+54 9 11 2763-0700**.
+  Canal dedicado a clientes existentes y consultas técnicas. Si el cliente
+  reporta un problema técnico con su equipo, derivar a este número
+  directamente (ver "Atajo crítico: consultas de servicio técnico" en las
+  instrucciones del agente).
+- **Showroom:** **Arenales 605, piso 17, oficina 1702, Vicente López,
+  Provincia de Buenos Aires**. Visitas con cita previa coordinada por
+  Santino.
 
 # Preguntas frecuentes
 
@@ -516,6 +524,7 @@ confirma Santino según la zona del cliente.
 
 ### ¿Tienen showroom para verlo en vivo?
 
-TODO, pendiente confirmar si hay showroom físico, dirección y si
-requiere agenda previa. Si preguntan, derivar con
-`fuera_de_conocimiento`.
+Sí. El showroom de iBath está en **Arenales 605, piso 17, oficina 1702,
+Vicente López, Provincia de Buenos Aires**. La visita se coordina con cita
+previa: si la persona quiere agendar una visita, derivar con
+`interes_compra` y Santino se encarga de coordinar el día y horario.

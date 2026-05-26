@@ -20,6 +20,12 @@ export function ProfileGate() {
   const [creatingMode, setCreatingMode] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<ProfileRole>("client");
+  // Brand logo opcional: si `/brand-logo.png` existe (branches con marca
+  // de cliente), se muestra centrado arriba del titulo. Si no existe
+  // (default en main), onError esconde el <img> y solo queda "Agentic
+  // Panel" como header.
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     fetch("/api/profiles")
@@ -64,19 +70,26 @@ export function ProfileGate() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white p-4 dark:bg-neutral-950">
       <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-6 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
-        <div className="flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-neutral-50"
-          />
-          <span className="text-[11px] font-mono uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
+        <div className="flex flex-col items-center gap-2 text-center">
+          {!logoError && (
+            <img
+              src="/brand-logo.png"
+              alt=""
+              onLoad={() => setLogoLoaded(true)}
+              onError={() => setLogoError(true)}
+              className={`h-10 w-auto transition-opacity invert dark:invert-0 ${
+                logoLoaded ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          )}
+          <span className="font-mono text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
             Agentic Panel
           </span>
         </div>
-        <h1 className="mt-5 text-[20px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
+        <h1 className="mt-5 text-center text-[20px] font-medium tracking-tight-er text-neutral-900 dark:text-neutral-50">
           ¿Quién sos?
         </h1>
-        <p className="mt-1 text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+        <p className="mt-1 text-center text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
           Elegí tu perfil para entrar. Los comentarios y las conversaciones
           quedan firmados con él.
         </p>

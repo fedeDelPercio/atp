@@ -35,6 +35,8 @@ export type Database = {
           mode: string;
           created_by: string | null;
           client_slug: string;
+          simulated_timestamp: string | null;
+          is_existing_customer: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -48,6 +50,8 @@ export type Database = {
           mode?: string;
           created_by?: string | null;
           client_slug?: string;
+          simulated_timestamp?: string | null;
+          is_existing_customer?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -61,6 +65,8 @@ export type Database = {
           mode?: string;
           created_by?: string | null;
           client_slug?: string;
+          simulated_timestamp?: string | null;
+          is_existing_customer?: boolean;
           created_at?: string;
           updated_at?: string;
         };

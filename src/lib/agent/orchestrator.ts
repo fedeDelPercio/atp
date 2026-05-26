@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { MessageParam, Tool } from "@anthropic-ai/sdk/resources/messages";
+import type {
+  MessageParam,
+  Tool,
+  TextBlockParam,
+} from "@anthropic-ai/sdk/resources/messages";
 
 import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,18 +35,60 @@ import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 
 const ORCHESTRATOR_MAX_TOKENS = 2048;
 
-/** System prompt = instrucciones del asesor + base de conocimiento + contexto del turno. */
-function buildSystemPrompt(timeContext: TimeContext, customerMessageCount: number): string {
-  const sections = [
+/**
+ * System prompt como array de blocks para habilitar prompt caching de Anthropic.
+ *
+ * El bloque grande (orquestador + KB) es prácticamente constante entre turnos y
+ * entre conversaciones del mismo cliente: lo marcamos como `cache_control:
+ * ephemeral` para que Anthropic lo guarde 5 minutos. Los re-hits cobran ~10%
+ * del costo de input por esos tokens.
+ *
+ * El segundo bloque (timeContext + actividad + estado del contacto) cambia por
+ * turno y se manda sin cache. Es chico (~10 líneas) así que su costo es bajo.
+ */
+function buildSystemPrompt(
+  timeContext: TimeContext,
+  customerMessageCount: number,
+  isExistingCustomer: boolean,
+): TextBlockParam[] {
+  const cacheableBlock = [
     loadPrompt("orchestrator"),
     "# BASE DE CONOCIMIENTO",
     loadPrompt("knowledge-base"),
+  ].join("\n\n");
+
+  const dynamicBlock = [
     timeContextBlock(timeContext),
     `# Actividad del cliente\n\nEl cliente envió ${customerMessageCount} mensaje(s) en esta ` +
       `conversación (contando el actual). Usalo como guía para el disparador de interés ` +
       `de compra.`,
+    customerContextBlock(isExistingCustomer),
+  ].join("\n\n");
+
+  return [
+    { type: "text", text: cacheableBlock, cache_control: { type: "ephemeral" } },
+    { type: "text", text: dynamicBlock },
   ];
-  return sections.join("\n\n");
+}
+
+/** Bloque con info de si el contacto ya está registrado en el CRM. */
+function customerContextBlock(isExisting: boolean): string {
+  if (isExisting) {
+    return [
+      "=== Estado del contacto ===",
+      "ATENCIÓN: el contacto YA ESTÁ REGISTRADO en nuestro CRM (Kommo).",
+      "Es un cliente existente, no un lead nuevo.",
+      "Disparador obligatorio: llamá a `notify_team` con",
+      "`category: \"cliente_existente\"` de inmediato, sin iniciar el flow",
+      "comercial de descubrimiento. En `summary` aclará que es un cliente",
+      "ya registrado que volvió a contactarse.",
+    ].join("\n");
+  }
+  return [
+    "=== Estado del contacto ===",
+    "El contacto NO está registrado en nuestro CRM. Tratalo como un lead",
+    "nuevo y seguí el flow comercial normal del orquestador.",
+  ].join("\n");
 }
 
 /** Mapea el historial de la conversación a mensajes API-compatibles. */
@@ -130,6 +176,7 @@ export async function runOrchestrator(params: {
   evaluatorFeedback: string | null;
   timeContext: TimeContext;
   customerMessageCount: number;
+  isExistingCustomer: boolean;
 }): Promise<OrchestratorResult> {
   const env = serverEnv();
   const { ctx } = params;
@@ -146,7 +193,11 @@ export async function runOrchestrator(params: {
       {
         model,
         max_tokens: ORCHESTRATOR_MAX_TOKENS,
-        system: buildSystemPrompt(params.timeContext, params.customerMessageCount),
+        system: buildSystemPrompt(
+          params.timeContext,
+          params.customerMessageCount,
+          params.isExistingCustomer,
+        ),
         messages: buildMessages(params),
         tools,
       },

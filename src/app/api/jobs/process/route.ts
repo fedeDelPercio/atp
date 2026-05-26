@@ -20,7 +20,11 @@ export const maxDuration = 300;
 // ===========================================================================
 
 const BATCH_SIZE = 5;
-const HISTORY_LIMIT = 20;
+// Maximo de mensajes previos que se le pasan al orquestador como history.
+// Mas history = mas contexto pero tambien mas tokens. 10 cubre conversaciones
+// realistas (saludo + 4-5 idas y vueltas de descubrimiento) sin inflar el
+// prompt en conversaciones muy largas.
+const HISTORY_LIMIT = 10;
 
 // Etiquetas legibles para las categorías comunes (cada cliente puede sumar
 // las suyas en su rama). Cualquier otra categoría se humaniza automáticamente

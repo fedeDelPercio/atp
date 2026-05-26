@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { MessageParam, Tool } from "@anthropic-ai/sdk/resources/messages";
+import type {
+  MessageParam,
+  Tool,
+  TextBlockParam,
+} from "@anthropic-ai/sdk/resources/messages";
 
 import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,23 +35,40 @@ import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 
 const ORCHESTRATOR_MAX_TOKENS = 2048;
 
-/** System prompt = instrucciones del asesor + base de conocimiento + contexto del turno. */
+/**
+ * System prompt como array de blocks para habilitar prompt caching de Anthropic.
+ *
+ * El bloque grande (orquestador + KB) es prácticamente constante entre turnos y
+ * entre conversaciones del mismo cliente: lo marcamos como `cache_control:
+ * ephemeral` para que Anthropic lo guarde 5 minutos. Los re-hits cobran ~10%
+ * del costo de input por esos tokens.
+ *
+ * El segundo bloque (timeContext + actividad + estado del contacto) cambia por
+ * turno y se manda sin cache. Es chico (~10 líneas) así que su costo es bajo.
+ */
 function buildSystemPrompt(
   timeContext: TimeContext,
   customerMessageCount: number,
   isExistingCustomer: boolean,
-): string {
-  const sections = [
+): TextBlockParam[] {
+  const cacheableBlock = [
     loadPrompt("orchestrator"),
     "# BASE DE CONOCIMIENTO",
     loadPrompt("knowledge-base"),
+  ].join("\n\n");
+
+  const dynamicBlock = [
     timeContextBlock(timeContext),
     `# Actividad del cliente\n\nEl cliente envió ${customerMessageCount} mensaje(s) en esta ` +
       `conversación (contando el actual). Usalo como guía para el disparador de interés ` +
       `de compra.`,
     customerContextBlock(isExistingCustomer),
+  ].join("\n\n");
+
+  return [
+    { type: "text", text: cacheableBlock, cache_control: { type: "ephemeral" } },
+    { type: "text", text: dynamicBlock },
   ];
-  return sections.join("\n\n");
 }
 
 /** Bloque con info de si el contacto ya está registrado en el CRM. */

@@ -200,14 +200,28 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   }
 
   // 3. Se agotaron las iteraciones sin una respuesta validada: la IA no pudo
-  //    responder de forma confiable -> notificar al equipo.
+  //    responder de forma confiable -> notificar al equipo y CORTAR (no
+  //    seguir gastando tokens ni mandar nada al lead). El summary incluye
+  //    el ultimo feedback del evaluator para que el admin entienda que
+  //    seguia fallando.
   const category: NotificationCategory = "fuera_de_conocimiento";
+  const reason = `Agente bloqueado: el evaluator rechazo ${iterationsRun} veces seguidas.`;
+  const summary = [
+    `Consulta del cliente: "${input.userMessage}"`,
+    "",
+    `El agente intento responder ${iterationsRun} veces y el evaluator rechazo cada intento.`,
+    evaluatorFeedback
+      ? `Ultimo feedback del evaluator: ${evaluatorFeedback}`
+      : "Sin feedback registrado.",
+    "",
+    "Requiere respuesta directa de un asesor humano.",
+  ].join("\n");
   await recordNotification({
     traceId,
     conversationId: input.conversationId,
     category,
-    reason: "El agente no logró una respuesta validada tras varios intentos.",
-    summary: `Consulta del cliente: "${input.userMessage}". Requiere respuesta de un asesor.`,
+    reason,
+    summary,
   });
   await finalizeTrace(traceId, {
     status: "escalated",

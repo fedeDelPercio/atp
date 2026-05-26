@@ -1,26 +1,32 @@
 import Image from "next/image";
 
-// Marca del cliente en el header del dashboard. Convencion del repo:
-// cada client branch deja su logo en public/brand-logo.png (asset blanco
-// con fondo transparente, formato horizontal). El header lo renderiza al
-// lado del titulo "Agentic Panel".
+// Marca de iBath para el header del dashboard. Override del componente
+// default de main (que rendea un dot). El header importa `<BrandLogo />`
+// y ahi va, sin condicionales — el archivo de esta branch decide que se
+// rendea.
 //
-// La altura se fija via Tailwind (h-5 / 20px) para que entre dentro del
-// padding del header sin agrandarlo. El ancho se calcula automaticamente
-// con el aspect ratio del archivo (next/image lo maneja).
+// Por ser horizontal (2048x574, wordmark + simbolo en linea), usamos h-6
+// (24px) — ver CLAUDE.md seccion "Logo de cliente (brand-logo)".
 //
-// La PNG es blanca, asi que se invierte en light mode para que quede
-// negra sobre fondo blanco (y se mantiene blanca en dark mode).
+// El componente rendea el logo + un separador vertical en el mismo
+// fragment, asi el parent del header solo necesita gap-2.5 y todo queda
+// proporcionado: [Logo] [sep] Agentic Panel.
 
 export function BrandLogo() {
   return (
-    <Image
-      src="/brand-logo.png"
-      alt="iBath"
-      width={2048}
-      height={574}
-      priority
-      className="h-6 w-auto invert dark:invert-0"
-    />
+    <>
+      <Image
+        src="/brand-logo.png"
+        alt="iBath"
+        width={2048}
+        height={574}
+        priority
+        className="h-6 w-auto invert dark:invert-0"
+      />
+      <span
+        aria-hidden
+        className="h-4 w-px bg-neutral-300 dark:bg-neutral-700"
+      />
+    </>
   );
 }

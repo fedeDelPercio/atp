@@ -154,10 +154,40 @@ em dash, sin period final, sin caps lock. Ejemplo bueno:
 
 ### Logo de cliente (brand-logo)
 
-Convencion: cada client branch deja **su** logo en `public/brand-logo.png`,
-formato horizontal, blanco con fondo transparente, sin padding interno. El
-header del dashboard lo renderiza al lado del titulo "Agentic Panel" con un
-componente `BrandLogo` (presente en la branch del cliente):
+Convencion para sumar la marca de un cliente nuevo al panel. **Way of work**
+estable, aplica a todos los clientes:
+
+**1. Asset del logo**
+
+- Formato: PNG con **fondo transparente** y **trazo blanco** (la inversion
+  CSS lo lleva a negro en light mode).
+- Sin padding interno (el PNG debe estar recortado ajustado al contenido).
+- Tamaño razonable (~200-2000px de lado mayor, sub-150KB) para no inflar
+  el repo. Si llega grande, descalar antes de commitear.
+- Path final en el repo: `public/brand-logo.png` en la **branch del cliente**.
+  Renombrar al moverlo.
+
+**2. Aspect ratio dicta el tamaño en el header**
+
+Cada cliente puede tener un logo distinto (horizontal con wordmark + mark,
+o cuadrado con mark + wordmark stackeado). La regla por aspect ratio:
+
+| Forma del PNG | Aspect ratio | Clase en el header |
+|---|---|---|
+| Horizontal (wordmark al lado del mark) | ancho/alto > 2 | `h-6 w-auto` (24px alto) |
+| Casi cuadrado o vertical | ancho/alto <= 2 | `h-7 w-auto` (28px alto) |
+| Solo simbolo / icono pequeño | ancho/alto ≈ 1 | `h-7 w-auto` o `h-8 w-auto` segun densidad |
+
+`w-auto` siempre. La altura compensa el ancho visual: un logo horizontal a
+h-6 cubre ~80-90px de ancho; un logo cuadrado a h-7 cubre ~28px. Ambos leen
+"proporcionados" al lado del texto "Agentic Panel" del header.
+
+**3. Componente BrandLogo (per-client)**
+
+Cada branch de cliente tiene su propio `src/components/BrandLogo.tsx`,
+distinto solo en `width`/`height` (dimensiones intrinsecas del PNG) y la
+clase `h-N` segun la tabla de arriba. Ejemplo para un logo horizontal
+(2048x574, tipo iBath):
 
 ```tsx
 // src/components/BrandLogo.tsx (per-client)
@@ -177,18 +207,12 @@ export function BrandLogo() {
 }
 ```
 
-- `h-6` (24px) fija la altura para que entre en el header sin agrandarlo.
-  `w-auto` mantiene el aspect ratio del archivo.
-- `invert dark:invert-0` aprovecha que el PNG es blanco: en light mode se
-  invierte a negro, en dark mode queda blanco.
-- `width`/`height` reciben las dimensiones intrinsecas del archivo (next/image
-  los usa para reservar layout; el tamaño real lo decide el CSS).
+Para un logo cuadrado (1000x1000, tipo Quintaglia) se cambia `width`,
+`height` y `h-6` por `h-7`.
 
-**Si pasan un logo nuevo:** descalarlo a un tamaño razonable (~200-500px de
-ancho) para no inflar el repo, dejarlo en `public/brand-logo.png`, y verificar
-que el aspect ratio funcione a `h-5`. Si el logo es muy alto/cuadrado, ajustar
-la altura via la prop `className` del componente. Si es muy ancho, considerar
-recortar al simbolo/mark sin el wordmark.
+`invert dark:invert-0` aprovecha que el PNG es blanco: en light mode se
+invierte a negro, en dark mode queda blanco. Ese filter CSS evita tener
+que mantener dos PNGs.
 
 **Default en main:** el dot neutro original (`h-1.5 w-1.5 rounded-full
 bg-neutral-900 dark:bg-neutral-50`). Solo las branches de cliente con marca
@@ -197,9 +221,20 @@ propia introducen `BrandLogo`.
 ### Splash de bienvenida (opcional, por-cliente)
 
 Pareado con `brand-logo.png`: pantalla negra full-screen con el logo
-centrado, se desmonta luego de ~1.6s. Mejora el efecto "wow" cuando el
+centrado, se desmonta luego de ~2.2s. Mejora el efecto "wow" cuando el
 cliente abre el panel. Vive en `src/components/SplashScreen.tsx` (per-client,
 junto a `BrandLogo`) y se monta una vez en el root layout.
+
+**Tamano segun aspect ratio** (misma logica que el header, escalado al
+tamano "hero"):
+
+| Forma del PNG | Clase de altura |
+|---|---|
+| Horizontal | `h-16 sm:h-20` (64-80px) |
+| Cuadrado / vertical | `h-32 sm:h-40` (128-160px) |
+
+Los logos cuadrados necesitan mas altura porque su ancho final acompana al
+alto: a h-20 un cuadrado se ve chico (80x80). A h-32 ya tiene presencia.
 
 ```tsx
 // src/components/SplashScreen.tsx (per-client)

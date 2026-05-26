@@ -114,6 +114,13 @@ y asiento calefaccionado. Las diferencias principales están en
 - **Presión de red:** mínima **1 kg/cm²**, máxima **3,5 kg/cm²**. Si la
   presión es menor, hay que instalar una bomba presurizadora; si no, la
   descarga no funciona bien.
+- **Bomba presurizadora (responsable):** si hace falta, **la compra y
+  coloca el cliente**. iBath no la provee. **No aclarar proactivamente**
+  quién la compra: este dato solo aparece si el cliente pregunta
+  específicamente "la bomba la ponen ustedes o yo?", "el costo de la
+  bomba está incluido?". En esos casos, decir que la bomba va por cuenta
+  del cliente (cualquier plomero la consigue) y, si quiere más detalle,
+  ofrecer que Santino lo llame para asesorarlo.
 - **Sin tanque ni mochila:** se conecta directo a la red.
 
 ## iBath Ceibo (modelo XP104)
@@ -246,9 +253,19 @@ Los tres modelos comparten **tres requisitos clave** de instalación:
   empotrar la estructura de hierro dentro de la pared. Es la opción más
   recomendable cuando hay obra nueva o renovación profunda.
 
-**¿Quién hace la instalación?** TODO, pendiente confirmar. Si la
-pregunta es "¿iBath manda al plomero?" o "¿está incluido el costo de
-instalación?", derivar al equipo con `fuera_de_conocimiento`.
+**¿Quién hace la instalación?** **La instalación va por cuenta del
+cliente** (la contrata con su plomero / instalador de confianza). iBath
+acompaña con asesoramiento técnico durante el proceso, pero no envía
+plomeros propios y el costo de la instalación NO está incluido en el
+precio del equipo.
+
+**Regla para el agente:** este dato es **reactivo, no proactivo**. NO lo
+adelantes nunca en una respuesta general; solo decilo si el cliente
+pregunta específicamente "¿la instalación está incluida?", "¿ustedes
+mandan al plomero?", "¿quién lo instala?". En esos casos, respondé que
+la instalación corre por cuenta del cliente, aclarando que iBath
+asesora técnicamente, y ofrecé llamada con Santino para profundizar si
+hace falta.
 
 # Precios y formas de pago
 
@@ -259,6 +276,12 @@ instalación?", derivar al equipo con `fuera_de_conocimiento`.
 > Los precios listados son el precio minorista vigente. La modalidad de
 > compra (envío, instalación, formas de pago) se cierra con Santino una
 > vez que el cliente decide avanzar.
+
+**IVA:** el precio publicado es **final, IVA incluido**. **No aclarar
+proactivamente** este dato (el cliente lo asume). Solo confirmarlo si
+pregunta específicamente "está con IVA?", "el precio es final?", "tiene
+IVA adicional?". En esos casos, decir que el precio es final, ya incluye
+IVA.
 
 ## Descuento especial activo
 
@@ -312,20 +335,32 @@ una promoción vigente en ese modelo y proponer cerrar el detalle.
   potencial distribuidor, derivar con `fuera_de_conocimiento` y aclarar
   en `summary` que es interés de distribución (no es una de las
   categorías estándar del agente).
-- **Medios de pago aceptados:** TODO, pendiente confirmar (tarjeta,
-  transferencia, financiación en cuotas, etc.).
+- **Medios de pago aceptados:** **transferencia bancaria, débito y
+  crédito**.
+- **Cuotas:** hay financiación en cuotas, **con recargo**. **No hay
+  cuotas sin interés.** Si el cliente pregunta por el plan de cuotas o
+  el porcentaje de recargo, el agente NO inventa números: responde que
+  hay cuotas con recargo y ofrece que **Santino se contacte para pasarle
+  el detalle del plan** (cantidad de cuotas, porcentaje, condiciones).
 
 # Envíos y entrega
 
 - **Alcance geográfico:** **envíos a todo el país**.
-- **Plazos de entrega:** TODO, pendiente confirmar tiempos típicos
-  según zona.
-- **Costos de envío:** TODO, pendiente confirmar si está incluido en
-  el precio o se cotiza aparte.
+- **Plazos de entrega:** **entre 48 y 72 hs** desde que el cliente
+  confirma la compra. Aplica a todo el país.
+- **Costos de envío:**
+  - **CABA y Gran Buenos Aires:** **envío gratis**.
+  - **Resto del país:** el costo se cotiza según la zona del cliente.
+- **Regla del costo de envío al interior:** el agente NO arma cotizaciones
+  ni estima costos. Si el cliente está fuera de CABA/GBA y pide costo de
+  envío, el agente confirma que hay envío a todo el país, aclara que el
+  costo se cotiza según zona, y ofrece que **Santino se contacte para
+  pasarle la cotización**.
 
-Si la consulta es sobre **plazos o costos de envío**, derivar con
-`fuera_de_conocimiento`. Si la consulta es solo "¿hacen envíos a tal
-provincia?", responder que **sí, envían a todo el país**.
+Si la persona pregunta solo "¿hacen envíos a tal provincia?", responder
+que **sí, envían a todo el país**, plazo 48 a 72 hs (los costos al
+interior se cotizan, gratis CABA/GBA — mencionar costo solo si pregunta
+explícitamente por costo).
 
 # Garantía y servicio post-venta
 
@@ -514,13 +549,18 @@ cierra Santino una vez que la persona decide qué modelo le interesa.
 
 ### ¿Aceptan tarjeta / cuotas / transferencia?
 
-TODO, pendiente confirmar medios de pago y planes de financiación. Si
-preguntan, derivar con `fuera_de_conocimiento`.
+Sí. Aceptamos **transferencia bancaria, débito y crédito**. Hay
+financiación en cuotas con recargo (no hay cuotas sin interés). El plan
+concreto (cantidad de cuotas y porcentaje) lo cierra Santino: si el
+cliente quiere el detalle, ofrecer llamada con Santino.
 
 ### ¿Hacen envíos a todo el país?
 
-Sí, **iBath envía a todo el país**. Los plazos y costos exactos los
-confirma Santino según la zona del cliente.
+Sí, **iBath envía a todo el país**. El plazo de entrega es de **48 a 72
+hs** desde la confirmación de la compra. En **CABA y Gran Buenos Aires
+el envío es sin cargo**. Para el resto del país el costo se cotiza
+según la zona; si el cliente quiere la cotización concreta, Santino lo
+contacta para pasársela.
 
 ### ¿Tienen showroom para verlo en vivo?
 

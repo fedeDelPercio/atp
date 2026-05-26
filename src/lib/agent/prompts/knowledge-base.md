@@ -279,7 +279,7 @@ respuesta canónica del agente es:
 >
 > Ahora estamos ofreciendo un descuento especial en uno de nuestros
 > modelos, así que si querés te recomiendo el modelo que mejor se
-> adapte y te paso el precio final.
+> adapte y te paso el precio final
 
 Esta respuesta abre la puerta a un descubrimiento (qué necesita la
 persona, para qué espacio, etc.) sin agotar el precio en una sola

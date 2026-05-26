@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+import type { Tool, TextBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { z } from "zod";
 
 import { serverEnv } from "@/lib/env";
@@ -84,7 +84,9 @@ export async function evaluateResponse(params: {
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), env.AGENT_TIMEOUT_MS);
 
-  const userPrompt = [
+  // El user message va como array de blocks para habilitar prompt caching del
+  // KB, que es lo mas grande (~500 lineas) y constante entre validaciones.
+  const variablePart = [
     "Validá la siguiente respuesta del asesor ANTES de que llegue al cliente.",
     "",
     "=== Mensaje del cliente ===",
@@ -93,11 +95,17 @@ export async function evaluateResponse(params: {
     "=== Respuesta propuesta por el asesor ===",
     params.assistantResponse || "(respuesta vacía)",
     "",
-    "=== BASE DE CONOCIMIENTO (única fuente válida para afirmaciones de producto) ===",
-    loadPrompt("knowledge-base"),
-    "",
-    "Devolvé tu veredicto invocando la tool `evaluation_result`.",
   ].join("\n");
+  const kbPart =
+    "=== BASE DE CONOCIMIENTO (única fuente válida para afirmaciones de producto) ===\n" +
+    loadPrompt("knowledge-base");
+  const closingPart = "\nDevolvé tu veredicto invocando la tool `evaluation_result`.";
+
+  const userContent: TextBlockParam[] = [
+    { type: "text", text: variablePart },
+    { type: "text", text: kbPart, cache_control: { type: "ephemeral" } },
+    { type: "text", text: closingPart },
+  ];
 
   let evaluation: EvaluationResult;
   let usage: unknown = null;
@@ -107,8 +115,14 @@ export async function evaluateResponse(params: {
       {
         model,
         max_tokens: EVALUATOR_MAX_TOKENS,
-        system: loadPrompt("evaluator"),
-        messages: [{ role: "user", content: userPrompt }],
+        system: [
+          {
+            type: "text",
+            text: loadPrompt("evaluator"),
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        messages: [{ role: "user", content: userContent }],
         tools: [EVALUATION_TOOL_SCHEMA],
         tool_choice: { type: "tool", name: EVALUATION_TOOL_NAME },
       },
@@ -126,10 +140,20 @@ export async function evaluateResponse(params: {
     }
 
     const parsed = evaluationSchema.parse(toolBlock.input);
+    const normalizedSuggestion =
+      parsed.suggestion === null || parsed.suggestion.trim() === ""
+        ? null
+        : parsed.suggestion;
+    // Safety net: si el evaluator rechaza pero no puede justificar
+    // (suggestion vacio), aprobamos. Sin feedback concreto, el orquestador no
+    // puede corregir y reintentar lo mismo agota tokens sin valor. Es la
+    // traduccion del "en la duda, aprobar" del prompt del evaluator: solo se
+    // rechaza con explicacion accionable.
+    const finalPass = parsed.pass || normalizedSuggestion === null;
     evaluation = {
-      pass: parsed.pass,
-      failedCriteria: parsed.failedCriteria,
-      suggestion: parsed.suggestion === "" ? null : parsed.suggestion,
+      pass: finalPass,
+      failedCriteria: finalPass ? [] : parsed.failedCriteria,
+      suggestion: finalPass ? null : normalizedSuggestion,
     };
   } catch (err) {
     // Output malformado, abort, o cualquier error: se trata como rechazo.

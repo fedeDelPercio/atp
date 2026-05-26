@@ -5,10 +5,12 @@ import Image from "next/image";
 // (1000x1000 aprox): contiene el simbolo + wordmark "QUINTAGLIA /
 // Desarrollos Inmobiliarios" stackeado vertical.
 //
-// Por ser cuadrado (no horizontal como el de iBath), usamos h-7 (28px)
-// en vez de h-6 para que ocupe un ancho similar al wordmark "Agentic
-// Panel" del texto al lado. Ver CLAUDE.md seccion "Logo de cliente
-// (brand-logo)" para la regla por aspect ratio.
+// AD-HOC para Quintaglia: usamos h-10 en vez del h-7 que recomienda
+// CLAUDE.md para logos cuadrados. El wordmark "QUINTAGLIA" + bajada
+// "Desarrollos Inmobiliarios" stackeado bajo el simbolo necesita mas
+// altura para ser legible (a h-7 el wordmark queda por debajo del
+// umbral de lectura ~12px). Mantiene el header dentro del padding sin
+// agrandarlo.
 //
 // invert dark:invert-0 aprovecha que el PNG es blanco: en light mode se
 // invierte a negro; en dark mode queda blanco.
@@ -21,7 +23,7 @@ export function BrandLogo() {
       width={1000}
       height={1000}
       priority
-      className="h-7 w-auto invert dark:invert-0"
+      className="h-10 w-auto invert dark:invert-0"
     />
   );
 }

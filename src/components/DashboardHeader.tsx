@@ -26,7 +26,7 @@ export function DashboardHeader() {
   if (!profile) return null;
 
   return (
-    <header className="flex items-center justify-between gap-2 border-b border-neutral-200/70 bg-white/80 px-4 backdrop-blur sm:px-6 dark:border-neutral-800/70 dark:bg-neutral-950/80">
+    <header className="relative z-50 flex items-center justify-between gap-2 border-b border-neutral-200/70 bg-white/80 px-4 backdrop-blur sm:px-6 dark:border-neutral-800/70 dark:bg-neutral-950/80">
       <div className="flex items-center gap-4 sm:gap-7">
         <Link
           href="/conversations"

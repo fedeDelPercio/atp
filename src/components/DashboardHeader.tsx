@@ -80,8 +80,8 @@ export function DashboardHeader() {
           </button>
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+              <div className="fixed inset-0 z-[55]" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 z-[60] mt-2 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
                 <div className="flex items-center gap-2.5 px-3 py-2.5">
                   <Avatar name={profile.name} size="sm" />
                   <div className="min-w-0">

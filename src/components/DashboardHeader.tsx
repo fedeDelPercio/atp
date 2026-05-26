@@ -7,6 +7,7 @@ import { ChevronDown, MessagesSquare, Webhook, LogOut, MessageCircle } from "luc
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
 import { ThemeToggle } from "./ThemeToggle";
+import { BrandLogo } from "./BrandLogo";
 
 // Header del dashboard: tabs de navegación + tema + perfil activo.
 // El tab "Webhooks" y "WhatsApp" solo se muestran a perfiles con role 'dev'.
@@ -29,12 +30,9 @@ export function DashboardHeader() {
       <div className="flex items-center gap-4 sm:gap-7">
         <Link
           href="/conversations"
-          className="hidden items-center gap-2 py-4 text-[13px] font-medium tracking-tight-er text-neutral-900 transition hover:opacity-80 sm:flex dark:text-neutral-50"
+          className="hidden items-center gap-2.5 py-4 text-[13px] font-medium tracking-tight-er text-neutral-900 transition hover:opacity-80 sm:flex dark:text-neutral-50"
         >
-          <span
-            aria-hidden
-            className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-neutral-50"
-          />
+          <BrandLogo />
           Agentic&nbsp;Panel
         </Link>
         <nav className="-mb-px flex items-center">

@@ -182,37 +182,73 @@ o cuadrado con mark + wordmark stackeado). La regla por aspect ratio:
 h-6 cubre ~80-90px de ancho; un logo cuadrado a h-7 cubre ~28px. Ambos leen
 "proporcionados" al lado del texto "Agentic Panel" del header.
 
-**3. Componente BrandLogo (per-client)**
+**3. Componente BrandLogo (siempre presente, override per-client)**
 
-Cada branch de cliente tiene su propio `src/components/BrandLogo.tsx`,
-distinto solo en `width`/`height` (dimensiones intrinsecas del PNG) y la
-clase `h-N` segun la tabla de arriba. Ejemplo para un logo horizontal
-(2048x574, tipo iBath):
+`src/components/BrandLogo.tsx` existe en **todas las branches** (main +
+client/*). En main rendea un dot neutro (panel sin marca). Las branches
+client/* sobre-escriben el archivo con su propia version que renderea el
+logo + un separador vertical inline. Asi `DashboardHeader.tsx` queda 100%
+compartido y las sincronizaciones de main → client/* no rompen la marca
+del cliente.
 
 ```tsx
-// src/components/BrandLogo.tsx (per-client)
-import Image from "next/image";
-
+// main: src/components/BrandLogo.tsx (default, dot)
 export function BrandLogo() {
   return (
-    <Image
-      src="/brand-logo.png"
-      alt="iBath"
-      width={2048}
-      height={574}
-      priority
-      className="h-6 w-auto invert dark:invert-0"
+    <span
+      aria-hidden
+      className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-neutral-50"
     />
   );
 }
 ```
 
+Cada cliente sobre-escribe con su logo + separador. Ejemplo para un logo
+horizontal (2048x574, tipo iBath):
+
+```tsx
+// client/ibath: src/components/BrandLogo.tsx (override)
+import Image from "next/image";
+
+export function BrandLogo() {
+  return (
+    <>
+      <Image
+        src="/brand-logo.png"
+        alt="iBath"
+        width={2048}
+        height={574}
+        priority
+        className="h-6 w-auto invert dark:invert-0"
+      />
+      <span
+        aria-hidden
+        className="h-4 w-px bg-neutral-300 dark:bg-neutral-700"
+      />
+    </>
+  );
+}
+```
+
 Para un logo cuadrado (1000x1000, tipo Quintaglia) se cambia `width`,
-`height` y `h-6` por `h-7`.
+`height` y `h-6` por `h-7` (o `h-10` si el wordmark stackeado necesita
+mas altura para legibilidad — ver Quintaglia como ejemplo).
 
 `invert dark:invert-0` aprovecha que el PNG es blanco: en light mode se
 invierte a negro, en dark mode queda blanco. Ese filter CSS evita tener
 que mantener dos PNGs.
+
+**DashboardHeader.tsx (compartido en todas las branches):**
+
+```tsx
+<Link className="... flex items-center gap-2.5 ...">
+  <BrandLogo />
+  Agentic&nbsp;Panel
+</Link>
+```
+
+El header no sabe si esta rendeando el dot o el logo del cliente — la
+decision vive en BrandLogo.tsx de cada branch.
 
 **Default en main:** el dot neutro original (`h-1.5 w-1.5 rounded-full
 bg-neutral-900 dark:bg-neutral-50`). Solo las branches de cliente con marca

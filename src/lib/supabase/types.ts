@@ -459,6 +459,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      leads: {
+        Row: {
+          id: string;
+          client_slug: string;
+          conversation_id: string;
+          phone: string | null;
+          name: string | null;
+          email: string | null;
+          interest_category: string;
+          status: string;
+          notes: string | null;
+          contacted_by: string | null;
+          contacted_at: string | null;
+          created_at: string;
+          last_contact_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_slug?: string;
+          conversation_id: string;
+          phone?: string | null;
+          name?: string | null;
+          email?: string | null;
+          interest_category: string;
+          status?: string;
+          notes?: string | null;
+          contacted_by?: string | null;
+          contacted_at?: string | null;
+          created_at?: string;
+          last_contact_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_slug?: string;
+          conversation_id?: string;
+          phone?: string | null;
+          name?: string | null;
+          email?: string | null;
+          interest_category?: string;
+          status?: string;
+          notes?: string | null;
+          contacted_by?: string | null;
+          contacted_at?: string | null;
+          created_at?: string;
+          last_contact_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -490,6 +538,7 @@ export type OutboundWebhook = Row<"outbound_webhooks">;
 export type OutboundWebhookDelivery = Row<"outbound_webhook_deliveries">;
 export type WaConnectionState = Row<"wa_connection_state">;
 export type WaOutbox = Row<"wa_outbox">;
+export type Lead = Row<"leads">;
 
 // Uniones de valores cerrados (los CHECK constraints del schema).
 export type ProfileRole = "dev" | "client";
@@ -515,3 +564,4 @@ export type Provider = "anthropic" | "openrouter";
  * humaniza el snake_case.
  */
 export type NotificationCategory = string;
+export type LeadStatus = "nuevo" | "contactado" | "descartado" | "cerrado";

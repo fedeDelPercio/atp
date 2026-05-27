@@ -46,9 +46,10 @@ export async function PATCH(
   }
 
   const supabase = getSupabaseServerClient();
+  const newName = parsed.data.display_name.trim();
   const { data, error } = await supabase
     .from("conversations")
-    .update({ display_name: parsed.data.display_name.trim() })
+    .update({ display_name: newName })
     .eq("id", id)
     .select("*")
     .maybeSingle();
@@ -57,6 +58,11 @@ export async function PATCH(
   if (!data) {
     return NextResponse.json({ error: "Conversacion no encontrada" }, { status: 404 });
   }
+
+  // Sync display_name de la conversacion -> name del lead asociado (si existe).
+  // El lead es opcional: cada conv tiene a lo sumo uno (UNIQUE conversation_id).
+  await supabase.from("leads").update({ name: newName }).eq("conversation_id", id);
+
   return NextResponse.json({ conversation: data });
 }
 

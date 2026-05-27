@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const status = searchParams.get("status");
   const category = searchParams.get("category");
+  const conversationId = searchParams.get("conversation_id");
 
   const supabase = getSupabaseServerClient();
   let query = supabase
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
 
   if (status) query = query.eq("status", status);
   if (category) query = query.eq("interest_category", category);
+  if (conversationId) query = query.eq("conversation_id", conversationId);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

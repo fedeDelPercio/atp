@@ -1,10 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageSquare, Loader2, Menu, Pencil } from "lucide-react";
+import { MessageSquare, Loader2, Menu, Pencil, UserCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { CommentKind, Conversation, Message } from "@/lib/supabase/types";
+import type {
+  CommentKind,
+  Conversation,
+  Lead,
+  LeadStatus,
+  Message,
+} from "@/lib/supabase/types";
 import type { ViewMode } from "@/lib/profile";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
@@ -12,6 +18,7 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
 import { ModeToggle } from "./wa/ModeToggle";
 import { HumanComposer } from "./wa/HumanComposer";
+import { LeadDetailModal } from "./LeadDetailModal";
 import {
   EMPTY_REACTION,
   type MessageReactionState,
@@ -39,6 +46,8 @@ export function ConversationPanel({
   const { profile } = useProfile();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [lead, setLead] = useState<Lead | null>(null);
+  const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [reactions, setReactions] = useState<Record<string, MessageReactionState>>(
     {},
   );
@@ -73,6 +82,46 @@ export function ConversationPanel({
   function cancelEditName() {
     cancelingNameRef.current = true;
     setEditingName(false);
+  }
+
+  // --- Lead asociado: handlers para el modal --------------------------------
+  async function patchLead(leadId: string, payload: Partial<Lead>): Promise<Lead | null> {
+    try {
+      const r = await fetch(`/api/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error("update failed");
+      const json = await r.json();
+      return (json.lead ?? null) as Lead | null;
+    } catch {
+      toast.error("No se pudo actualizar el lead");
+      return null;
+    }
+  }
+
+  async function updateLeadStatus(leadId: string, status: LeadStatus) {
+    const updated = await patchLead(leadId, {
+      status,
+      contacted_by: status === "contactado" ? (profile?.id ?? null) : null,
+    });
+    if (updated) setLead(updated);
+  }
+
+  async function updateLeadFields(leadId: string, payload: Partial<Lead>) {
+    const updated = await patchLead(leadId, payload);
+    if (updated) {
+      setLead(updated);
+      // El nombre del lead se sincroniza con el display_name de la conv del
+      // lado del servidor; refrescamos el state local para reflejarlo en el
+      // header sin esperar a un re-fetch.
+      if (payload.name !== undefined) {
+        const newName = payload.name?.trim() || "Sin nombre";
+        setConversation((c) => (c ? { ...c, display_name: newName } : c));
+      }
+      toast.success("Lead actualizado");
+    }
   }
 
   async function saveName() {
@@ -189,18 +238,20 @@ export function ConversationPanel({
     setLoading(true);
 
     void (async () => {
-      const [convRes, msgRes] = await Promise.all([
+      const [convRes, msgRes, leadRes] = await Promise.all([
         supabase.from("conversations").select("*").eq("id", conversationId).maybeSingle(),
         supabase
           .from("messages")
           .select("*")
           .eq("conversation_id", conversationId)
           .order("created_at", { ascending: true }),
+        supabase.from("leads").select("*").eq("conversation_id", conversationId).maybeSingle(),
       ]);
       if (!active) return;
       const msgs = msgRes.data ?? [];
       setConversation(convRes.data);
       setMessages(msgs);
+      setLead(leadRes.data ?? null);
       setLoading(false);
       void refreshThinking();
       void refreshReactions(msgs.map((m) => m.id));
@@ -321,6 +372,16 @@ export function ConversationPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {lead && (
+            <button
+              onClick={() => setLeadModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
+              title="Ver detalle del lead"
+            >
+              <UserCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <span className="hidden sm:inline">Lead</span>
+            </button>
+          )}
           <button
             onClick={() =>
               onOpenComments({
@@ -404,6 +465,15 @@ export function ConversationPanel({
         />
       ) : (
         <MessageComposer conversationId={conversationId} />
+      )}
+
+      {lead && leadModalOpen && (
+        <LeadDetailModal
+          lead={lead}
+          onClose={() => setLeadModalOpen(false)}
+          onStatusChange={updateLeadStatus}
+          onSave={updateLeadFields}
+        />
       )}
     </div>
   );

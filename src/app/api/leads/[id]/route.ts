@@ -96,5 +96,17 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
+
+  // Sync nombre del lead -> display_name de la conversacion. Asi el cambio
+  // se ve reflejado en el panel de testing y en el header del WhatsApp.
+  // Solo si el patch incluyo name explicitamente (puede ser string o null).
+  if (parsed.data.name !== undefined && data.conversation_id) {
+    const newDisplayName = data.name?.trim() || "Sin nombre";
+    await supabase
+      .from("conversations")
+      .update({ display_name: newDisplayName })
+      .eq("id", data.conversation_id);
+  }
+
   return NextResponse.json({ lead: data });
 }

@@ -3,6 +3,7 @@ import "server-only";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { dispatchEvent } from "@/lib/webhooks/dispatcher";
+import { sendLeadAlert } from "@/lib/email/sender";
 import { runOrchestrator } from "./orchestrator";
 import { evaluateResponse } from "./evaluator";
 import { getTimeContext } from "./business-hours";
@@ -319,12 +320,14 @@ async function upsertLead(args: {
           interest_category: args.category,
         })
         .eq("id", existing.id);
+      // Lead ya existente: no re-enviamos email para evitar spam. El equipo
+      // ya recibio el alerta cuando se creo.
       return;
     }
 
     const { data: conv } = await supabase
       .from("conversations")
-      .select("display_name, wa_jid, external_id")
+      .select("display_name, wa_jid, external_id, source")
       .eq("id", args.conversationId)
       .maybeSingle();
 
@@ -332,14 +335,34 @@ async function upsertLead(args: {
     // el numero. Para conversaciones de test (sin wa_jid) cae al external_id
     // si existe, sino null.
     const phone = conv?.wa_jid?.split("@")[0] ?? conv?.external_id ?? null;
+    const name = conv?.display_name ?? null;
 
-    await supabase.from("leads").insert({
-      conversation_id: args.conversationId,
-      interest_category: args.category,
-      phone,
-      name: conv?.display_name ?? null,
-      notes: args.summary,
-    });
+    const { data: created } = await supabase
+      .from("leads")
+      .insert({
+        conversation_id: args.conversationId,
+        interest_category: args.category,
+        phone,
+        name,
+        notes: args.summary,
+      })
+      .select("id")
+      .maybeSingle();
+
+    // Email de aviso al equipo. Solo en el primer notify de la conversacion
+    // (el if (existing) de arriba corta los siguientes). Si no estan
+    // configuradas las env vars de Gmail, el sender hace skip silencioso.
+    if (created) {
+      await sendLeadAlert({
+        leadId: created.id,
+        name,
+        phone,
+        interestCategory: args.category,
+        summary: args.summary,
+        conversationId: args.conversationId,
+        conversationSource: conv?.source ?? null,
+      });
+    }
   } catch (err) {
     console.error("[run] no se pudo crear/actualizar el lead:", err);
   }

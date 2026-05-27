@@ -76,6 +76,12 @@ const serverSchema = z.object({
   WEBHOOK_SIGNING_SECRET: z
     .string()
     .min(1, "WEBHOOK_SIGNING_SECRET es obligatoria"),
+  // Notificacion de leads por email (Gmail SMTP con App Password).
+  // Todas opcionales: si falta cualquiera, el envio se loggea como skipped
+  // y la app sigue funcionando.
+  GMAIL_USER: z.string().email().optional(),
+  GMAIL_APP_PASSWORD: z.string().min(1).optional(),
+  EMAIL_NOTIFY_LEADS_TO: z.string().email().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -102,6 +108,9 @@ export function serverEnv(): ServerEnv {
     AGENT_TIMEOUT_MS: process.env.AGENT_TIMEOUT_MS,
     CRON_SECRET: process.env.CRON_SECRET,
     WEBHOOK_SIGNING_SECRET: process.env.WEBHOOK_SIGNING_SECRET,
+    GMAIL_USER: process.env.GMAIL_USER,
+    GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
+    EMAIL_NOTIFY_LEADS_TO: process.env.EMAIL_NOTIFY_LEADS_TO,
   });
   if (!parsed.success) {
     throw new Error(

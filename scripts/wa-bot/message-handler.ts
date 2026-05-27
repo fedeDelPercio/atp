@@ -1,16 +1,26 @@
 // ===========================================================================
 // Handler de mensajes entrantes de WhatsApp.
 //
-// Flujo:
-//   1. Filtros (no grupos, no fromMe, no audio/imagen, no broadcasts).
+// Flujo (con acumulador de mensajes / debounce 20s):
+//   1. Filtros (no grupos, no fromMe, no broadcasts).
 //   2. Resolver/crear conversación con source='whatsapp' y phone=external_id.
 //   3. Insertar mensaje user.
-//   4. Re-leer la conversación: chequear mode (puede haber cambiado mientras
-//      llegaba el mensaje).
-//   5. Si mode === 'HUMAN': nada más, el humano responderá desde el panel.
-//   6. Si mode === 'AI': llamar runAgent() (mismo agente que el panel),
-//      partir el assistantMessage por '---', insertar cada bloque como
-//      mensaje assistant, enviar cada uno por Baileys y marcar delivered_at.
+//   4. Programar (o extender) un timer de 20s por conversación.
+//      - Si en esa ventana llega otro mensaje del mismo usuario, el timer
+//        se reinicia: el agente espera a que el usuario "termine" de
+//        escribir.
+//      - Cuando el timer expira sin nuevos mensajes, processBurst() corre:
+//        recolecta todos los user messages del burst, los concatena y le
+//        pasa al agente como un solo turno.
+//   5. processBurst() chequea mode (puede haber cambiado mientras corría
+//      el debounce), arma history, llama runAgent y envía la respuesta
+//      por Baileys.
+//
+// El timer vive en memoria del proceso del bot (no en DB): si el proceso
+// se reinicia durante un debounce activo, esos mensajes quedan en la DB
+// pero NO van a tener respuesta automática. Es el trade-off de mantener
+// la lógica local; si llega a ser un problema, se migra a `agent_jobs`
+// con process_at como en el webhook del panel.
 // ===========================================================================
 
 import { downloadMediaMessage, type WASocket, type proto } from "@whiskeysockets/baileys";
@@ -22,6 +32,19 @@ import { getSupabaseClient, getClientSlug } from "./supabase-client";
 import { getWaState } from "./connection-state";
 
 const HISTORY_LIMIT = 20;
+const DEBOUNCE_MS = 20_000;
+
+// Timers activos de debounce por conversation_id. Cada vez que llega un
+// mensaje, si ya hay timer se cancela y se reprograma; cuando el timer
+// vence sin interrupciones, se procesa el burst.
+const pendingTimers = new Map<string, NodeJS.Timeout>();
+
+interface BurstContext {
+  sock: WASocket;
+  conversationId: string;
+  remoteJid: string;
+  phone: string;
+}
 
 export async function handleIncomingMessages(
   sock: WASocket,
@@ -110,7 +133,6 @@ export async function handleIncomingMessages(
   // === 2. Resolver conversación ===
   const supabase = getSupabaseClient();
   const slug = getClientSlug();
-  // Modo por defecto a aplicar si la conv no existe (account-level toggle).
   const waState = await getWaState();
   const defaultMode = waState?.default_mode === "AI" ? "AI" : "HUMAN";
   const conversationId = await getOrCreateConversation(
@@ -127,12 +149,10 @@ export async function handleIncomingMessages(
   }
 
   // === 3. Insertar mensaje user ===
-  const { data: userMsg, error: userMsgErr } = await supabase
+  const { error: userMsgErr } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversationId, role: "user", content: text })
-    .select("id")
-    .single();
-  if (userMsgErr || !userMsg) {
+    .insert({ conversation_id: conversationId, role: "user", content: text });
+  if (userMsgErr) {
     console.error(`[bot] no se pudo insertar mensaje user:`, userMsgErr);
     return;
   }
@@ -141,37 +161,97 @@ export async function handleIncomingMessages(
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId);
 
-  // === 4. Re-leer modo (race-free) ===
+  // === 4. Programar / extender debounce ===
+  // Si ya hay un timer activo para esta conv, lo cancelamos y reprogramamos.
+  // Asi varios mensajes del usuario en menos de 20s "extienden" la ventana
+  // y el agente solo corre cuando termina de escribir.
+  const existing = pendingTimers.get(conversationId);
+  if (existing) {
+    clearTimeout(existing);
+    console.log(`[bot] debounce extendido para conv ${conversationId}`);
+  } else {
+    console.log(`[bot] debounce iniciado (${DEBOUNCE_MS / 1000}s) para conv ${conversationId}`);
+  }
+
+  const timer = setTimeout(() => {
+    pendingTimers.delete(conversationId);
+    void processBurst({ sock, conversationId, remoteJid, phone }).catch((err) => {
+      console.error(`[bot] processBurst falló para conv ${conversationId}:`, err);
+    });
+  }, DEBOUNCE_MS);
+  pendingTimers.set(conversationId, timer);
+}
+
+/**
+ * Procesa el burst acumulado de mensajes user de una conversación.
+ *
+ * Se llama cuando el debounce vence sin nuevos mensajes. Recolecta todos
+ * los user messages desde el último mensaje no-user, los concatena y le
+ * pasa al agente como un solo turno.
+ */
+async function processBurst(ctx: BurstContext): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { sock, conversationId, remoteJid, phone } = ctx;
+
+  // Re-leer modo: pudo haber cambiado durante la ventana del debounce
+  // (operador tomó la conversación desde el panel, por ejemplo).
   const { data: convoFresh } = await supabase
     .from("conversations")
     .select("mode")
     .eq("id", conversationId)
     .maybeSingle();
   const mode = (convoFresh?.mode ?? "AI") as "AI" | "HUMAN";
-
   if (mode === "HUMAN") {
-    console.log(`[bot] conv ${conversationId} está en HUMAN, no respondo`);
+    console.log(`[bot] conv ${conversationId} pasó a HUMAN durante el debounce, no respondo`);
     return;
   }
 
-  // === 5. Historial para el agente ===
-  const { data: previousMessages } = await supabase
+  // Mensajes completos de la conversación, ordenados.
+  const { data: allMessages } = await supabase
     .from("messages")
     .select("id, role, content, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
-  const history: HistoryMessage[] = (previousMessages ?? [])
-    .filter((m) => m.id !== userMsg.id)
+  const messages = allMessages ?? [];
+
+  // Burst: todos los user messages al final de la conversación sin que haya
+  // un mensaje del agente/humano/sistema en el medio. Buscamos desde el
+  // final hacia atrás.
+  const burst: typeof messages = [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]!;
+    if (m.role === "user") {
+      burst.unshift(m);
+      continue;
+    }
+    break;
+  }
+  if (burst.length === 0) {
+    console.log(`[bot] no hay user messages pendientes para conv ${conversationId}`);
+    return;
+  }
+
+  const userMessage = burst.map((m) => m.content).join("\n\n");
+  const anchorMessageId = burst[0]!.id;
+  const burstIds = new Set(burst.map((m) => m.id));
+
+  console.log(
+    `[bot] processBurst conv=${conversationId} mensajes=${burst.length} chars=${userMessage.length}`,
+  );
+
+  // History: ultimos N mensajes anteriores al burst.
+  const history: HistoryMessage[] = messages
+    .filter((m) => !burstIds.has(m.id))
     .slice(-HISTORY_LIMIT)
     .map((m) => ({ role: m.role as HistoryMessage["role"], content: m.content }));
 
-  // === 6. Llamar agente ===
+  // === Llamar agente ===
   console.log(`[bot] llamando agente con ${history.length} msgs de historial...`);
   const startedAt = Date.now();
   const result = await runAgent({
     conversationId,
-    userMessageId: userMsg.id,
-    userMessage: text,
+    userMessageId: anchorMessageId,
+    userMessage,
     history,
   });
   console.log(`[bot] agente respondió en ${Date.now() - startedAt}ms (status=${result.status})`);
@@ -179,7 +259,6 @@ export async function handleIncomingMessages(
   // Si el agente derivó sin respuesta al lead, no hay nada que enviar.
   if (!result.assistantMessage || result.assistantMessage.trim() === "") {
     console.log("[bot] agente derivó sin texto al lead, nada que enviar");
-    // Pero sí persistir el cartel de notificación al equipo (igual que worker).
     if (result.status === "escalated") {
       await supabase.from("messages").insert({
         conversation_id: conversationId,
@@ -190,7 +269,7 @@ export async function handleIncomingMessages(
     return;
   }
 
-  // === 7. Split por --- y persistir + enviar ===
+  // === Split por --- y persistir + enviar ===
   const segments = result.assistantMessage
     .split(/\n\s*---\s*\n/)
     .map((s) => s.trim())
@@ -216,7 +295,6 @@ export async function handleIncomingMessages(
     }
     if (isLast) lastInsertedId = inserted.id;
 
-    // Enviar por Baileys.
     try {
       await sock.sendMessage(remoteJid, { text: segment });
       await supabase
@@ -226,8 +304,6 @@ export async function handleIncomingMessages(
       console.log(`[bot] → ${phone}: "${segment.slice(0, 60)}"`);
     } catch (err) {
       console.error(`[bot] error enviando segment ${i} por Baileys:`, err);
-      // Dejamos delivered_at = null, podríamos sumar logica de reintento
-      // futura. Por ahora el mensaje queda en DB y no se entregó.
     }
   }
 
@@ -238,7 +314,6 @@ export async function handleIncomingMessages(
       .eq("id", result.traceId);
   }
 
-  // Cartel de sistema si escaló a pesar de tener texto.
   if (result.status === "escalated") {
     await supabase.from("messages").insert({
       conversation_id: conversationId,

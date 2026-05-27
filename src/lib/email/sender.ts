@@ -71,16 +71,28 @@ function buildHtml(p: LeadAlertPayload): string {
   const name = p.name ?? "Sin nombre";
   const phone = p.phone ?? "—";
   const summary = p.summary?.trim() ?? "Sin resumen.";
+  const base = clientEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const logoUrl = `${base}/brand-logo.png`;
 
+  // Layout: solo el modulo del medio tiene fondo oscuro (la "tarjeta" del
+  // lead). El body queda transparente para respetar el tema del cliente de
+  // email (claro/oscuro). El logo del cliente va arriba del modulo, centrado:
+  // si la branch tiene /brand-logo.png publicado lo muestra; si no, el alt
+  // queda vacio y se ve solo el contenido textual.
   return `<!doctype html>
 <html lang="es">
-<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#fafafa;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0a0a0a;padding:32px 16px;">
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#171717;border:1px solid #262626;border-radius:8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#171717;border:1px solid #262626;border-radius:8px;color:#fafafa;">
           <tr>
-            <td style="padding:24px 24px 12px 24px;">
+            <td align="center" style="padding:24px 24px 0 24px;">
+              <img src="${logoUrl}" alt="" style="max-height:36px;width:auto;display:inline-block;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px 12px 24px;">
               <p style="margin:0;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#737373;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
                 Nuevo lead
               </p>
@@ -117,7 +129,7 @@ function buildHtml(p: LeadAlertPayload): string {
             </td>
           </tr>
         </table>
-        <p style="margin:16px 0 0 0;font-size:11px;color:#525252;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
+        <p style="margin:16px 0 0 0;font-size:11px;color:#737373;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
           Agentic Panel · ${new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}
         </p>
       </td>

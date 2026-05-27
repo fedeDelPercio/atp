@@ -6,11 +6,23 @@ import type { Update } from "@/lib/supabase/types";
 export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
-  status: z.enum(["nuevo", "contactado", "descartado", "cerrado"]).optional(),
+  status: z
+    .enum([
+      "nuevo",
+      "contactado",
+      "no_atendio",
+      "recontactar",
+      "dar_seguimiento",
+      "descartado",
+      "cerrado",
+    ])
+    .optional(),
   notes: z.string().max(2000).nullable().optional(),
   name: z.string().min(1).max(120).nullable().optional(),
   email: z.string().email().max(200).nullable().optional(),
   phone: z.string().max(40).nullable().optional(),
+  unit_typology: z.string().max(120).nullable().optional(),
+  call_notes: z.string().max(4000).nullable().optional(),
   contacted_by: z.string().uuid().nullable().optional(),
 });
 

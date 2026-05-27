@@ -471,8 +471,10 @@ export type Database = {
           name: string | null;
           email: string | null;
           interest_category: string;
+          unit_typology: string | null;
           status: string;
           notes: string | null;
+          call_notes: string | null;
           contacted_by: string | null;
           contacted_at: string | null;
           created_at: string;
@@ -486,8 +488,10 @@ export type Database = {
           name?: string | null;
           email?: string | null;
           interest_category: string;
+          unit_typology?: string | null;
           status?: string;
           notes?: string | null;
+          call_notes?: string | null;
           contacted_by?: string | null;
           contacted_at?: string | null;
           created_at?: string;
@@ -501,8 +505,10 @@ export type Database = {
           name?: string | null;
           email?: string | null;
           interest_category?: string;
+          unit_typology?: string | null;
           status?: string;
           notes?: string | null;
+          call_notes?: string | null;
           contacted_by?: string | null;
           contacted_at?: string | null;
           created_at?: string;
@@ -567,4 +573,11 @@ export type Provider = "anthropic" | "openrouter";
  * humaniza el snake_case.
  */
 export type NotificationCategory = string;
-export type LeadStatus = "nuevo" | "contactado" | "descartado" | "cerrado";
+export type LeadStatus =
+  | "nuevo"
+  | "contactado"
+  | "no_atendio"
+  | "recontactar"
+  | "dar_seguimiento"
+  | "descartado"
+  | "cerrado";

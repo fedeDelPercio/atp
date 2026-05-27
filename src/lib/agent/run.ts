@@ -273,6 +273,76 @@ async function recordNotification(args: {
   } catch (err) {
     console.error("[run] no se pudo registrar la notificación:", err);
   }
+  // Tambien creamos/actualizamos el lead asociado, en paralelo a la
+  // notificacion interna. Cualquier notify_team se considera un lead a
+  // contactar; si una categoria especifica no califica (ej. error tecnico),
+  // el equipo lo descarta desde el panel.
+  await upsertLead({
+    conversationId: args.conversationId,
+    category: args.category,
+    summary: args.summary,
+  });
+}
+
+/**
+ * Inserta o actualiza el lead asociado a una conversacion.
+ *
+ * - Si NO existe lead para esta conversacion: lo crea con los datos de
+ *   contacto (telefono extraido de wa_jid, nombre del display_name) y la
+ *   categoria + resumen del notify_team.
+ * - Si YA existe lead: refresca `last_contact_at` y eventualmente la
+ *   categoria (puede haber evolucionado de arquitecto a interes_compra).
+ *   NO sobrescribe `status`, `notes`, `name`, `email`, `contacted_by` ni
+ *   `contacted_at`: el equipo puede haber tocado esos campos manualmente.
+ *
+ * Nunca lanza: un fallo aca no debe romper el flow del agente.
+ */
+async function upsertLead(args: {
+  conversationId: string;
+  category: NotificationCategory;
+  summary: string | null;
+}): Promise<void> {
+  try {
+    const supabase = getSupabaseServerClient();
+
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("conversation_id", args.conversationId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("leads")
+        .update({
+          last_contact_at: new Date().toISOString(),
+          interest_category: args.category,
+        })
+        .eq("id", existing.id);
+      return;
+    }
+
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("display_name, wa_jid, external_id")
+      .eq("id", args.conversationId)
+      .maybeSingle();
+
+    // wa_jid en Baileys es "5491155551234@s.whatsapp.net" — extraemos solo
+    // el numero. Para conversaciones de test (sin wa_jid) cae al external_id
+    // si existe, sino null.
+    const phone = conv?.wa_jid?.split("@")[0] ?? conv?.external_id ?? null;
+
+    await supabase.from("leads").insert({
+      conversation_id: args.conversationId,
+      interest_category: args.category,
+      phone,
+      name: conv?.display_name ?? null,
+      notes: args.summary,
+    });
+  } catch (err) {
+    console.error("[run] no se pudo crear/actualizar el lead:", err);
+  }
 }
 
 /** Registra el step del orquestador (con sus tokens) en el trace. */

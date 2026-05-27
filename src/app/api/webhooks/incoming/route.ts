@@ -5,13 +5,27 @@ import { serverEnv } from "@/lib/env";
 import { dispatchEvent } from "@/lib/webhooks/dispatcher";
 
 export const dynamic = "force-dynamic";
+// after() necesita que la funcion siga viva hasta despues del debounce.
+// 20s de sleep + buffer del fetch al worker entra holgado en este limite.
+export const maxDuration = 60;
+
+// Ventana de debounce en milisegundos. Si el usuario manda varios mensajes
+// seguidos (estilo WhatsApp) dentro de esta ventana, todos se acumulan en
+// el mismo job y el agente responde una sola vez al burst completo.
+const DEBOUNCE_MS = 20_000;
 
 // ===========================================================================
 // POST /api/webhooks/incoming
 //
 // Webhook entrante. El panel le pega aca cuando el usuario manda un mensaje;
-// en fase 2 le pegara Meta con el mismo contrato. NO corre el agente: encola
-// un job y devuelve 200 OK al toque. El worker (/api/jobs/process) lo procesa.
+// la integracion de WhatsApp (Baileys) le pega con el mismo contrato. NO
+// corre el agente: encola/extiende un job con debounce de 20s y devuelve
+// 200 OK al toque. El worker (/api/jobs/process) lo procesa cuando expira
+// el debounce.
+//
+// Acumulador de mensajes: si ya hay un job pending de la misma conversacion
+// con process_at futuro, se EXTIENDE (no se crea uno nuevo). Asi varios
+// mensajes seguidos del usuario se procesan en un solo turno del agente.
 // ===========================================================================
 
 const incomingSchema = z.object({
@@ -51,22 +65,47 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2. Encolar el job para que el worker corra el agente.
-  const { data: job, error: jobErr } = await supabase
-    .from("agent_jobs")
-    .insert({
-      conversation_id: conversationId,
-      user_message_id: message.id,
-      status: "pending",
-    })
-    .select("id")
-    .single();
+  // 2. Encolar / extender el job con debounce.
+  //    Si ya hay un job pending para esta conversacion: extendemos su
+  //    process_at (otro mensaje en la ventana = el agente lo va a procesar
+  //    junto). Si no hay: creamos uno nuevo con process_at = now() + 20s.
+  const nextProcessAt = new Date(Date.now() + DEBOUNCE_MS).toISOString();
 
-  if (jobErr || !job) {
-    return NextResponse.json(
-      { error: jobErr?.message ?? "No se pudo encolar el job" },
-      { status: 500 },
-    );
+  const { data: existing } = await supabase
+    .from("agent_jobs")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  let jobId: string;
+  if (existing) {
+    const { error: updErr } = await supabase
+      .from("agent_jobs")
+      .update({ process_at: nextProcessAt })
+      .eq("id", existing.id);
+    if (updErr) {
+      return NextResponse.json({ error: updErr.message }, { status: 500 });
+    }
+    jobId = existing.id;
+  } else {
+    const { data: created, error: jobErr } = await supabase
+      .from("agent_jobs")
+      .insert({
+        conversation_id: conversationId,
+        user_message_id: message.id,
+        status: "pending",
+        process_at: nextProcessAt,
+      })
+      .select("id")
+      .single();
+    if (jobErr || !created) {
+      return NextResponse.json(
+        { error: jobErr?.message ?? "No se pudo encolar el job" },
+        { status: 500 },
+      );
+    }
+    jobId = created.id;
   }
 
   // 3. Bump de updated_at para reordenar la lista de conversaciones.
@@ -82,20 +121,29 @@ export async function POST(req: NextRequest) {
     content,
   });
 
-  // 5. Auto-trigger del worker. Usamos `after()` de Next: la respuesta sale
-  //    enseguida (paso 6) pero Vercel mantiene viva la funcion hasta que el
-  //    fetch al worker se complete. Sin `after`, la instancia serverless
-  //    moria antes de que el fetch outbound llegara, dejando jobs en pending
-  //    hasta el proximo cron (diario por plan Hobby).
+  // 5. Auto-trigger demorado del worker. after() mantiene viva la funcion
+  //    serverless hasta que termine. Dormimos el debounce y despues
+  //    pegamos al worker: el primero que llegue al fin de la ventana sin
+  //    que hayan llegado mas mensajes va a procesar el burst entero.
+  //    Si otro mensaje extendio el process_at, este fetch llega antes de
+  //    tiempo y el worker no claim nada — el after() del mensaje siguiente
+  //    sera el que dispare. Si todos los after() vencen sin claim (caso
+  //    extremo), el cron de Vercel lo levanta como fallback.
   after(
-    fetch(`${req.nextUrl.origin}/api/jobs/process`, {
-      method: "POST",
-      headers: { "x-cron-secret": serverEnv().CRON_SECRET },
-    }).catch(() => {
-      // El cron lo levanta igual; no es critico si este disparo falla.
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        fetch(`${req.nextUrl.origin}/api/jobs/process`, {
+          method: "POST",
+          headers: { "x-cron-secret": serverEnv().CRON_SECRET },
+        })
+          .catch(() => {
+            // El cron lo levanta igual; no es critico si este disparo falla.
+          })
+          .finally(resolve);
+      }, DEBOUNCE_MS);
     }),
   );
 
   // 6. 200 OK inmediato.
-  return NextResponse.json({ messageId: message.id, jobId: job.id }, { status: 200 });
+  return NextResponse.json({ messageId: message.id, jobId }, { status: 200 });
 }

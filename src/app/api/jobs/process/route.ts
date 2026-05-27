@@ -105,33 +105,57 @@ async function processJob(job: AgentJob): Promise<void> {
     return;
   }
 
-  // Mensaje del usuario que originó el job.
-  const { data: userMsg, error: userErr } = await supabase
+  // Mensaje del usuario que originó el job (el primero del burst).
+  const { data: anchorMsg, error: userErr } = await supabase
     .from("messages")
-    .select("content")
+    .select("content, created_at")
     .eq("id", job.user_message_id)
     .single();
-  if (userErr || !userMsg) {
+  if (userErr || !anchorMsg) {
     throw new Error("No se encontró el mensaje del usuario");
   }
 
-  // Historial: últimos N mensajes previos de la conversación.
+  // Mensajes completos de la conversacion (orden cronologico).
   const { data: msgs } = await supabase
     .from("messages")
     .select("id, role, content, created_at")
     .eq("conversation_id", job.conversation_id)
     .order("created_at", { ascending: true });
 
-  const history: HistoryMessage[] = (msgs ?? [])
-    .filter((m) => m.id !== job.user_message_id)
+  const allMessages = msgs ?? [];
+
+  // Burst del usuario: todos los mensajes user desde el job anchor (incluido)
+  // hasta el final, sin que haya un assistant en el medio. Si el cliente
+  // escribio 3 mensajes seguidos durante el debounce de 20s, el agente ve
+  // los 3 como un solo turno.
+  const anchorIdx = allMessages.findIndex((m) => m.id === job.user_message_id);
+  const burst: typeof allMessages = [];
+  if (anchorIdx >= 0) {
+    for (let i = anchorIdx; i < allMessages.length; i++) {
+      const m = allMessages[i]!;
+      if (m.role === "assistant" || m.role === "human" || m.role === "system") break;
+      if (m.role === "user") burst.push(m);
+    }
+  }
+  if (burst.length === 0) burst.push({ ...allMessages[anchorIdx]!, content: anchorMsg.content });
+
+  // Concatenamos los mensajes del burst con doble salto para que el modelo
+  // distinga partes. Si solo hay uno, queda exactamente igual a como era
+  // antes del debounce.
+  const userMessage = burst.map((m) => m.content).join("\n\n");
+  const burstIds = new Set(burst.map((m) => m.id));
+
+  // Historial: ultimos N mensajes previos excluyendo los del burst.
+  const history: HistoryMessage[] = allMessages
+    .filter((m) => !burstIds.has(m.id))
     .slice(-HISTORY_LIMIT)
     .map((m) => ({ role: m.role as HistoryMessage["role"], content: m.content }));
 
-  // Correr el agente.
+  // Correr el agente con el mensaje compuesto del burst.
   const result = await runAgent({
     conversationId: job.conversation_id,
     userMessageId: job.user_message_id,
-    userMessage: userMsg.content,
+    userMessage,
     history,
   });
 

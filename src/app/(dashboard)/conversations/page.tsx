@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, MessagesSquare } from "lucide-react";
 import { useProfile } from "@/components/ProfileProvider";
 import { ConversationList } from "@/components/ConversationList";
@@ -10,12 +11,46 @@ import { JobsDebugPanel } from "@/components/JobsDebugPanel";
 
 // Tab Conversaciones: lista + panel + side-panel de comentarios.
 // En mobile la lista es un drawer (se abre con la hamburguesa).
+//
+// Deep link: ?id=<uuid> selecciona esa conversacion al cargar. Util para
+// linkear desde el panel /leads o desde emails de notificacion. El URL se
+// mantiene sincronizado al cambiar de conversacion (back/forward del
+// browser funcionan).
 
 export default function ConversationsPage() {
   const { profile } = useProfile();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const idFromUrl = searchParams.get("id");
+
+  const [selectedId, setSelectedId] = useState<string | null>(idFromUrl);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Sincronizar el state cuando el URL cambia desde afuera (back/forward,
+  // navegacion desde otro tab del panel, link directo).
+  useEffect(() => {
+    setSelectedId(idFromUrl);
+    if (idFromUrl) setCommentTarget(null);
+  }, [idFromUrl]);
+
+  // Cambiar la conversacion seleccionada actualiza el URL sin recargar
+  // (replace en vez de push para no llenar el historial con cada click).
+  const handleSelect = useCallback(
+    (id: string | null) => {
+      setCommentTarget(null);
+      setSidebarOpen(false);
+      const params = new URLSearchParams(searchParams);
+      if (id) {
+        params.set("id", id);
+      } else {
+        params.delete("id");
+      }
+      const qs = params.toString();
+      router.replace(qs ? `/conversations?${qs}` : "/conversations");
+    },
+    [router, searchParams],
+  );
 
   return (
     <div className="flex h-full">
@@ -25,16 +60,9 @@ export default function ConversationsPage() {
         selectedId={selectedId}
         sourceFilter="test"
         title="Testing"
-        onSelect={(id) => {
-          setSelectedId(id);
-          setCommentTarget(null);
-          setSidebarOpen(false);
-        }}
+        onSelect={handleSelect}
         onDeleted={(id) => {
-          if (selectedId === id) {
-            setSelectedId(null);
-            setCommentTarget(null);
-          }
+          if (selectedId === id) handleSelect(null);
         }}
       />
 

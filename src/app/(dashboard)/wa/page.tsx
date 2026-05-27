@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, MessageCircle } from "lucide-react";
 import { ConversationList } from "@/components/ConversationList";
 import { ConversationPanel, type CommentTarget } from "@/components/ConversationPanel";
@@ -12,6 +13,9 @@ import { WaHeader } from "@/components/wa/WaHeader";
 //
 // Si no hay conexión activa, muestra QRScreen para escanear.
 // Cuando se conecta, muestra header + lista de convs + panel.
+//
+// Deep link: ?id=<uuid> selecciona esa conversación al cargar (mismo
+// patron que /conversations). Util para linkear desde /leads o emails.
 
 type WaStatus = "disconnected" | "qr" | "connecting" | "connected";
 type DefaultMode = "AI" | "HUMAN";
@@ -26,12 +30,38 @@ interface StatusResponse {
 }
 
 export default function WaPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const idFromUrl = searchParams.get("id");
+
   const [phase, setPhase] = useState<"loading" | "qr" | "connected">("loading");
   const [phone, setPhone] = useState<string | null>(null);
   const [defaultMode, setDefaultMode] = useState<DefaultMode>("HUMAN");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(idFromUrl);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Sincronizar el state cuando el URL cambia desde afuera.
+  useEffect(() => {
+    setSelectedId(idFromUrl);
+    if (idFromUrl) setCommentTarget(null);
+  }, [idFromUrl]);
+
+  const handleSelect = useCallback(
+    (id: string | null) => {
+      setCommentTarget(null);
+      setSidebarOpen(false);
+      const params = new URLSearchParams(searchParams);
+      if (id) {
+        params.set("id", id);
+      } else {
+        params.delete("id");
+      }
+      const qs = params.toString();
+      router.replace(qs ? `/wa?${qs}` : "/wa");
+    },
+    [router, searchParams],
+  );
 
   // Estado inicial: poll una vez para saber si ya hay conexión activa.
   const refreshStatus = useCallback(async () => {
@@ -96,16 +126,9 @@ export default function WaPage() {
           hideNewButton
           title="WhatsApp"
           emptyLabel="Sin conversaciones todavía. Esperá a que llegue el primer mensaje."
-          onSelect={(id) => {
-            setSelectedId(id);
-            setCommentTarget(null);
-            setSidebarOpen(false);
-          }}
+          onSelect={handleSelect}
           onDeleted={(id) => {
-            if (selectedId === id) {
-              setSelectedId(null);
-              setCommentTarget(null);
-            }
+            if (selectedId === id) handleSelect(null);
           }}
         />
 

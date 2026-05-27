@@ -87,12 +87,12 @@ function buildHtml(p: LeadAlertPayload): string {
       <td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#171717;border:1px solid #262626;border-radius:8px;color:#fafafa;">
           <tr>
-            <td align="center" style="padding:24px 24px 0 24px;">
-              <img src="${logoUrl}" alt="" style="max-height:36px;width:auto;display:inline-block;" />
+            <td align="center" style="padding:32px 24px 0 24px;">
+              <img src="${logoUrl}" alt="" style="max-height:72px;width:auto;display:inline-block;" />
             </td>
           </tr>
           <tr>
-            <td style="padding:20px 24px 12px 24px;">
+            <td align="center" style="padding:24px 24px 12px 24px;">
               <p style="margin:0;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#737373;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
                 Nuevo lead
               </p>
@@ -110,26 +110,26 @@ function buildHtml(p: LeadAlertPayload): string {
             </td>
           </tr>
           <tr>
-            <td style="padding:16px 24px;font-size:13px;color:#d4d4d4;line-height:1.6;">
+            <td align="center" style="padding:18px 24px;font-size:13px;color:#d4d4d4;line-height:1.6;">
               <p style="margin:0 0 6px 0;">
                 <span style="color:#737373;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">Teléfono</span><br/>
                 <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${phone}</span>
               </p>
-              <p style="margin:12px 0 6px 0;">
+              <p style="margin:14px 0 6px 0;">
                 <span style="color:#737373;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">Resumen del agente</span><br/>
                 <span style="color:#e5e5e5;">${summary.replace(/\n/g, "<br/>")}</span>
               </p>
             </td>
           </tr>
           <tr>
-            <td style="padding:12px 24px 24px 24px;">
-              <a href="${url}" style="display:inline-block;background:#fafafa;color:#0a0a0a;text-decoration:none;font-size:13px;font-weight:500;padding:10px 14px;border-radius:6px;">
+            <td align="center" style="padding:12px 24px 28px 24px;">
+              <a href="${url}" style="display:inline-block;background:#fafafa;color:#0a0a0a;text-decoration:none;font-size:13px;font-weight:500;padding:10px 18px;border-radius:6px;">
                 Ver conversación
               </a>
             </td>
           </tr>
         </table>
-        <p style="margin:16px 0 0 0;font-size:11px;color:#737373;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
+        <p style="margin:16px 0 0 0;font-size:11px;color:#737373;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;">
           Agentic Panel · ${new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}
         </p>
       </td>

@@ -111,19 +111,14 @@ export async function startBot(): Promise<BotHandle> {
 
       if (code === DisconnectReason.loggedOut) {
         // 401: el usuario cerró sesión desde su teléfono o se borró el auth.
-        // No reconectar; esperar nueva conexión manual desde el panel.
-        await setWaState({
-          status: "disconnected",
-          qr_string: null,
-          phone: null,
-          last_error: "logged_out",
-        });
-        if (currentHandle) {
-          try {
-            currentHandle.sock.end(undefined);
-          } catch {}
-          currentHandle = null;
-        }
+        // Auto-recuperación: borrar las credenciales viejas y re-arrancar para
+        // generar QR fresco. Sin esto el bot quedaba idle (`currentHandle` se
+        // ponía en null acá adentro) y el disconnect-watcher no podía
+        // disparar fullDisconnect porque requiere un handle vivo: el panel
+        // mostraba "Esperando al bot" indefinidamente tras un logout desde
+        // el teléfono.
+        console.warn("[bot] logged_out detectado, auto-cleanup + re-arranque");
+        await fullDisconnect();
         return;
       }
 

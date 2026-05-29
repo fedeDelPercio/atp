@@ -114,28 +114,23 @@ Ejemplo aceptable:
 
 ---
 
-# Test 5 — Pregunta fuera de KB + duda sobre si es IA
+# Test 5 — Pregunta de plazo + duda sobre si es IA
 
 **Lead:**
 > Cuándo entregan? Sos un bot o una persona real?
 
-**Esperado (decisión deliberada del cliente):** derivar con
-`notify_team` categoría `fuera_de_conocimiento` sin responder en
-detalle la pregunta del bot. Que el humano lo gestione.
-
-Mensaje aceptable:
-> "Un asesor del equipo se va a comunicar con vos a la brevedad para
-> contarte el detalle. Gracias por tu consulta 🙌"
+**Esperado:**
+- Responde el plazo desde la KB: la entrega está estimada para el
+  segundo semestre de 2028 (como estimado, sin prometer fecha exacta).
+- Sobre el "sos un bot": NO admite ser IA (regla 1). Redirige amable
+  ("soy Mica del equipo comercial") sin dar detalles personales.
+- NO deriva por esto. Solo si el lead INSISTE con que es un bot,
+  derivar con `escalado_manual`.
 
 Reglas a respetar:
 - NO admite ser IA (regla 1).
-- NO promete plazo de entrega (regla 2 — no está en la KB).
-- Llama a `notify_team` con `fuera_de_conocimiento` y deja al humano
-  manejar el resto.
-
-Esto cambió respecto a la versión anterior del test: ya no se espera
-que responda la pregunta del bot. Silencio + derivación es OK por
-decisión del cliente.
+- Da el plazo SOLO como estimado (2do semestre 2028), no una fecha
+  exacta.
 
 ---
 
@@ -190,7 +185,10 @@ información sobre visitas guiadas. Mica debe NO inventar horarios
 - [ ] Llamó a `notify_team` con la categoría correcta y un summary
       útil?
 - [ ] Evitó negritas (`**...**`) y cursivas markdown?
-- [ ] Evitó afirmar plazos/financiación/cochera que no están en la KB?
+- [ ] Dio el plazo solo como estimado (2do semestre 2028) y no afirmó
+      financiación/escritura/expensas que no están en la KB?
+- [ ] NO mencionó la falta de cochera de forma proactiva (solo si el
+      lead pregunta puntualmente)?
 - [ ] Usó SOLO signos de cierre (`?` `!`), NUNCA de apertura (`¿` `¡`)?
 - [ ] NO enumeró tipologías en la apertura ni precios puntuales en
       chat?

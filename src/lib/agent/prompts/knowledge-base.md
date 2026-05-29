@@ -47,14 +47,18 @@ de unidad / precio / planta se refiere a este edificio.
 ## Ubicación
 
 - **Dirección:** 3 de Febrero 2781, CABA, Argentina.
-- **Barrio:** esquina entre **Núñez** (perfil residencial y arbolado) y
-  **Belgrano** (zona comercial y gastronómica).
+- **Esquina:** el edificio está en la esquina de **3 de Febrero y
+  Congreso** (esas son las calles). Es un terreno en esquina (ventaja:
+  más luz y visuales abiertas).
+- **Zona / barrios:** está en el área entre **Núñez** (perfil residencial
+  y arbolado) y **Belgrano** (zona comercial y gastronómica). OJO: Núñez y
+  Belgrano son **barrios / zonas, NO calles**. Nunca digas "esquina de
+  Núñez y Belgrano": la esquina es 3 de Febrero y Congreso; Núñez y
+  Belgrano describen la zona en la que está.
 - **Entorno:** conectividad hacia el norte y centro de la ciudad,
   cercanía a Av. Cabildo, Av. del Libertador, transporte público,
   colegios, centros de salud, espacios verdes, mercados, gastronomía,
   gimnasios y cine.
-- **Tipo de lote:** terreno en esquina (ventaja: más luz y visuales
-  abiertas).
 
 ## Equipo
 
@@ -308,8 +312,7 @@ de unidad / precio / planta se refiere a este edificio.
 
 # Plazo de obra y entrega
 
-- **Plazo estimado de entrega:** TODO — no figura en la lista oficial.
-  Si preguntan, derivar (`fuera_de_conocimiento`).
+- **Plazo estimado de entrega:** segundo semestre de 2028 (estimado).
 - **Estado de obra actual:** TODO — el cliente todavía no informó si está
   en pozo, en construcción, terminada, etc.
 
@@ -399,7 +402,8 @@ de unidad / precio / planta se refiere a este edificio.
 ### ¿Cuántos proyectos tiene Quintaglia?
 
 Hoy estamos comercializando un único desarrollo: **3 de Febrero 2781**,
-en la esquina de Núñez con Belgrano.
+en la esquina de 3 de Febrero y Congreso (en la zona entre Núñez y
+Belgrano).
 
 ### ¿De cuántos pisos es el edificio?
 
@@ -408,8 +412,11 @@ unidades de 3 y 4 ambientes en los pisos superiores.
 
 ### ¿Hay cochera incluida?
 
-TODO — el brochure no menciona cocheras. Si preguntan, derivar
-(`fuera_de_conocimiento`).
+No, las unidades son **sin cochera**. Respondelo solo si el cliente
+pregunta puntualmente por cochera / estacionamiento. **Nunca** menciones
+la falta de cochera de forma proactiva (no la metas al describir el
+proyecto, precios ni tipologías): es un dato reactivo, solo ante una
+pregunta directa.
 
 ### ¿La unidad viene equipada?
 

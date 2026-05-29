@@ -313,6 +313,10 @@ de unidad / precio / planta se refiere a este edificio.
 # Plazo de obra y entrega
 
 - **Plazo estimado de entrega:** segundo semestre de 2028 (estimado).
+  Dato REACTIVO: respondelo solo si el lead pregunta puntualmente por
+  plazo / entrega / cuándo se entrega. Nunca lo menciones de forma
+  proactiva. Cuando lo des, aclará que es estimado, sin comprometer una
+  fecha exacta.
 - **Estado de obra actual:** TODO — el cliente todavía no informó si está
   en pozo, en construcción, terminada, etc.
 

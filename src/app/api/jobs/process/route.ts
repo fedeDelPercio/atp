@@ -86,20 +86,25 @@ export async function POST(req: NextRequest) {
 async function processJob(job: AgentJob): Promise<void> {
   const supabase = getSupabaseServerClient();
 
-  // Freeze guard: si la conversación ya tiene una notificación, está derivada
-  // a un humano. El agente no responde más; el job se cierra sin correr.
-  const { count: notifCount } = await supabase
-    .from("agent_notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("conversation_id", job.conversation_id);
+  // Freeze guard: el agente se calla SOLO si un asesor humano tomó el
+  // control de la conversación (modo HUMAN). Una notificación al equipo por
+  // sí sola NO congela: el agente sigue respondiendo lo que la KB cubre
+  // hasta que una persona tome la conversación manualmente desde el panel.
+  // (Antes congelábamos ante cualquier notificación, lo que dejaba al
+  // cliente sin respuesta apenas se derivaba — ej. tras interes_compra.)
+  const { data: convState } = await supabase
+    .from("conversations")
+    .select("mode")
+    .eq("id", job.conversation_id)
+    .maybeSingle();
 
-  if ((notifCount ?? 0) > 0) {
+  if (convState?.mode === "HUMAN") {
     await supabase
       .from("agent_jobs")
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
-        error: "Conversación congelada: ya fue derivada a un asesor humano.",
+        error: "Conversación en modo humano: la atiende un asesor.",
       })
       .eq("id", job.id);
     return;

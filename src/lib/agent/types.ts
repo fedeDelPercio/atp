@@ -31,6 +31,13 @@ export interface AgentRunResult {
   assistantMessage: string;
   status: "completed" | "escalated" | "failed";
   escalationReason?: string;
+  /**
+   * Solo en status 'escalated'. `true` si esta derivacion registró una
+   * notificación NUEVA al equipo; `false` si la conversación ya tenía una
+   * notificación de la misma categoría (no se duplicó). El worker usa esto
+   * para no insertar el cartel "Derivado al equipo" repetido.
+   */
+  escalationIsNew?: boolean;
 }
 
 /** Resultado de una iteracion del orquestador (una corrida del SDK). */

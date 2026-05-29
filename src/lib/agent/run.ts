@@ -139,7 +139,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     // El orquestador notificó al equipo: handoff, la conversación se congela.
     if (orch.notification.notified) {
       const category = orch.notification.category ?? "fuera_de_conocimiento";
-      await recordNotification({
+      const escalationIsNew = await recordNotification({
         traceId,
         conversationId: input.conversationId,
         category,
@@ -175,6 +175,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         assistantMessage: handoffText || HANDOFF_FALLBACK_NOTICE,
         status: "escalated",
         escalationReason: category,
+        escalationIsNew,
       };
     }
 
@@ -225,7 +226,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     "",
     "Requiere respuesta directa de un asesor humano.",
   ].join("\n");
-  await recordNotification({
+  const escalationIsNew = await recordNotification({
     traceId,
     conversationId: input.conversationId,
     category,
@@ -252,29 +253,45 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     assistantMessage: HANDOFF_FALLBACK_NOTICE,
     status: "escalated",
     escalationReason: category,
+    escalationIsNew,
   };
 }
 
 // --- helpers ---------------------------------------------------------------
 
-/** Registra una notificación al equipo de ventas. */
+/**
+ * Registra una notificación al equipo de ventas. Devuelve `true` si insertó
+ * una notificación nueva, `false` si ya existía una de la misma categoría
+ * para esta conversación (dedupe: evita avisar/emailar dos veces por el
+ * mismo motivo cuando el agente sigue conversando tras derivar).
+ */
 async function recordNotification(args: {
   traceId: string;
   conversationId: string;
   category: NotificationCategory;
   reason: string | null;
   summary: string | null;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
-    await getSupabaseServerClient().from("agent_notifications").insert({
+    const supabase = getSupabaseServerClient();
+    const { count } = await supabase
+      .from("agent_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", args.conversationId)
+      .eq("category", args.category);
+    if ((count ?? 0) > 0) return false;
+
+    await supabase.from("agent_notifications").insert({
       conversation_id: args.conversationId,
       trace_id: args.traceId,
       category: args.category,
       reason: args.reason,
       summary: args.summary,
     });
+    return true;
   } catch (err) {
     console.error("[run] no se pudo registrar la notificación:", err);
+    return false;
   }
 }
 

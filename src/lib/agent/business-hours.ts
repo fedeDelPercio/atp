@@ -29,6 +29,28 @@ export interface TimeContext {
   dayName: string;
   /** true si estamos dentro del horario comercial. */
   isBusinessHours: boolean;
+  /**
+   * Cuando ofrecer el contacto de Santino, ya resuelto: "por la tarde",
+   * "mañana" o "el lunes". Lo calcula el codigo (deterministico) para que el
+   * modelo no tenga que razonar el dia de la semana — antes confundia
+   * "viernes a la mañana" con "el lunes".
+   */
+  followUpTiming: string;
+}
+
+/**
+ * Calcula cuando ofrecer el contacto de Santino segun dia y hora:
+ *   - dia habil antes de las 12:00       -> "por la tarde" (hoy)
+ *   - viernes 12:00 o mas tarde          -> "el lunes" (mañana seria sabado)
+ *   - lun a jue 12:00 o mas tarde        -> "mañana"
+ *   - sabado o domingo                   -> "el lunes"
+ */
+function computeFollowUpTiming(dayIdx: number, hour: number): string {
+  const isWeekend = dayIdx === 0 || dayIdx === 6;
+  if (isWeekend) return "el lunes";
+  if (hour < 12) return "por la tarde";
+  if (dayIdx === 5) return "el lunes"; // viernes pasado el mediodia
+  return "mañana"; // lunes a jueves pasado el mediodia
 }
 
 /** Calcula el contexto de horario en zona horaria de Argentina. */
@@ -59,6 +81,7 @@ export function getTimeContext(now: Date = new Date()): TimeContext {
     localTime: `${get("day")}/${get("month")}/${get("year")} ${String(hour).padStart(2, "0")}:${minute}`,
     dayName: weekday,
     isBusinessHours,
+    followUpTiming: computeFollowUpTiming(dayIdx, hour),
   };
 }
 
@@ -70,5 +93,9 @@ export function timeContextBlock(tc: TimeContext): string {
     tc.isBusinessHours
       ? "Estás DENTRO del horario comercial (Lun a Vie, 9 a 18 hs)."
       : "Estás FUERA del horario comercial (Lun a Vie, 9 a 18 hs).",
+    "",
+    `CUÁNDO OFRECER EL CONTACTO DE SANTINO: "${tc.followUpTiming}". Usá`,
+    "exactamente este valor en la invitación a llamada y en el cierre de",
+    "interes_compra. No lo recalcules vos: ya está resuelto acá.",
   ].join("\n");
 }

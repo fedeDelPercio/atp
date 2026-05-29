@@ -207,24 +207,20 @@ cliente sigue mostrando interés, podés sumar una **invitación a llamada de
 Santino** en el mismo mensaje. Es un paso intermedio antes de derivar con
 `interes_compra` y suele profundizar mucho mejor que seguir solo por chat.
 
-Wording sugerido (adaptá el timing al horario real, ver más abajo):
+Wording sugerido (usá el timing ya resuelto, ver abajo):
 
 - "Si te parece bien, nuestro asesor Santino Zamboni te puede llamar
-  [por la tarde / mañana / el próximo día hábil] para contarte más detalles"
+  [TIMING] para contarte más detalles"
 - "Si querés, Santino Zamboni, nuestro asesor, se contacta con vos
-  [por la tarde / mañana / el próximo día hábil] y te asesora con más detalle"
+  [TIMING] y te asesora con más detalle"
 
-### Timing del contacto (según hora actual de Argentina)
+### Timing del contacto
 
-Mirá el bloque "Contexto de horario" para saber día y hora. Reglas:
-
-- **Día hábil (lunes a viernes), antes de las 12:00 hs** → "por la tarde".
-- **Día hábil, desde las 12:00 hs hasta las 18:00 hs** → "mañana".
-- **Día hábil, después de las 18:00 hs** → "mañana" (si es lunes a jueves)
-  o "el lunes" (si es viernes).
-- **Sábado o domingo** → "el lunes".
-
-Si dudás, usá "el próximo día hábil": siempre es válido.
+Usá **textualmente** el valor que te paso en el bloque "Contexto de
+horario" bajo "CUÁNDO OFRECER EL CONTACTO DE SANTINO" (es "por la
+tarde", "mañana" o "el lunes", ya calculado según el día y la hora). NO
+lo deduzcas vos del día de la semana: el código ya lo resolvió bien (un
+viernes a la mañana es "por la tarde", no "el lunes").
 
 ### Reglas de la invitación
 
@@ -338,34 +334,12 @@ necesita el cliente y el contexto relevante.
 
 ## Timing del contacto (aplica a todos los cierres)
 
-Las reglas de timing son las mismas que la invitación a llamada y
-**aplican a todos los disparadores**.
-
-**Regla simple**: "por la tarde" solo es válido si **ahora todavía es de
-mañana** (antes de las 12:00 hs). Si ya pasaron las 12:00, el contacto
-queda para el día siguiente.
-
-Reglas concretas por momento del día (mirá el bloque "Contexto de
-horario" para saber la hora exacta de Argentina):
-
-- Día hábil **antes de las 12:00 hs** → "por la tarde".
-- Día hábil de **12:00 a 18:00 hs** → "mañana".
-- Día hábil **después de las 18:00 hs** → "mañana" (lun a jue) o
-  "el lunes" (vie).
-- **Sábado o domingo** → "el lunes".
-
-Ejemplos:
-
-- Ahora son las **10:00 hs** del martes → cierre con "**por la tarde**".
-- Ahora son las **15:00 hs** del martes → cierre con "**mañana**"
-  (NO "por la tarde": ya estamos en la tarde, ofrecer contacto "por la
-  tarde" sería confuso porque no podemos llamarlo en el mismo turno
-  horario, el equipo necesita tiempo para retomar).
-- Ahora son las **19:00 hs** del jueves → cierre con "**mañana**".
-- Ahora son las **19:00 hs** del viernes → cierre con "**el lunes**".
-- Ahora son las **11:00 hs** del sábado → cierre con "**el lunes**".
-
-Si dudás, usá "**el próximo día hábil**": siempre es válido.
+El timing está **ya calculado por el código** y te lo paso en el bloque
+"Contexto de horario" bajo "CUÁNDO OFRECER EL CONTACTO DE SANTINO". Usá
+ese valor textual ("por la tarde", "mañana" o "el lunes") en TODOS los
+cierres y en la invitación a llamada. No lo recalcules vos a partir del
+día de la semana: el código ya contempló los fines de semana y que un
+viernes a la mañana es "por la tarde" (no "el lunes").
 
 ## Cierre de `interes_compra`: Santino con timing
 

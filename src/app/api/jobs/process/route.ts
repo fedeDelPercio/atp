@@ -174,10 +174,13 @@ async function processJob(job: AgentJob): Promise<void> {
       .eq("id", result.traceId);
   }
 
-  // Si hubo notificación, se inserta un "cartel" de sistema visible en el panel.
+  // Si hubo notificación NUEVA, se inserta un "cartel" de sistema visible en
+  // el panel. Si la conversación ya tenía una notificación de la misma
+  // categoría (escalationIsNew === false), no repetimos el cartel: el agente
+  // sigue conversando tras derivar y no queremos duplicar el aviso.
   // Mensaje sobrio (sin emoji, sin caps, sin em dash). El render le agrega el
   // ícono y la chip — ver MessageBubble role==="system".
-  if (result.status === "escalated") {
+  if (result.status === "escalated" && result.escalationIsNew !== false) {
     const label = humanizeCategory(result.escalationReason ?? "Notificación");
     await supabase.from("messages").insert({
       conversation_id: job.conversation_id,

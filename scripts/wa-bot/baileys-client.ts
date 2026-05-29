@@ -201,8 +201,14 @@ export async function fullDisconnect(): Promise<void> {
     } catch {}
     currentHandle = null;
   }
+  // Borrar el CONTENIDO de AUTH_DIR, no el directorio en sí. En EasyPanel /
+  // Docker, AUTH_DIR suele ser un mount point del volumen persistente: borrar
+  // el mount tira EBUSY (errno -16) y crashea el proceso. Borrar los
+  // archivos/subdirs adentro sí funciona y es lo que realmente queremos.
   if (fs.existsSync(AUTH_DIR)) {
-    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    for (const entry of fs.readdirSync(AUTH_DIR)) {
+      fs.rmSync(path.join(AUTH_DIR, entry), { recursive: true, force: true });
+    }
   }
   await setWaState({
     status: "disconnected",

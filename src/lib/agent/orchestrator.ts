@@ -1,10 +1,6 @@
 import "server-only";
 
-import type {
-  MessageParam,
-  Tool,
-  TextBlockParam,
-} from "@anthropic-ai/sdk/resources/messages";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -18,7 +14,8 @@ import {
   type NotifyTeamArgs,
 } from "./tools";
 import { usageToTotals } from "./hooks/token-tracker";
-import { timeContextBlock, type TimeContext } from "./business-hours";
+import { type TimeContext } from "./business-hours";
+import { buildSystemPrompt, buildMessages } from "./prompt-builder";
 import { sanitizeStyle } from "./sanitize";
 import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 
@@ -35,135 +32,6 @@ import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 // ===========================================================================
 
 const ORCHESTRATOR_MAX_TOKENS = 2048;
-
-/**
- * System prompt como array de blocks para habilitar prompt caching de Anthropic.
- *
- * El bloque grande (orquestador + KB) es prácticamente constante entre turnos y
- * entre conversaciones del mismo cliente: lo marcamos como `cache_control:
- * ephemeral` para que Anthropic lo guarde 5 minutos. Los re-hits cobran ~10%
- * del costo de input por esos tokens.
- *
- * El segundo bloque (timeContext + actividad + estado del contacto) cambia por
- * turno y se manda sin cache. Es chico (~10 líneas) así que su costo es bajo.
- */
-function buildSystemPrompt(
-  timeContext: TimeContext,
-  customerMessageCount: number,
-  isExistingCustomer: boolean,
-  priorEscalation: string | null,
-): TextBlockParam[] {
-  const cacheableBlock = [
-    loadPrompt("orchestrator"),
-    "# BASE DE CONOCIMIENTO",
-    loadPrompt("knowledge-base"),
-  ].join("\n\n");
-
-  const dynamicBlock = [
-    timeContextBlock(timeContext),
-    `# Actividad del cliente\n\nEl cliente envió ${customerMessageCount} mensaje(s) en esta ` +
-      `conversación (contando el actual). Usalo como guía para el disparador de interés ` +
-      `de compra.`,
-    customerContextBlock(isExistingCustomer),
-    escalationContextBlock(priorEscalation),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
-  return [
-    { type: "text", text: cacheableBlock, cache_control: { type: "ephemeral" } },
-    { type: "text", text: dynamicBlock },
-  ];
-}
-
-/**
- * Bloque que le avisa al orquestador si esta conversación YA fue derivada al
- * equipo en un turno anterior. Las notificaciones son internas (no están en
- * el historial de mensajes), así que sin esto el modelo no sabe que ya
- * derivó y vuelve a hacerlo en cada turno, repitiendo "Santino te va a
- * llamar" ante un simple "gracias".
- */
-function escalationContextBlock(priorEscalation: string | null): string {
-  if (!priorEscalation) return "";
-  return [
-    "=== Estado de derivación ===",
-    `Esta conversación YA fue derivada al equipo (categoría: ${priorEscalation}).`,
-    "El equipo ya fue notificado y el contacto de Santino ya fue prometido al",
-    "cliente en un mensaje anterior. Por lo tanto, en este turno:",
-    "- NO vuelvas a llamar `notify_team` por la MISMA razón (ej. otro",
-    "  interes_compra). Ya está hecho.",
-    "- NO repitas que Santino se va a contactar / que lo vamos a llamar. Ya",
-    "  se lo dijiste, repetirlo cansa.",
-    "- Si el cliente agradece o se despide ('gracias', 'genial', 'perfecto'),",
-    "  cerrá cordial y humano SIN derivar ni mencionar la llamada otra vez",
-    "  (ej. 'Gracias a vos, cualquier cosa quedamos en contacto').",
-    "- Si pregunta algo que la KB cubre, respondelo normal.",
-    "- Solo si surge una consulta GENUINAMENTE nueva que no sabés responder,",
-    "  podés llamar `notify_team` con la categoría que corresponda, pero",
-    "  igual SIN repetir el compromiso de llamada.",
-  ].join("\n");
-}
-
-/** Bloque con info de si el contacto ya está registrado en el CRM. */
-function customerContextBlock(isExisting: boolean): string {
-  if (isExisting) {
-    return [
-      "=== Estado del contacto ===",
-      "ATENCIÓN: el contacto YA ESTÁ REGISTRADO en nuestro CRM (Kommo).",
-      "Es un cliente existente, no un lead nuevo.",
-      "Disparador obligatorio: llamá a `notify_team` con",
-      "`category: \"cliente_existente\"` de inmediato, sin iniciar el flow",
-      "comercial de descubrimiento. En `summary` aclará que es un cliente",
-      "ya registrado que volvió a contactarse.",
-    ].join("\n");
-  }
-  return [
-    "=== Estado del contacto ===",
-    "El contacto NO está registrado en nuestro CRM. Tratalo como un lead",
-    "nuevo y seguí el flow comercial normal del orquestador.",
-  ].join("\n");
-}
-
-/** Mapea el historial de la conversación a mensajes API-compatibles. */
-function buildMessages(params: {
-  userMessage: string;
-  history: HistoryMessage[];
-  evaluatorFeedback: string | null;
-}): MessageParam[] {
-  const messages: MessageParam[] = [];
-
-  for (const m of params.history) {
-    if (m.role === "user") {
-      messages.push({ role: "user", content: m.content });
-    } else if (m.role === "assistant") {
-      messages.push({ role: "assistant", content: m.content });
-    } else if (m.role === "human") {
-      // Mensaje de un asesor humano (ya tomó la conversación). Lo serializamos
-      // como user para mantener el orden temporal del chat.
-      messages.push({
-        role: "user",
-        content: `[Mensaje del asesor humano del equipo]\n${m.content}`,
-      });
-    }
-    // role === "system": carteles del propio panel (ej: notificaciones). No
-    // los pasamos para no confundir al modelo.
-  }
-
-  // Mensaje actual del cliente, con el feedback del evaluator si corresponde.
-  const lines: string[] = [params.userMessage];
-  if (params.evaluatorFeedback) {
-    lines.push("");
-    lines.push("=== Corrección requerida ===");
-    lines.push(
-      "Tu respuesta anterior NO pasó la validación interna. Generala de nuevo " +
-        "corrigiendo esto:",
-    );
-    lines.push(params.evaluatorFeedback);
-  }
-  messages.push({ role: "user", content: lines.join("\n") });
-
-  return messages;
-}
 
 /**
  * Inserta un step en agent_trace_steps para una llamada a tool. No falla la
@@ -227,12 +95,14 @@ export async function runOrchestrator(params: {
       {
         model,
         max_tokens: ORCHESTRATOR_MAX_TOKENS,
-        system: buildSystemPrompt(
-          params.timeContext,
-          params.customerMessageCount,
-          params.isExistingCustomer,
-          params.priorEscalation,
-        ),
+        system: buildSystemPrompt({
+          orchestratorPrompt: loadPrompt("orchestrator"),
+          knowledgeBase: loadPrompt("knowledge-base"),
+          timeContext: params.timeContext,
+          customerMessageCount: params.customerMessageCount,
+          isExistingCustomer: params.isExistingCustomer,
+          priorEscalation: params.priorEscalation,
+        }),
         messages: buildMessages(params),
         tools,
       },

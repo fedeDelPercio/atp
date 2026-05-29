@@ -111,16 +111,24 @@ y asiento calefaccionado. Las diferencias principales están en
 
 ### Requisitos del Ombú
 
+> **REACTIVO — no mencionar proactivamente.** Todo lo de presión de red,
+> tanque integrado y bomba presurizadora es dato técnico que solo aparece
+> si el cliente **pregunta específicamente** por eso (ej. "necesita
+> presión?", "tiene tanque?", "en mi casa hay poca presión"). NO lo
+> uses al recomendar o comparar modelos: la gente no conoce su presión
+> de red y meter este tema confunde en vez de ayudar. La recomendación
+> se hace por features y beneficios; los temas técnicos los cierra
+> Santino en la llamada.
+
 - **Presión de red:** mínima **1 kg/cm²**, máxima **3,5 kg/cm²**. Si la
   presión es menor, hay que instalar una bomba presurizadora; si no, la
   descarga no funciona bien.
 - **Bomba presurizadora (responsable):** si hace falta, **la compra y
-  coloca el cliente**. iBath no la provee. **No aclarar proactivamente**
-  quién la compra: este dato solo aparece si el cliente pregunta
+  coloca el cliente**. iBath no la provee. Solo si el cliente pregunta
   específicamente "la bomba la ponen ustedes o yo?", "el costo de la
-  bomba está incluido?". En esos casos, decir que la bomba va por cuenta
-  del cliente (cualquier plomero la consigue) y, si quiere más detalle,
-  ofrecer que Santino lo llame para asesorarlo.
+  bomba está incluido?": decir que la bomba va por cuenta del cliente
+  (cualquier plomero la consigue) y, si quiere más detalle, ofrecer que
+  Santino lo llame para asesorarlo.
 - **Sin tanque ni mochila:** se conecta directo a la red.
 
 ## iBath Ceibo (modelo XP104)
@@ -206,6 +214,12 @@ Incluye **todas las funciones del Ombú**, más las siguientes:
 
 > Ceibo W aparece en la tabla solo como referencia. **Sin stock,
 > no ofrecer.**
+>
+> **Las filas técnicas de instalación (presión mínima de red, tanque,
+> consumo de descarga) son REACTIVAS:** úsalas solo si el cliente
+> pregunta por eso. Al recomendar o comparar modelos espontáneamente,
+> apoyate en las funciones y beneficios (las filas de arriba), no en los
+> requisitos de presión/instalación.
 
 | Función / característica | Ombú | Ceibo | Ceibo W (sin stock) |
 | --- | --- | --- | --- |

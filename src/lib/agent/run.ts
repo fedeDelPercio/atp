@@ -30,11 +30,15 @@ import type { Json } from "@/lib/supabase/types";
 // Cierre de fallback. Nunca dejamos al cliente sin respuesta cuando la
 // conversación se deriva: si el orquestador derivó sin generar texto (no
 // debería pasar con el prompt actual, que exige cierre siempre) o si se
-// agotaron las iteraciones del evaluator, igual le confirmamos que un asesor
-// lo va a contactar. El criterio del producto es "siempre responder".
-const HANDOFF_FALLBACK_NOTICE =
-  "Dejame que un asesor te dé una mano con esto. Nuestro asesor Santino " +
-  "Zamboni se va a estar contactando con vos a la brevedad para ayudarte";
+// agotaron las iteraciones del evaluator, igual le confirmamos que Santino
+// lo va a contactar, con el timing ya resuelto (por la tarde / mañana / el
+// lunes). Tono positivo de cierre, no de "no pude resolver".
+function handoffFallbackNotice(followUpTiming: string): string {
+  return (
+    "Buenísimo. Nuestro asesor Santino Zamboni se va a estar contactando " +
+    `con vos ${followUpTiming} para asesorarte con más detalle`
+  );
+}
 
 const FAILURE_NOTICE =
   "Disculpá, tuvimos un inconveniente para procesar tu mensaje. Reintentá en " +
@@ -187,7 +191,8 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
       const handoffText = orch.responseText?.trim() ?? "";
       return {
         traceId,
-        assistantMessage: handoffText || HANDOFF_FALLBACK_NOTICE,
+        assistantMessage:
+          handoffText || handoffFallbackNotice(timeContext.followUpTiming),
         status: "escalated",
         escalationReason: category,
         escalationIsNew,
@@ -265,7 +270,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   });
   return {
     traceId,
-    assistantMessage: HANDOFF_FALLBACK_NOTICE,
+    assistantMessage: handoffFallbackNotice(timeContext.followUpTiming),
     status: "escalated",
     escalationReason: category,
     escalationIsNew,

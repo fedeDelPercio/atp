@@ -51,6 +51,7 @@ function buildSystemPrompt(
   timeContext: TimeContext,
   customerMessageCount: number,
   isExistingCustomer: boolean,
+  priorEscalation: string | null,
 ): TextBlockParam[] {
   const cacheableBlock = [
     loadPrompt("orchestrator"),
@@ -64,12 +65,43 @@ function buildSystemPrompt(
       `conversación (contando el actual). Usalo como guía para el disparador de interés ` +
       `de compra.`,
     customerContextBlock(isExistingCustomer),
-  ].join("\n\n");
+    escalationContextBlock(priorEscalation),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   return [
     { type: "text", text: cacheableBlock, cache_control: { type: "ephemeral" } },
     { type: "text", text: dynamicBlock },
   ];
+}
+
+/**
+ * Bloque que le avisa al orquestador si esta conversación YA fue derivada al
+ * equipo en un turno anterior. Las notificaciones son internas (no están en
+ * el historial de mensajes), así que sin esto el modelo no sabe que ya
+ * derivó y vuelve a hacerlo en cada turno, repitiendo "Santino te va a
+ * llamar" ante un simple "gracias".
+ */
+function escalationContextBlock(priorEscalation: string | null): string {
+  if (!priorEscalation) return "";
+  return [
+    "=== Estado de derivación ===",
+    `Esta conversación YA fue derivada al equipo (categoría: ${priorEscalation}).`,
+    "El equipo ya fue notificado y el contacto de Santino ya fue prometido al",
+    "cliente en un mensaje anterior. Por lo tanto, en este turno:",
+    "- NO vuelvas a llamar `notify_team` por la MISMA razón (ej. otro",
+    "  interes_compra). Ya está hecho.",
+    "- NO repitas que Santino se va a contactar / que lo vamos a llamar. Ya",
+    "  se lo dijiste, repetirlo cansa.",
+    "- Si el cliente agradece o se despide ('gracias', 'genial', 'perfecto'),",
+    "  cerrá cordial y humano SIN derivar ni mencionar la llamada otra vez",
+    "  (ej. 'Gracias a vos, cualquier cosa quedamos en contacto').",
+    "- Si pregunta algo que la KB cubre, respondelo normal.",
+    "- Solo si surge una consulta GENUINAMENTE nueva que no sabés responder,",
+    "  podés llamar `notify_team` con la categoría que corresponda, pero",
+    "  igual SIN repetir el compromiso de llamada.",
+  ].join("\n");
 }
 
 /** Bloque con info de si el contacto ya está registrado en el CRM. */
@@ -178,6 +210,7 @@ export async function runOrchestrator(params: {
   timeContext: TimeContext;
   customerMessageCount: number;
   isExistingCustomer: boolean;
+  priorEscalation: string | null;
 }): Promise<OrchestratorResult> {
   const env = serverEnv();
   const { ctx } = params;
@@ -198,6 +231,7 @@ export async function runOrchestrator(params: {
           params.timeContext,
           params.customerMessageCount,
           params.isExistingCustomer,
+          params.priorEscalation,
         ),
         messages: buildMessages(params),
         tools,

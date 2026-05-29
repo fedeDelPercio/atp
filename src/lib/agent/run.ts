@@ -90,6 +90,20 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   const customerMessageCount =
     input.history.filter((m) => m.role === "user").length + 1;
 
+  // Si la conversación ya fue derivada en un turno anterior, se lo avisamos
+  // al orquestador: las notificaciones son internas (no están en el
+  // historial), así que sin esto el modelo no sabe que ya derivó y vuelve a
+  // hacerlo en cada turno (repitiendo "Santino te va a llamar" ante un
+  // simple "gracias"). Tomamos la notificación más reciente como contexto.
+  const { data: priorNotif } = await supabase
+    .from("agent_notifications")
+    .select("category")
+    .eq("conversation_id", input.conversationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const priorEscalation = priorNotif?.category ?? null;
+
   let totalInput = 0;
   let totalOutput = 0;
   let totalLatency = 0;
@@ -111,6 +125,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         timeContext,
         customerMessageCount,
         isExistingCustomer,
+        priorEscalation,
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : "error desconocido";

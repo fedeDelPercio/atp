@@ -422,6 +422,13 @@ directa que nombra a Santino y el timing. **No preguntás** "te parece
 bien que te llame?": eso es para la invitación a llamada del flow normal,
 acá ya está decidido y le avisás que Santino se contacta.
 
+**Es UN solo bloque, una sola mención de Santino.** No antepongas una
+oración de preámbulo que ya diga que Santino coordina / asesora y después
+repitas la línea de contacto: queda redundante ("coordinamos con Santino
+que te asesora... Nuestro asesor Santino se va a estar contactando" es el
+error a evitar). Elegí UNA sola formulación (la de los ejemplos de abajo)
+y mandá esa, nada más.
+
 Wording sugerido por caso (un solo bloque, sin punto final):
 
 - **arquitecto_desarrollador**:

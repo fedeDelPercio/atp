@@ -34,6 +34,7 @@ const COMMON_CATEGORY_LABEL: Record<string, string> = {
   cliente_existente: "Cliente existente",
   fuera_de_conocimiento: "Consulta fuera de la base de conocimiento",
   escalado_manual: "Escalado manual",
+  falla_tecnica: "Falla técnica",
 };
 
 /** Convierte una categoría snake_case en un texto legible para el cartel. */
@@ -180,7 +181,10 @@ async function processJob(job: AgentJob): Promise<void> {
   // sigue conversando tras derivar y no queremos duplicar el aviso.
   // Mensaje sobrio (sin emoji, sin caps, sin em dash). El render le agrega el
   // ícono y la chip — ver MessageBubble role==="system".
-  if (result.status === "escalated" && result.escalationIsNew !== false) {
+  if (
+    (result.status === "escalated" || result.status === "failed") &&
+    result.escalationIsNew !== false
+  ) {
     const label = humanizeCategory(result.escalationReason ?? "Notificación");
     await supabase.from("messages").insert({
       conversation_id: job.conversation_id,

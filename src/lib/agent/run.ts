@@ -40,10 +40,6 @@ function handoffFallbackNotice(followUpTiming: string): string {
   );
 }
 
-const FAILURE_NOTICE =
-  "Disculpá, tuvimos un inconveniente para procesar tu mensaje. Reintentá en " +
-  "un momento, por favor.";
-
 export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   const supabase = getSupabaseServerClient();
   const maxIterations = serverEnv().AGENT_MAX_ITERATIONS;
@@ -133,6 +129,19 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : "error desconocido";
+      // Falla dura del orquestador (ej. error de API / límite de uso). NUNCA
+      // le mandamos un mensaje de disculpa al cliente: notificamos al equipo
+      // para que un humano tome la conversación y NO respondemos nada. El
+      // cliente no se entera de la falla técnica; el equipo sí.
+      const escalationIsNew = await recordNotification({
+        traceId,
+        conversationId: input.conversationId,
+        category: "falla_tecnica",
+        reason,
+        summary:
+          `El agente no pudo procesar el mensaje del cliente ("${input.userMessage}") ` +
+          `por un error técnico: ${reason}. Requiere respuesta manual de un asesor.`,
+      });
       await finalizeTrace(traceId, {
         status: "failed",
         iterations: iterationsRun,
@@ -147,7 +156,16 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         traceId,
         error: reason,
       });
-      return { traceId, assistantMessage: FAILURE_NOTICE, status: "failed", escalationReason: reason };
+      // assistantMessage vacío: el worker no inserta ninguna burbuja para el
+      // cliente. escalationReason = la categoría (no el error crudo) para que
+      // el cartel del panel diga "Falla técnica" y no filtre el detalle.
+      return {
+        traceId,
+        assistantMessage: "",
+        status: "failed",
+        escalationReason: "falla_tecnica",
+        escalationIsNew,
+      };
     }
 
     totalInput += orch.inputTokens;

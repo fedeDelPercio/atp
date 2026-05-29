@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "start:bot": "tsx scripts/wa-bot/index.ts"
+    "start:bot": "tsx scripts/wa-bot/index.ts",
+    "eval": "tsx scripts/evals/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

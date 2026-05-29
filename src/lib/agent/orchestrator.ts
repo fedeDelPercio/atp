@@ -19,6 +19,7 @@ import {
 } from "./tools";
 import { usageToTotals } from "./hooks/token-tracker";
 import { timeContextBlock, type TimeContext } from "./business-hours";
+import { sanitizeStyle } from "./sanitize";
 import type { HistoryMessage, OrchestratorResult, RunContext } from "./types";
 
 // ===========================================================================
@@ -226,8 +227,13 @@ export async function runOrchestrator(params: {
 
     const totals = usageToTotals(response.usage);
 
+    // Sanitizacion de estilo deterministica (emojis, ¿¡, **bold**, em dash,
+    // punto final). Antes esto vivia como criterios bloqueantes del evaluator
+    // y causaba falsos positivos (rechazo de respuestas validas -> derivacion
+    // al equipo). Ahora se garantiza en codigo; el evaluator solo valida lo
+    // que requiere criterio.
     return {
-      responseText: responseText.trim(),
+      responseText: sanitizeStyle(responseText.trim()),
       inputTokens: totals.inputTokens,
       outputTokens: totals.outputTokens,
       latencyMs: Date.now() - startedAt,

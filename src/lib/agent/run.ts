@@ -27,11 +27,14 @@ import type { Json } from "@/lib/supabase/types";
 // No inserta nada en `messages`: de eso se encarga el worker de jobs.
 // ===========================================================================
 
-// Cuando la conversación se deriva al equipo NO se le manda ningún mensaje
-// al lead — la notificación interna al equipo es la señal y el humano va a
-// tomar el control. Antes mandábamos un mensaje de despedida, pero pollute
-// la experiencia del cliente final.
-const NO_REPLY_TO_LEAD = "";
+// Cierre de fallback. Nunca dejamos al cliente sin respuesta cuando la
+// conversación se deriva: si el orquestador derivó sin generar texto (no
+// debería pasar con el prompt actual, que exige cierre siempre) o si se
+// agotaron las iteraciones del evaluator, igual le confirmamos que un asesor
+// lo va a contactar. El criterio del producto es "siempre responder".
+const HANDOFF_FALLBACK_NOTICE =
+  "Dejame que un asesor te dé una mano con esto. Nuestro asesor Santino " +
+  "Zamboni se va a estar contactando con vos a la brevedad para ayudarte";
 
 const FAILURE_NOTICE =
   "Disculpá, tuvimos un inconveniente para procesar tu mensaje. Reintentá en " +
@@ -169,7 +172,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
       const handoffText = orch.responseText?.trim() ?? "";
       return {
         traceId,
-        assistantMessage: handoffText || NO_REPLY_TO_LEAD,
+        assistantMessage: handoffText || HANDOFF_FALLBACK_NOTICE,
         status: "escalated",
         escalationReason: category,
       };
@@ -246,7 +249,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   });
   return {
     traceId,
-    assistantMessage: NO_REPLY_TO_LEAD,
+    assistantMessage: HANDOFF_FALLBACK_NOTICE,
     status: "escalated",
     escalationReason: category,
   };

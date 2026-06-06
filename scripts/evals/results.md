@@ -3,8 +3,8 @@
 Generado automáticamente por `npm run eval`. Cada escenario corre contra el orquestador real (modelo + prompt + KB + tool de prod), valida lo que recibiría el cliente y deja el output abajo para revisar a mano.
 
 - **Modelo:** `claude-sonnet-4-6`
-- **Resultado:** 10/10 turnos con aserciones OK
-- **Escenarios corridos:** 10
+- **Resultado:** 11/11 turnos con aserciones OK
+- **Escenarios corridos:** 11
 
 ---
 
@@ -41,13 +41,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
-> 
 > ---
-> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
-> 
 > ---
-> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ### Turno 2 · **PASS**
@@ -90,7 +86,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Una ubicación muy bien conectada, cerca de Av. Cabildo, Av. del Libertador, transporte público, espacios verdes y gastronomía
+> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Muy bien ubicado, con fácil acceso a Av. Cabildo, Av. del Libertador y transporte público
 > 
 > Conocés la zona?
 
@@ -122,7 +118,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos monoambientes, 2, 3 y 4 ambientes, con balcón incluido en todas las unidades. Los pisos más altos tienen terrazas propias y vistas abiertas.
+> Tenemos desde monoambientes hasta unidades de 2, 3 y 4 ambientes, en un edificio de 13 pisos en la esquina de 3 de Febrero y Congreso (zona Núñez/Belgrano)
 > 
 > Estás buscando para vivir o más como inversión?
 
@@ -154,9 +150,11 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tiene piscina y solárium en la terraza, parrillas en área común y laundry. Todo con el mismo nivel de terminaciones que las unidades.
+> Tiene piscina en terraza, solárium con vista panorámica, parrillas en área común y laundry
 > 
-> Hay algo puntual del proyecto que te interese ver primero?
+> ---
+> 
+> Estás buscando para vivir o más como inversión?
 
 ---
 
@@ -186,9 +184,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> No, las unidades son sin cochera.
+> No, las unidades son sin cochera
 > 
-> Estás buscando para vivir o más como inversión?
+> Hay alguna tipología que te haya llamado la atención en el brochure?
 
 ---
 
@@ -248,11 +246,13 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva tus dudas. Preferís que te llamen por la mañana o por la tarde?
+> Tenemos varias opciones de 2 ambientes disponibles, en distintos pisos y orientaciones.
+> 
+> Si te parece, coordinamos una llamada con un asesor para que te cuente el detalle y puedas elegir la que mejor te queda. Preferís que te llamen por la mañana o por la tarde?
 
 ---
 
-## Acepta llamada → pregunta horario antes de notify_team — OK
+## Acepta llamada → pregunta franja (mañana/tarde), NO día específico — OK
 
 - Reloj simulado: 29/05/2026, 11:00 a. m. (Argentina)
 
@@ -278,7 +278,45 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda, te parece bien?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda?
+
+### Turno 3 · **PASS**
+
+**Cliente:** dale, llamame
+
+**Mica:**
+
+> Perfecto. Preferís que te llamen por la mañana o por la tarde?
+
+---
+
+## Acepta llamada un SÁBADO → sigue siendo franja, no día — OK
+
+- Reloj simulado: 30/05/2026, 12:00 p. m. (Argentina)
+
+### Turno 1 · (sin assertions)
+
+**Cliente:** hola
+
+**Mica:**
+
+> Hola, bienvenido. Soy Mica del Team Scaglia
+> 
+> ---
+> 
+> Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
+> ---
+> 
+> Alguna de estas opciones es compatible con lo que estás buscando?
+
+### Turno 2 · (sin assertions)
+
+**Cliente:** me interesa un 2 ambientes
+
+**Mica:**
+
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda?
 
 ### Turno 3 · **PASS**
 

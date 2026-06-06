@@ -201,7 +201,7 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
-    name: "Acepta llamada → pregunta horario antes de notify_team",
+    name: "Acepta llamada → pregunta franja (mañana/tarde), NO día específico",
     now: VIERNES_DENTRO_HORARIO,
     turns: [
       { user: "hola" },
@@ -209,10 +209,69 @@ export const SCENARIOS: Scenario[] = [
       {
         user: "dale, llamame",
         expect: {
-          // En este turno todavía NO debe derivar: tiene que pedir horario
-          // antes (mañana / tarde). El notify llega cuando responde el horario.
+          // En este turno todavía NO debe derivar: tiene que pedir franja
+          // antes. El notify llega cuando responde la franja.
           doesNotNotify: true,
-          contains: ["mañana", "tarde"],
+          contains: ["por la mañana", "por la tarde"],
+          // Bug visto en prod (sábado): el modelo mutaba a "mañana o durante
+          // la semana", comprometiendo un día. La pregunta es de franja, no
+          // de día.
+          notContains: [
+            "durante la semana",
+            "esta semana",
+            "el lunes",
+            "el martes",
+            "el miércoles",
+            "el jueves",
+            "el viernes",
+            "el sábado",
+            "el domingo",
+            "el lunes que viene",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    name: "Acepta llamada un SÁBADO → sigue siendo franja, no día",
+    // Regresión del bug visto en WhatsApp: el modelo, al ser sábado, mutó
+    // la pregunta a "Preferís que te llamen mañana o durante la semana?",
+    // comprometiendo un día (domingo) y deformando la franja en algo vago.
+    // La regla del prompt es estricta: franja siempre, día nunca.
+    now: "2026-05-30T12:00:00-03:00", // sábado mediodía
+    turns: [
+      { user: "hola" },
+      { user: "me interesa un 2 ambientes" },
+      {
+        user: "dale, llamame",
+        expect: {
+          doesNotNotify: true,
+          contains: ["por la mañana", "por la tarde"],
+          notContains: [
+            "durante la semana",
+            "esta semana",
+            "el lunes",
+            "el martes",
+            "el miércoles",
+            "el jueves",
+            "el viernes",
+            "el sábado",
+            "el domingo",
+          ],
+          custom: (out) => {
+            // "mañana" sola (sin "por la") = día siguiente, NO franja.
+            // Detectamos "mañana" no precedido por "por la".
+            if (/(?<!por la )ma[ñn]ana(?! o)/i.test(out.responseText)) {
+              // Solo fallar si NO viene precedida por "por la" — eso ya está
+              // cubierto por contains. Esta regex extra cuida el caso "mañana
+              // o..." al inicio.
+              if (!/por la mañana/i.test(out.responseText)) {
+                return "usa 'mañana' como día (debería ser 'por la mañana' como franja)";
+              }
+            }
+            return null;
+          },
         },
       },
     ],

@@ -81,7 +81,25 @@ const serverSchema = z.object({
   // y la app sigue funcionando.
   GMAIL_USER: z.string().email().optional(),
   GMAIL_APP_PASSWORD: z.string().min(1).optional(),
-  EMAIL_NOTIFY_LEADS_TO: z.string().email().optional(),
+  // Acepta uno o varios destinatarios separados por coma (CSV). Cada uno
+  // tiene que ser un email valido. Ej: "fede@x.com" o
+  // "fede@x.com, caro@y.com, otro@z.com". El sender lo pasa tal cual a
+  // nodemailer, que soporta multiples destinatarios nativamente.
+  EMAIL_NOTIFY_LEADS_TO: z
+    .string()
+    .optional()
+    .refine(
+      (v) => {
+        if (!v) return true;
+        const parts = v
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+        if (parts.length === 0) return false;
+        return parts.every((p) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p));
+      },
+      "Debe ser un email o una lista de emails separados por coma",
+    ),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;

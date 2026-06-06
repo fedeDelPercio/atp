@@ -237,23 +237,33 @@ function buildText(p: LeadAlertPayload): string {
  */
 export async function sendLeadAlert(payload: LeadAlertPayload): Promise<void> {
   const env = serverEnv();
-  const to = env.EMAIL_NOTIFY_LEADS_TO;
+  const rawTo = env.EMAIL_NOTIFY_LEADS_TO;
   const transporter = getTransporter();
 
-  if (!transporter || !to) {
+  if (!transporter || !rawTo) {
     console.log("[email] sendLeadAlert skipped (env vars faltantes)");
     return;
   }
+
+  // EMAIL_NOTIFY_LEADS_TO acepta uno o varios destinatarios separados por
+  // coma. Normalizamos a un array (nodemailer lo soporta nativamente) y
+  // logueamos cuantos avisos salen para facilitar debug si alguien deja
+  // de recibir.
+  const recipients = rawTo
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 
   try {
     const pres = presentation(payload.interestCategory);
     await transporter.sendMail({
       from: env.GMAIL_USER,
-      to,
+      to: recipients,
       subject: `${pres.subjectPrefix}: ${payload.name ?? "Sin nombre"} (${humanizeCategory(payload.interestCategory)})`,
       text: buildText(payload),
       html: buildHtml(payload),
     });
+    console.log(`[email] sendLeadAlert OK -> ${recipients.length} destinatario(s)`);
   } catch (err) {
     console.error("[email] no se pudo enviar el email del lead:", err);
   }

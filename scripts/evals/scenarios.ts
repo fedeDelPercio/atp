@@ -306,6 +306,51 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "'Más info del monoambiente' → describe la tipología, NO manda lista de precios",
+    // Bug visto en prod (2026-06-06): "quiero más info sobre el monoambiente"
+    // termina derivado con fuera_de_conocimiento. Causa raíz: Mica responde
+    // con info + lista de precios (porque interpreta "más info" como
+    // "compartir todo"). El evaluator tiene la regla dura
+    // estilo_lista_no_solicitada (lista solo si el cliente dice
+    // cuánto/precio/sale/etc), rechaza, Mica reintenta, loop → max_iter →
+    // fuera_de_conocimiento.
+    //
+    // El fix: el orchestrator NO debe mandar la lista cuando solo piden info.
+    // Este escenario simula "después de apertura" (donde Mica ya pasó la
+    // bienvenida) para chequear el comportamiento en el turno problema.
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      { user: "hola" },
+      {
+        user: "quiero mas informacion sobre el monoambiente",
+        expect: {
+          doesNotNotify: true,
+          // NO debe mandar la URL de la lista de precios.
+          notContains: [
+            "1VmFe0NrlHUuAgGpMmGdDcbnr90LlkGTS",
+            "lista oficial de precios",
+            "lista de precios",
+          ],
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            // Specs reales del monoambiente (m², ambientes, balcón, cocina,
+            // baño, terminaciones). No exigimos la palabra "monoambient"
+            // literal: el cliente ya la mencionó y Mica puede dar por
+            // sentado el contexto.
+            if (
+              !/m[²2]|ambient|cubiert|balc[oó]n|estar|comedor|piso|cocin|ba[ñn]o|silestone|porcelanat|vin[ií]lic|radiante/.test(
+                lower,
+              )
+            )
+              return "no da información concreta de la tipología (solo saluda o redirige)";
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Pide hablar con asesor: deriva con 'pide_asesor', no 'fuera_de_conocimiento'",
     // Bug visto en prod: "quiero hablar con un asesor" caía a
     // fuera_de_conocimiento (la IA no sabía qué responder) cuando en

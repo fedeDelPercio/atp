@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Loader2, MessageCircle, X, Save } from "lucide-react";
+import { ChevronDown, Loader2, MessageCircle, X, Save, Trash2 } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import type { Lead, LeadStatus } from "@/lib/supabase/types";
 
 // Modal de detalle de un lead, reutilizable desde la pagina /leads y desde
@@ -59,11 +60,18 @@ export function LeadDetailModal({
   onClose,
   onStatusChange,
   onSave,
+  onDelete,
 }: {
   lead: Lead;
   onClose: () => void;
   onStatusChange: (id: string, status: LeadStatus) => Promise<void>;
   onSave: (id: string, payload: Partial<Lead>) => Promise<void>;
+  /**
+   * Opcional. Si está, el modal muestra el botón "Eliminar lead" en el
+   * footer; el callback resuelve cuando el delete terminó (y el modal se
+   * cierra solo). Si no está, el botón no aparece.
+   */
+  onDelete?: (id: string) => Promise<void>;
 }) {
   const [name, setName] = useState(lead.name ?? "");
   const [phone, setPhone] = useState(lead.phone ?? "");
@@ -71,6 +79,8 @@ export function LeadDetailModal({
   const [unitTypology, setUnitTypology] = useState(lead.unit_typology ?? "");
   const [callNotes, setCallNotes] = useState(lead.call_notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Si cambia el lead seleccionado (status update vino desde fuera) reseteamos.
   useEffect(() => {
@@ -224,27 +234,61 @@ export function LeadDetailModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-neutral-200 px-5 py-3 dark:border-neutral-800">
-          <button
-            onClick={onClose}
-            className="rounded-md px-3 py-2 text-[13px] text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            Cerrar
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
-          >
-            {saving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
-            ) : (
-              <Save className="h-3.5 w-3.5" strokeWidth={1.75} />
-            )}
-            Guardar cambios
-          </button>
+        <div className="flex items-center justify-between gap-2 border-t border-neutral-200 px-5 py-3 dark:border-neutral-800">
+          {onDelete ? (
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              disabled={saving || deleting}
+              className="flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px] text-red-600 transition hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Eliminar lead
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-md px-3 py-2 text-[13px] text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            >
+              Cerrar
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!dirty || saving}
+              className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200"
+            >
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+              ) : (
+                <Save className="h-3.5 w-3.5" strokeWidth={1.75} />
+              )}
+              Guardar cambios
+            </button>
+          </div>
         </div>
       </div>
+
+      {confirmingDelete && onDelete && (
+        <ConfirmDeleteModal
+          title="Eliminar lead"
+          description="Se va a borrar este lead. No se tocan los mensajes ni la conversación, solo el registro del lead. Esta acción no se puede deshacer."
+          confirmLabel="Eliminar"
+          loading={deleting}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={async () => {
+            setDeleting(true);
+            try {
+              await onDelete(lead.id);
+              setConfirmingDelete(false);
+              onClose();
+            } finally {
+              setDeleting(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

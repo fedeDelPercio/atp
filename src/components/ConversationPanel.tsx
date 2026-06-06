@@ -138,6 +138,20 @@ export function ConversationPanel({
     }
   }
 
+  async function deleteLead(leadId: string) {
+    try {
+      const r = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("delete failed");
+      // Saca el botón "Lead" del header; el modal se cierra solo desde
+      // LeadDetailModal.onConfirm.
+      setLead(null);
+      setLeadModalOpen(false);
+      toast.success("Lead eliminado");
+    } catch {
+      toast.error("No se pudo eliminar el lead");
+    }
+  }
+
   async function saveName() {
     if (cancelingNameRef.current) {
       cancelingNameRef.current = false;
@@ -515,6 +529,7 @@ export function ConversationPanel({
           onClose={() => setLeadModalOpen(false)}
           onStatusChange={updateLeadStatus}
           onSave={updateLeadFields}
+          onDelete={deleteLead}
         />
       )}
     </div>

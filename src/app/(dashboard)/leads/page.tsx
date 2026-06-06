@@ -110,6 +110,18 @@ export default function LeadsPage() {
     }
   }
 
+  async function deleteLead(leadId: string) {
+    try {
+      const r = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("delete failed");
+      setLeads((curr) => curr.filter((l) => l.id !== leadId));
+      if (selectedLead?.id === leadId) setSelectedLead(null);
+      toast.success("Lead eliminado");
+    } catch {
+      toast.error("No se pudo eliminar el lead");
+    }
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white dark:bg-neutral-950">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
@@ -190,6 +202,7 @@ export default function LeadsPage() {
           onClose={() => setSelectedLead(null)}
           onStatusChange={updateStatus}
           onSave={updateLeadFields}
+          onDelete={deleteLead}
         />
       )}
     </div>

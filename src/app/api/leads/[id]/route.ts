@@ -110,3 +110,36 @@ export async function PATCH(
 
   return NextResponse.json({ lead: data });
 }
+
+// ===========================================================================
+// DELETE /api/leads/[id]
+//
+// Borra el lead. NO toca la conversacion ni los mensajes: solo elimina el
+// row de `leads`. Despues de borrar, una nueva derivacion sobre la misma
+// conversacion creara un lead nuevo (y por lo tanto va a re-disparar el
+// email al equipo, que de otra forma queda silenciado por la logica
+// "no spam" de upsertLead en run.ts).
+//
+// Casos de uso:
+// - El equipo cerro la conversacion y quiere limpiarla del listado.
+// - Federico esta testeando con su mismo numero y necesita re-disparar el
+//   mail (cada celu solo genera 1 lead por conv).
+// ===========================================================================
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("leads")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
+  return NextResponse.json({ ok: true });
+}

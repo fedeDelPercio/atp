@@ -41,6 +41,7 @@ export interface LeadAlertPayload {
 
 const CATEGORY_LABEL: Record<string, string> = {
   interes_compra: "Interés de compra",
+  pide_asesor: "Solicita hablar con un asesor",
   arquitecto_desarrollador: "Arquitecto / desarrollador",
   cantidad_equipos: "Cantidad de equipos",
   cliente_existente: "Cliente existente",
@@ -64,6 +65,11 @@ const CATEGORY_PRESENTATION: Record<
   interes_compra: {
     eyebrow: "Nuevo lead",
     subjectPrefix: "Nuevo lead",
+    summaryHeading: "Resumen del agente",
+  },
+  pide_asesor: {
+    eyebrow: "Pide hablar con asesor",
+    subjectPrefix: "Pide hablar con asesor",
     summaryHeading: "Resumen del agente",
   },
   visita_obra: {

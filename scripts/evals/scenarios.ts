@@ -142,7 +142,21 @@ export const SCENARIOS: Scenario[] = [
         user: "tiene cochera?",
         expect: {
           doesNotNotify: true,
-          contains: ["sin cochera"],
+          contains: ["cochera"],
+          // El modelo varía ("sin cochera", "no incluyen cochera", "no
+          // tiene cochera"): chequeamos que niegue claramente, sin amarrarnos
+          // a un string específico.
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            if (
+              !/(sin cochera|no incluye|no tiene cochera|no hay cochera|no cuentan con cochera)/.test(
+                lower,
+              )
+            ) {
+              return "no niega claramente la cochera";
+            }
+            return null;
+          },
         },
       },
     ],
@@ -286,6 +300,33 @@ export const SCENARIOS: Scenario[] = [
         user: "hola, una consulta",
         expect: {
           notifies: "cliente_existente",
+        },
+      },
+    ],
+  },
+
+  {
+    name: "Pide hablar con asesor: deriva con 'pide_asesor', no 'fuera_de_conocimiento'",
+    // Bug visto en prod: "quiero hablar con un asesor" caía a
+    // fuera_de_conocimiento (la IA no sabía qué responder) cuando en
+    // realidad es una intención clara de pasar a un humano. Categoría
+    // dedicada para que el email + cartel + lead lo reflejen.
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      { user: "hola" },
+      {
+        user: "quiero hablar con un asesor",
+        expect: {
+          // En este turno todavía NO debe derivar: igual que en interes_compra
+          // tiene que pedir la franja horaria primero.
+          doesNotNotify: true,
+          contains: ["por la mañana", "por la tarde"],
+        },
+      },
+      {
+        user: "tarde",
+        expect: {
+          notifies: "pide_asesor",
         },
       },
     ],

@@ -3,8 +3,8 @@
 Generado automáticamente por `npm run eval`. Cada escenario corre contra el orquestador real (modelo + prompt + KB + tool de prod), valida lo que recibiría el cliente y deja el output abajo para revisar a mano.
 
 - **Modelo:** `claude-sonnet-4-6`
-- **Resultado:** 11/11 turnos con aserciones OK
-- **Escenarios corridos:** 11
+- **Resultado:** 13/13 turnos con aserciones OK
+- **Escenarios corridos:** 12
 
 ---
 
@@ -86,7 +86,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Muy bien ubicado, con fácil acceso a Av. Cabildo, Av. del Libertador y transporte público
+> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Muy bien conectado, cerca de Av. Cabildo, Av. del Libertador, transporte, colegios y gastronomía
 > 
 > Conocés la zona?
 
@@ -118,7 +118,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos desde monoambientes hasta unidades de 2, 3 y 4 ambientes, en un edificio de 13 pisos en la esquina de 3 de Febrero y Congreso (zona Núñez/Belgrano)
+> Tenemos monoambientes, 2 ambientes, 3 ambientes y 4 ambientes, distribuidos en 13 pisos. Todas con balcón, terminaciones de primera y amenities como piscina, solárium y parrillas en terraza.
 > 
 > Estás buscando para vivir o más como inversión?
 
@@ -150,11 +150,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tiene piscina en terraza, solárium con vista panorámica, parrillas en área común y laundry
+> Tiene piscina y solárium en la terraza, parrillas y laundry en área común, y un hall de acceso acorde a las terminaciones del edificio
 > 
-> ---
-> 
-> Estás buscando para vivir o más como inversión?
+> Hay algo puntual del proyecto que te interese ver primero?
 
 ---
 
@@ -186,7 +184,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 > No, las unidades son sin cochera
 > 
-> Hay alguna tipología que te haya llamado la atención en el brochure?
+> Hay alguna tipología que te haya llamado la atención del brochure?
 
 ---
 
@@ -231,13 +229,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
-> 
 > ---
-> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
-> 
 > ---
-> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ### Turno 2 · **PASS**
@@ -246,9 +240,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles, en distintos pisos y orientaciones.
-> 
-> Si te parece, coordinamos una llamada con un asesor para que te cuente el detalle y puedas elegir la que mejor te queda. Preferís que te llamen por la mañana o por la tarde?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda, te parece bien?
 
 ---
 
@@ -278,7 +270,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente los detalles y resuelva cualquier duda?
 
 ### Turno 3 · **PASS**
 
@@ -316,7 +308,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente los detalles y resuelva cualquier duda, te parece bien?
 
 ### Turno 3 · **PASS**
 
@@ -341,5 +333,45 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 > _(sin texto visible — el cliente NO recibe nada)_
 
 > _[notify_team → `cliente_existente`]_
+
+---
+
+## Pide hablar con asesor: deriva con 'pide_asesor', no 'fuera_de_conocimiento' — OK
+
+- Reloj simulado: 29/05/2026, 11:00 a. m. (Argentina)
+
+### Turno 1 · (sin assertions)
+
+**Cliente:** hola
+
+**Mica:**
+
+> Hola, bienvenido. Soy Mica del Team Scaglia
+> 
+> ---
+> 
+> Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
+> ---
+> 
+> Alguna de estas opciones es compatible con lo que estás buscando?
+
+### Turno 2 · **PASS**
+
+**Cliente:** quiero hablar con un asesor
+
+**Mica:**
+
+> Perfecto. Preferís que te llamen por la mañana o por la tarde?
+
+### Turno 3 · **PASS**
+
+**Cliente:** tarde
+
+**Mica:**
+
+> _(sin texto visible — el cliente NO recibe nada)_
+
+> _[notify_team → `pide_asesor`]_
 
 ---

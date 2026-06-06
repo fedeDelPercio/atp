@@ -390,6 +390,7 @@ async function getOrCreateConversation(
 // Mismas etiquetas que el worker del panel.
 const CATEGORY_LABEL: Record<string, string> = {
   interes_compra: "Interés de compra",
+  pide_asesor: "Pide hablar con un asesor",
   visita_obra: "Visita a obra",
   consulta_financiacion: "Consulta de financiación",
   cliente_existente: "Cliente existente",

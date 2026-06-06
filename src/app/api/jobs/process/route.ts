@@ -31,6 +31,7 @@ const HISTORY_LIMIT = 10;
 // con `humanizeCategory()`.
 const COMMON_CATEGORY_LABEL: Record<string, string> = {
   interes_compra: "Interés de compra",
+  pide_asesor: "Pide hablar con un asesor",
   cliente_existente: "Cliente existente",
   fuera_de_conocimiento: "Consulta fuera de la base de conocimiento",
   escalado_manual: "Escalado manual",

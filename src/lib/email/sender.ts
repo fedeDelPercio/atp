@@ -49,12 +49,80 @@ const CATEGORY_LABEL: Record<string, string> = {
   visita_obra: "Visita a obra",
 };
 
+// Encabezado del email + asunto adaptado a la categoría. La idea: el
+// operador que lee el mail tiene que entender de UN vistazo qué pasó sin
+// jerga técnica ni rótulos engañosos ("NUEVO LEAD" cuando en realidad es
+// una consulta que la IA no supo responder).
+//
+// - eyebrow: la línea chiquita encima del nombre, en mayúsculas y mono.
+// - subjectPrefix: lo que va antes del nombre en el subject del email.
+// - summaryHeading: el label de la sección "qué pasó" en el cuerpo.
+const CATEGORY_PRESENTATION: Record<
+  string,
+  { eyebrow: string; subjectPrefix: string; summaryHeading: string }
+> = {
+  interes_compra: {
+    eyebrow: "Nuevo lead",
+    subjectPrefix: "Nuevo lead",
+    summaryHeading: "Resumen del agente",
+  },
+  visita_obra: {
+    eyebrow: "Pedido de visita",
+    subjectPrefix: "Pedido de visita",
+    summaryHeading: "Resumen del agente",
+  },
+  consulta_financiacion: {
+    eyebrow: "Consulta de financiación",
+    subjectPrefix: "Consulta de financiación",
+    summaryHeading: "Resumen del agente",
+  },
+  cliente_existente: {
+    eyebrow: "Cliente existente",
+    subjectPrefix: "Cliente existente",
+    summaryHeading: "Resumen del agente",
+  },
+  fuera_de_conocimiento: {
+    eyebrow: "Consulta para responder",
+    subjectPrefix: "Consulta para responder",
+    summaryHeading: "Resumen de la conversación",
+  },
+  escalado_manual: {
+    eyebrow: "Conversación a revisar",
+    subjectPrefix: "Conversación a revisar",
+    summaryHeading: "Resumen de la conversación",
+  },
+  arquitecto_desarrollador: {
+    eyebrow: "Nuevo lead",
+    subjectPrefix: "Nuevo lead",
+    summaryHeading: "Resumen del agente",
+  },
+  cantidad_equipos: {
+    eyebrow: "Nuevo lead",
+    subjectPrefix: "Nuevo lead",
+    summaryHeading: "Resumen del agente",
+  },
+};
+
 function humanizeCategory(c: string): string {
   if (CATEGORY_LABEL[c]) return CATEGORY_LABEL[c];
   return c
     .split("_")
     .map((w) => (w ? w[0]!.toUpperCase() + w.slice(1) : w))
     .join(" ");
+}
+
+function presentation(c: string): {
+  eyebrow: string;
+  subjectPrefix: string;
+  summaryHeading: string;
+} {
+  return (
+    CATEGORY_PRESENTATION[c] ?? {
+      eyebrow: "Conversación a revisar",
+      subjectPrefix: "Conversación a revisar",
+      summaryHeading: "Resumen de la conversación",
+    }
+  );
 }
 
 function buildConversationUrl(p: LeadAlertPayload): string {
@@ -68,6 +136,7 @@ function buildConversationUrl(p: LeadAlertPayload): string {
 function buildHtml(p: LeadAlertPayload): string {
   const url = buildConversationUrl(p);
   const category = humanizeCategory(p.interestCategory);
+  const pres = presentation(p.interestCategory);
   const name = p.name ?? "Sin nombre";
   const phone = p.phone ?? "—";
   const summary = p.summary?.trim() ?? "Sin resumen.";
@@ -94,7 +163,7 @@ function buildHtml(p: LeadAlertPayload): string {
           <tr>
             <td align="center" style="padding:24px 24px 12px 24px;">
               <p style="margin:0;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#737373;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
-                Nuevo lead
+                ${pres.eyebrow}
               </p>
               <h1 style="margin:8px 0 0 0;font-size:18px;font-weight:500;letter-spacing:-0.015em;color:#fafafa;">
                 ${name}
@@ -116,7 +185,7 @@ function buildHtml(p: LeadAlertPayload): string {
                 <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${phone}</span>
               </p>
               <p style="margin:14px 0 6px 0;">
-                <span style="color:#737373;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">Resumen del agente</span><br/>
+                <span style="color:#737373;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${pres.summaryHeading}</span><br/>
                 <span style="color:#e5e5e5;">${summary.replace(/\n/g, "<br/>")}</span>
               </p>
             </td>
@@ -142,13 +211,14 @@ function buildHtml(p: LeadAlertPayload): string {
 function buildText(p: LeadAlertPayload): string {
   const url = buildConversationUrl(p);
   const category = humanizeCategory(p.interestCategory);
+  const pres = presentation(p.interestCategory);
   return [
-    `Nuevo lead — ${category}`,
+    `${pres.eyebrow} — ${category}`,
     "",
     `Nombre: ${p.name ?? "Sin nombre"}`,
     `Teléfono: ${p.phone ?? "—"}`,
     "",
-    "Resumen del agente:",
+    `${pres.summaryHeading}:`,
     p.summary?.trim() ?? "Sin resumen.",
     "",
     `Ver conversación: ${url}`,
@@ -170,10 +240,11 @@ export async function sendLeadAlert(payload: LeadAlertPayload): Promise<void> {
   }
 
   try {
+    const pres = presentation(payload.interestCategory);
     await transporter.sendMail({
       from: env.GMAIL_USER,
       to,
-      subject: `Nuevo lead: ${payload.name ?? "Sin nombre"} (${humanizeCategory(payload.interestCategory)})`,
+      subject: `${pres.subjectPrefix}: ${payload.name ?? "Sin nombre"} (${humanizeCategory(payload.interestCategory)})`,
       text: buildText(payload),
       html: buildHtml(payload),
     });

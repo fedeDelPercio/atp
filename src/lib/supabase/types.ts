@@ -550,7 +550,7 @@ export type WaOutbox = Row<"wa_outbox">;
 export type Lead = Row<"leads">;
 
 // Uniones de valores cerrados (los CHECK constraints del schema).
-export type ProfileRole = "dev" | "client";
+export type ProfileRole = "dev" | "client" | "asesor";
 export type ConversationSource = "test" | "whatsapp";
 export type ConversationMode = "AI" | "HUMAN";
 export type WaConnectionStatus = "disconnected" | "qr" | "connecting" | "connected";

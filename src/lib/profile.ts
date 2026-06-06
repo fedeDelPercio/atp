@@ -47,3 +47,54 @@ export function clearStoredProfile(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(PROFILE_KEY);
 }
+
+// ===========================================================================
+// Access control por rol.
+//
+// Cada ruta del dashboard declara qué roles la pueden ver. La tabla es la
+// SSOT: la usan DashboardHeader (para filtrar tabs) y cada page (para
+// rebotar si el rol logueado entra por URL directa).
+//
+// Roles:
+//   - dev    -> todo (panel completo + Webhooks + JobsDebugPanel)
+//   - client -> testing + leads + feedback (operación del cliente)
+//   - asesor -> WhatsApp + leads (gestiona conversaciones reales)
+// ===========================================================================
+
+const ROLE_ACCESS: Record<string, ProfileRole[]> = {
+  "/conversations": ["dev", "client"],
+  "/wa": ["dev", "asesor"],
+  "/leads": ["dev", "client", "asesor"],
+  "/feedback": ["dev", "client"],
+  "/webhooks": ["dev"],
+};
+
+/**
+ * Devuelve true si `role` puede entrar a una ruta cuyo path empieza con
+ * cualquiera de las keys de ROLE_ACCESS. Rutas no listadas se consideran
+ * abiertas (no rompemos lo que existe).
+ */
+export function canAccess(role: ProfileRole, path: string): boolean {
+  for (const [prefix, allowed] of Object.entries(ROLE_ACCESS)) {
+    if (path.startsWith(prefix)) return allowed.includes(role);
+  }
+  return true;
+}
+
+/**
+ * Ruta a la que mandar al usuario cuando entra al dashboard sin un
+ * destino válido (ej. landing `/` redirige a `/conversations`, pero el
+ * asesor no tiene acceso ahí). La usamos también para rebotar desde
+ * páginas protegidas.
+ */
+export function defaultRouteForRole(role: ProfileRole): string {
+  if (role === "asesor") return "/wa";
+  return "/conversations";
+}
+
+/** Etiqueta humana del rol (para la UI). */
+export function roleLabel(role: ProfileRole): string {
+  if (role === "dev") return "Desarrollador";
+  if (role === "asesor") return "Asesor";
+  return "Cliente";
+}

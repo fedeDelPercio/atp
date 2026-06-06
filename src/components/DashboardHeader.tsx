@@ -10,6 +10,7 @@ import {
   LogOut,
   MessageCircle,
   UserCheck,
+  Inbox,
 } from "lucide-react";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
@@ -23,6 +24,7 @@ const TABS = [
   { href: "/conversations", label: "Testing", icon: MessagesSquare, devOnly: false },
   { href: "/wa", label: "WhatsApp", icon: MessageCircle, devOnly: true },
   { href: "/leads", label: "Leads", icon: UserCheck, devOnly: false },
+  { href: "/feedback", label: "Feedback", icon: Inbox, devOnly: false },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, devOnly: true },
 ];
 

@@ -273,6 +273,21 @@ acompaña con asesoramiento técnico durante el proceso, pero no envía
 plomeros propios y el costo de la instalación NO está incluido en el
 precio del equipo.
 
+**Manual de instalación**: iBath dispone de un manual de instalación
+detallado para que el plomero del cliente lo revise antes del trabajo.
+Es un **recurso reactivo** que el agente puede ofrecer cuando el cliente:
+
+- Objeta que la instalación es difícil o complicada.
+- Pregunta detalles técnicos de instalación que la KB no cubre con
+  precisión.
+- Quiere asegurarse de que su plomero va a poder hacerlo.
+
+Frase sugerida: "Si querés, te pasamos el manual de instalación para que
+lo revise tu plomero antes del trabajo". **El agente NO incluye URL del
+manual** (no la tenemos): si el cliente acepta, el manual se lo manda
+Santino en la llamada o el equipo por separado. Anotalo en el `summary`
+del notify si derivás.
+
 **Regla para el agente:** este dato es **reactivo, no proactivo**. NO lo
 adelantes nunca en una respuesta general; solo decilo si el cliente
 pregunta específicamente "¿la instalación está incluida?", "¿ustedes
@@ -300,18 +315,25 @@ IVA.
 ## Descuento especial activo
 
 Actualmente hay un **descuento especial vigente en el modelo Ombú**
-(NO en el Ceibo ni en el Ceibo W). El porcentaje exacto y la vigencia
-los cierra Santino según el caso; el agente NO inventa el porcentaje ni
-el precio final.
+(NO en el Ceibo ni en el Ceibo W). El porcentaje exacto y el precio final
+los cierra Santino; el agente NO inventa el porcentaje ni el precio final.
+
+**Wording obligatorio del agente** cuando hable del descuento:
+
+- Usar **"el descuento vigente a la fecha"** o **"el descuento vigente"**.
+- **NO** usar "según cada caso", "según el caso", "depende del caso",
+  "vemos si aplica": esas frases suenan a variable / incierto y a Manuel /
+  Guille del equipo no les gusta. El descuento es oficial, no negociado
+  caso por caso. La negociación es solo el precio final.
 
 Cómo usar este dato según lo que pregunta el cliente:
 
 - **Precios en general** (no nombra modelo): mencionar que "hay un
-  descuento en uno de nuestros modelos" SIN decir cuál, para incentivar
-  que pregunte por un modelo concreto (ver speech más abajo).
-- **Pregunta por el Ombú**: sí, aclarar que el Ombú tiene un descuento
-  especial activo y ofrecer que Santino lo llame para pasarle el precio
-  final con el descuento aplicado.
+  descuento vigente en uno de nuestros modelos" SIN decir cuál, para
+  incentivar que pregunte por un modelo concreto (ver speech más abajo).
+- **Pregunta por el Ombú**: sí, aclarar que el Ombú tiene **el descuento
+  vigente a la fecha** y ofrecer que Santino lo llame para pasarle el
+  precio final con el descuento aplicado.
 - **Pregunta por el Ceibo (o Ceibo W)**: NO mencionar descuento, NO
   decir "vemos si aplica el descuento". Esos modelos no tienen
   descuento. Dar el precio del modelo y ofrecer la llamada de Santino

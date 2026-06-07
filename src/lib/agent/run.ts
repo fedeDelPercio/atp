@@ -34,10 +34,6 @@ import type { Json } from "@/lib/supabase/types";
 // la experiencia del cliente final.
 const NO_REPLY_TO_LEAD = "";
 
-const FAILURE_NOTICE =
-  "Disculpá, tuvimos un inconveniente para procesar tu mensaje. Reintentá en " +
-  "un momento, por favor.";
-
 export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   const supabase = getSupabaseServerClient();
   const maxIterations = serverEnv().AGENT_MAX_ITERATIONS;
@@ -112,6 +108,16 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : "error desconocido";
+      // CRÍTICO — fallo técnico (timeout, créditos agotados, 5xx, etc.):
+      // NO mandar texto al lead y NO notificar al equipo / crear lead.
+      // El cliente NO debe ver "tuvimos un inconveniente para procesar tu
+      // mensaje" (rompe la ilusión de que está hablando con Mica). El trace
+      // queda registrado en `agent_traces` como "failed" y el webhook
+      // interno `agent.failed` alerta a quien lo escuche, pero el flujo
+      // visible al lead es: su mensaje queda sin respuesta hasta que
+      // recuperemos el servicio. Cuando el equipo vea que un lead quedó sin
+      // responder en /wa, puede tomarlo manualmente.
+      console.error(`[run] orchestrator error en conversación ${input.conversationId}:`, reason);
       await finalizeTrace(traceId, {
         status: "failed",
         iterations: iterationsRun,
@@ -126,7 +132,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         traceId,
         error: reason,
       });
-      return { traceId, assistantMessage: FAILURE_NOTICE, status: "failed", escalationReason: reason };
+      return { traceId, assistantMessage: NO_REPLY_TO_LEAD, status: "failed", escalationReason: reason };
     }
 
     totalInput += orch.inputTokens;

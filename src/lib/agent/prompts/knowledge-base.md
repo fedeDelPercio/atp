@@ -183,6 +183,20 @@ de unidad / precio / planta se refiere a este edificio.
 > Si el cliente pregunta por una unidad cuyo estado es NO DISPONIBLE,
 > aclarar que no se está comercializando en este momento.
 
+## Promo monoambiente cash USD 85.000 (no figura en lista)
+
+Hay una unidad monoambiente puntual con precio promocional en **USD 85.000
+solo contado** que se está comunicando en publicidad y NO figura en la
+lista oficial. El asesor maneja el detalle (qué unidad, condiciones,
+disponibilidad).
+
+Si el lead menciona ese rango (entre USD 80.000 y USD 88.000 aprox.) o
+nombra el anuncio de "monoambiente desde USD 85.000" o similar, NO le
+digas que está fuera de rango ni le pases la lista oficial. Tratá ese
+mensaje como `interes_compra` confirmado: pedile la franja horaria y
+derivá al asesor. En el summary aclará "viene por promo monoambiente
+cash USD 85.000".
+
 ## Piso 1
 
 | Dpto. | Amb. | Total m² | USD/m² | Total USD | Estado |

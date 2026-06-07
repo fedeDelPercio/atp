@@ -351,6 +351,81 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Lead da franja en 2 mensajes → cierre con acuse, NO repreguntar franja",
+    // Bug visto en prod (2026-06-07, Nicolas): lead respondió
+    // "Preferiría por la tarde" + "A partir de las 17hs" y Mica volvió a
+    // preguntar "Perfecto. Preferís que te llamen por la mañana o por la
+    // tarde?". El notify_team se disparó bien (interes_compra), pero el
+    // responseText repreguntó la franja que el lead acababa de dar.
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      { user: "hola" },
+      { user: "me interesa un 2 ambientes" },
+      { user: "dale, llamame" },
+      {
+        user: "preferiria por la tarde, a partir de las 17hs",
+        expect: {
+          notifies: "interes_compra",
+          // El responseText debe ser un acuse afirmativo, NO una repregunta.
+          custom: (out) => {
+            const text = out.responseText.toLowerCase();
+            // Si repregunta la franja → falla (esto es el bug que arreglamos).
+            if (
+              /pref[ei]r[ií]s.*(ma[ñn]ana|tarde)/i.test(text) ||
+              /preferis.*(manana|tarde)/i.test(text)
+            ) {
+              return "repregunta la franja después de que el lead ya la dio (debería cerrar con acuse)";
+            }
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
+    name: "Promo cash USD 85.000 monoambiente → deriva interes_compra, no fuera de rango",
+    // El anuncio publicitario es "monoambiente desde USD 85.000 cash" pero
+    // ese precio NO figura en la lista oficial. La KB tiene una nota
+    // explícita: si el lead pide algo en ese rango cash, NO decirle "fuera
+    // de rango" — tratarlo como interes_compra y pedir franja para derivar.
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      { user: "hola" },
+      {
+        user: "busco inversión en monoambiente, vi el anuncio de 85 mil cash",
+        expect: {
+          doesNotNotify: true,
+          // No debe descartar el rango ni mandar la lista oficial.
+          notContains: [
+            "1VmFe0NrlHUuAgGpMmGdDcbnr90LlkGTS",
+            "lista de precios",
+            "por encima de tu rango",
+            "fuera de tu rango",
+            "fuera de rango",
+            "parten desde los USD 90",
+            "parten desde USD 90",
+            "desde USD 95",
+          ],
+          // Debe ofrecer la llamada con un asesor.
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            if (!/llamad|asesor|contact|coordinamos/.test(lower))
+              return "no ofrece llamada con asesor para la promo cash";
+            return null;
+          },
+        },
+      },
+      {
+        user: "por la mañana",
+        expect: {
+          notifies: "interes_compra",
+        },
+      },
+    ],
+  },
+
+  {
     name: "'Quiero mas informacion!' como primer mensaje → apertura, NO deriva por em dash falso",
     // Bug visto en prod (2026-06-07, cliente Nicolas): el evaluator confundía
     // los `---` de los separadores entre bloques con `—` (em dash) y

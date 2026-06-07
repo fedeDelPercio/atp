@@ -3,8 +3,8 @@
 Generado automáticamente por `npm run eval`. Cada escenario corre contra el orquestador real (modelo + prompt + KB + tool de prod), valida lo que recibiría el cliente y deja el output abajo para revisar a mano.
 
 - **Modelo:** `claude-sonnet-4-6`
-- **Resultado:** 18/18 turnos con aserciones OK
-- **Escenarios corridos:** 16
+- **Resultado:** 19/19 turnos con aserciones OK
+- **Escenarios corridos:** 17
 
 ---
 
@@ -19,9 +19,13 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
+> 
 > ---
+> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
 > ---
+> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ---
@@ -37,9 +41,13 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
+> 
 > ---
+> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
 > ---
+> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ### Turno 2 · **PASS**
@@ -49,6 +57,8 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Segundo semestre de 2028
+> 
+> ---
 > 
 > Estás buscando para vivir o más como inversión?
 
@@ -80,9 +90,11 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Una ubicación muy bien conectada, cerca de Av. Cabildo, Av. del Libertador, transporte público, espacios verdes y todo el circuito gastronómico de la zona
+> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Una ubicación muy buena, con fácil acceso al norte y centro de la ciudad, cerca de Av. Cabildo, Av. del Libertador, transporte, colegios, gastronomía y espacios verdes
 > 
-> Conocés el barrio?
+> ---
+> 
+> Estás buscando para vivir o más como inversión?
 
 ---
 
@@ -112,7 +124,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos 5 tipologías: monoambientes (35 m² aprox.), 2 ambientes en distintas superficies (desde 49 hasta 70 m²), y en los pisos superiores unidades de 3 y 4 ambientes con terrazas propias
+> Tenemos 5 tipologías: monoambientes y unidades de 2, 3 y 4 ambientes, con superficies que van desde los 35 m² hasta más de 120 m² en los pisos superiores. Todas con balcón y muy buena luz por la esquina del edificio.
 > 
 > Estás buscando para vivir o más como inversión?
 
@@ -144,9 +156,11 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tiene piscina y solárium en la terraza, parrillas en área común y laundry. Todo con el mismo nivel de terminaciones que las unidades.
+> Claro, te cuento. El edificio tiene piscina en la terraza, solárium con vista panorámica, parrillas en área común y laundry. Todo en un hall de acceso y palier acorde a las terminaciones del edificio
 > 
-> Hay algo puntual del proyecto que te interese ver primero?
+> ---
+> 
+> Estás buscando para vivir o más como inversión?
 
 ---
 
@@ -176,7 +190,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> No, las unidades son sin cochera
+> Las unidades no incluyen cochera, pero la zona entre Núñez y Belgrano tiene buena oferta de estacionamiento en la zona
 > 
 > Estás buscando para vivir o más como inversión?
 
@@ -193,9 +207,13 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
+> 
 > ---
+> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
 > ---
+> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ### Turno 2 · **PASS**
@@ -234,7 +252,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva tus dudas?
+> Tenemos varias opciones de 2 ambientes disponibles, en distintos pisos y con buenas vistas. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva cualquier duda, te parece?
 
 ---
 
@@ -264,9 +282,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva tus dudas
-> 
-> Preferís que te llamen por la mañana o por la tarde?
+> Claro, tenemos opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda, te parece?
 
 ### Turno 3 · **PASS**
 
@@ -289,9 +305,13 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
+> 
 > ---
+> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
 > ---
+> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ### Turno 2 · (sin assertions)
@@ -300,7 +320,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva tus dudas?
+> Tenemos opciones de 2 ambientes disponibles, tanto en pisos bajos como medios del edificio.
+> 
+> Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada unidad y resuelva cualquier duda, te parece?
 
 ### Turno 3 · **PASS**
 
@@ -354,11 +376,15 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Los monoambientes tienen entre 35 y 36 m² totales, con balcón incluido. Vienen con cocina integrada al estar-comedor, baño completo, piso radiante, DVH y cocina equipada con anafe y horno.
+> Claro, te cuento. Los monoambientes tienen entre 35 y 36 m² totales, con balcón incluido. Vienen con todas las terminaciones: piso vinílico o porcelanato, baño con mesada de mármol, cocina con anafe eléctrico y horno, y piso radiante para calefacción. Los vidrios son DVH y las carpinterías en PVC.
 > 
 > ---
 > 
-> Hay unidades disponibles en distintos pisos, tanto con financiación como al contado. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda, te parece?
+> Hay varias unidades disponibles en distintos pisos, tanto con financiación como al contado. Tenemos opciones para elegir según lo que mejor te convenga.
+> 
+> ---
+> 
+> Estás buscando para vivir o más como inversión?
 
 ---
 
@@ -388,9 +414,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva cualquier duda que tengas.
-> 
-> Preferís que te llamen por la mañana o por la tarde?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva cualquier duda, te parece?
 
 ### Turno 3 · (sin assertions)
 
@@ -406,7 +430,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Perfecto, te contactan a la tarde a partir de las 17hs 🙌
+> Listo, te contactan a la tarde a partir de las 17hs 🙌
 
 > _[notify_team → `interes_compra`]_
 
@@ -438,7 +462,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos esa opción, el asesor te puede dar el detalle completo de la unidad y las condiciones.
+> Genial, tenemos esa opción disponible. El asesor te puede dar todos los detalles de la unidad y las condiciones de la promo.
 > 
 > Preferís que te llamen por la mañana o por la tarde?
 
@@ -454,6 +478,44 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 ---
 
+## Multi-pregunta (planos + precios + cochera) → tono cálido, no telegráfico — OK
+
+- Reloj simulado: 29/05/2026, 11:00 a. m. (Argentina)
+
+### Turno 1 · (sin assertions)
+
+**Cliente:** hola
+
+**Mica:**
+
+> Hola, bienvenido. Soy Mica del Team Scaglia
+> 
+> ---
+> 
+> Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
+> ---
+> 
+> Alguna de estas opciones es compatible con lo que estás buscando?
+
+### Turno 2 · **PASS**
+
+**Cliente:** Tenes planos y precio de unidades 1 y 2 ambientes? Tienen cocheras?
+
+**Mica:**
+
+> Buenísimo, te cuento. Los planos de las distintas tipologías de 1 y 2 ambientes los tenés en el brochure que te compartí, ahí están los layouts de cada una.
+> 
+> ---
+> 
+> Te paso también la lista oficial de precios de mayo 2026 para que veas todo: https://drive.google.com/file/d/1VmFe0NrlHUuAgGpMmGdDcbnr90LlkGTS/view?usp=sharing. Las unidades son sin cochera, pero la zona entre Núñez y Belgrano tiene buena oferta de estacionamiento en la zona.
+> 
+> ---
+> 
+> Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda, te parece?
+
+---
+
 ## 'Quiero mas informacion!' como primer mensaje → apertura, NO deriva por em dash falso — OK
 
 - Reloj simulado: 29/05/2026, 11:00 a. m. (Argentina)
@@ -465,9 +527,13 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 **Mica:**
 
 > Hola, bienvenido. Soy Mica del Team Scaglia
+> 
 > ---
+> 
 > Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
+> 
 > ---
+> 
 > Alguna de estas opciones es compatible con lo que estás buscando?
 
 ---
@@ -498,7 +564,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Perfecto, te contactamos a la brevedad. Preferís que te llamen por la mañana o por la tarde?
+> Perfecto, con gusto te conecto. Preferís que te llamen por la mañana o por la tarde?
 
 ### Turno 3 · **PASS**
 

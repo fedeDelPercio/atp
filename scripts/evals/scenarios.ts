@@ -410,7 +410,9 @@ export const SCENARIOS: Scenario[] = [
           // Debe ofrecer la llamada con un asesor.
           custom: (out) => {
             const lower = out.responseText.toLowerCase();
-            if (!/llamad|asesor|contact|coordinamos/.test(lower))
+            // "llamad" (llamada, llamado), "llamen" / "llamamos" / "llama",
+            // asesor, contact, coordinamos.
+            if (!/llama|asesor|contact|coordinamos/.test(lower))
               return "no ofrece llamada con asesor para la promo cash";
             return null;
           },
@@ -420,6 +422,63 @@ export const SCENARIOS: Scenario[] = [
         user: "por la mañana",
         expect: {
           notifies: "interes_compra",
+        },
+      },
+    ],
+  },
+
+  {
+    name: "Multi-pregunta (planos + precios + cochera) → tono cálido, no telegráfico",
+    // Bug visto en prod (Federico, 2026-06-07): ante "Tenes planos y
+    // precio de unidades 1 y 2 ambientes? Tienen cocheras?" Mica
+    // respondió con TRES mensajes separados, secos, dato-tras-dato y
+    // cerró con "Las unidades no incluyen cochera" a secas. Federico:
+    // "lo siento un poco chocante y cero amigable, es una IA comercial".
+    // Esperamos: respuesta con apertura cálida, en menos bloques (idealmente
+    // 1-2), y si menciona cochera la suaviza (no la deja sola al final).
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      { user: "hola" },
+      {
+        user: "Tenes planos y precio de unidades 1 y 2 ambientes? Tienen cocheras?",
+        expect: {
+          doesNotNotify: true,
+          custom: (out) => {
+            const text = out.responseText;
+            const lower = text.toLowerCase();
+
+            // 1) Apertura cálida: la primera línea no puede ser un dato
+            // pelado tipo "Los planos los vas a ver...". Aceptamos cualquier
+            // palabra cálida al inicio.
+            const firstLine = text.split(/\n/)[0]!.trim().toLowerCase();
+            const tieneAperturaCalida =
+              /^(claro|bueni|buen[oí]si|s[ií]|por supuesto|dale|te cuento|mir[áa]|perfecto|genial|cierto)/.test(
+                firstLine,
+              );
+            if (!tieneAperturaCalida)
+              return `arranca seco ("${firstLine.slice(0, 60)}..."), falta apertura cálida`;
+
+            // 2) Menos bloques: el anti-patrón fue 3 bloques separados con
+            // ---. Para una multi-pregunta esto debería resolverse en 1 o 2
+            // bloques. Más de 2 separadores = bloques sobre-fragmentados.
+            const sep = (text.match(/\n---\n/g) ?? []).length;
+            if (sep > 2)
+              return `${sep + 1} bloques separados (muy telegráfico, debería ser 1-2)`;
+
+            // 3) Cochera suavizada: si menciona cochera y la respuesta es
+            // negativa, NO puede quedar SOLA como último bloque a secas.
+            if (/cochera/.test(lower)) {
+              const lastBlock = text.split(/\n---\n/).at(-1)!.trim();
+              const ultraCorta = lastBlock.length < 50;
+              const soloCochera = /^las unidades?\s+no\s+(incluyen|tienen|cuentan con)\s+cochera/i.test(
+                lastBlock,
+              );
+              if (ultraCorta && soloCochera)
+                return `cierra con "Las unidades no incluyen cochera" como bloque seco final`;
+            }
+
+            return null;
+          },
         },
       },
     ],

@@ -410,9 +410,9 @@ export const SCENARIOS: Scenario[] = [
           // Debe ofrecer la llamada con un asesor.
           custom: (out) => {
             const lower = out.responseText.toLowerCase();
-            // "llamad" (llamada, llamado), "llamen" / "llamamos" / "llama",
+            // "llam" cubre llama, llamen, llamada, llamamos, llamado;
             // asesor, contact, coordinamos.
-            if (!/llama|asesor|contact|coordinamos/.test(lower))
+            if (!/llam|asesor|contact|coordinamos/.test(lower))
               return "no ofrece llamada con asesor para la promo cash";
             return null;
           },

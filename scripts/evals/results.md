@@ -3,8 +3,8 @@
 Generado automáticamente por `npm run eval`. Cada escenario corre contra el orquestador real (modelo + prompt + KB + tool de prod), valida lo que recibiría el cliente y deja el output abajo para revisar a mano.
 
 - **Modelo:** `claude-sonnet-4-6`
-- **Resultado:** 14/14 turnos con aserciones OK
-- **Escenarios corridos:** 13
+- **Resultado:** 15/15 turnos con aserciones OK
+- **Escenarios corridos:** 14
 
 ---
 
@@ -84,9 +84,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Muy bien conectado, cerca de Av. Cabildo, Av. del Libertador, transporte público, colegios, gastronomía y espacios verdes
+> Está en la esquina de 3 de Febrero y Congreso, en la zona entre Núñez y Belgrano, CABA. Muy bien conectado, cerca de Av. Cabildo, Av. del Libertador, transporte público, espacios verdes y todo el movimiento gastronómico de la zona
 > 
-> Conocés la zona?
+> Conocés el barrio?
 
 ---
 
@@ -116,7 +116,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos monoambientes, 2 ambientes y unidades más grandes de 3 y 4 ambientes en los pisos superiores. Todas con balcón, terminaciones de primera y amenities en terraza (piscina, solárium, parrillas).
+> Tenemos monoambientes, unidades de 2 ambientes, y en los pisos superiores unidades de 3 y 4 ambientes. Todas con balcón y muy buenas terminaciones.
 > 
 > Estás buscando para vivir o más como inversión?
 
@@ -148,9 +148,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tiene piscina y solárium en la terraza, parrillas en área común y laundry. Todo acompañado de un hall de acceso y palier con las mismas terminaciones de calidad que las unidades
+> Tiene piscina y solárium en la terraza, parrillas en área común, laundry, y un hall de acceso y palier con terminaciones de calidad
 > 
-> Estás buscando para vivir o más como inversión?
+> Hay algo puntual del proyecto que te interese ver primero?
 
 ---
 
@@ -182,7 +182,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 > No, las unidades son sin cochera
 > 
-> Hay algo más del proyecto que te interese saber?
+> Hay algo más que quieras saber del proyecto?... Qué tipo de unidad te interesa?
 
 ---
 
@@ -238,7 +238,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles, en distintos pisos y con buenas vistas. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva cualquier duda?
+> Tenemos varias opciones de 2 ambientes disponibles, en distintos pisos y con buenas visuales
+> 
+> Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva cualquier duda que tengas. Preferís que te llamen por la mañana o por la tarde?
 
 ---
 
@@ -268,7 +270,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva tus dudas?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva cualquier duda que tengas. Te parece bien?
 
 ### Turno 3 · **PASS**
 
@@ -306,7 +308,7 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada una y resuelva tus dudas?
+> Tenemos varias opciones de 2 ambientes disponibles. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda, te parece bien?
 
 ### Turno 3 · **PASS**
 
@@ -360,15 +362,31 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Son unidades de alrededor de 35 m² totales, con balcón incluido. Tienen cocina integrada al estar-comedor, baño completo con ducha, piso radiante para calefacción y DVH en todas las aberturas.
+> Son unidades de alrededor de 35 m² totales, con estar-comedor amplio y balcón incluido. Vienen con piso radiante, DVH, cocina con anafe y horno, y baño con mesada de mármol. Bien terminadas y listas para entrar.
+> 
+> Tenemos disponibilidad en varios pisos. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle de cada opción y resuelva tus dudas?
+
+---
+
+## 'Quiero mas informacion!' como primer mensaje → apertura, NO deriva por em dash falso — OK
+
+- Reloj simulado: 29/05/2026, 11:00 a. m. (Argentina)
+
+### Turno 1 · **PASS**
+
+**Cliente:** Quiero mas informacion!
+
+**Mica:**
+
+> Hola, bienvenido. Soy Mica del Team Scaglia
 > 
 > ---
 > 
-> La cocina viene equipada con anafe eléctrico de 2 hornallas y horno. Los pisos son vinílico Patagonia o porcelanato según el ambiente.
+> Te comparto el Brochure de 3 de Febrero 2781 para que lo puedas ver: https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
 > 
 > ---
 > 
-> Tenemos disponibilidad en varios pisos. Si te parece coordinamos una llamada con un asesor para que te cuente las opciones puntuales y resuelva cualquier duda, te parece bien?
+> Alguna de estas opciones es compatible con lo que estás buscando?
 
 ---
 
@@ -398,7 +416,9 @@ Generado automáticamente por `npm run eval`. Cada escenario corre contra el orq
 
 **Mica:**
 
-> Perfecto, te contacto con uno del equipo. Preferís que te llamen por la mañana o por la tarde?
+> Perfecto, te comunico con uno del equipo.
+> 
+> Preferís que te llamen por la mañana o por la tarde?
 
 ### Turno 3 · **PASS**
 

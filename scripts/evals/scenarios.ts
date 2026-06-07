@@ -351,6 +351,35 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "'Quiero mas informacion!' como primer mensaje → apertura, NO deriva por em dash falso",
+    // Bug visto en prod (2026-06-07, cliente Nicolas): el evaluator confundía
+    // los `---` de los separadores entre bloques con `—` (em dash) y
+    // rechazaba 3 veces seguidas, agotando iteraciones y derivando como
+    // fuera_de_conocimiento. La apertura es correcta y debe pasar a la
+    // primera. Distinción crítica: `---` (3 ASCII hyphens) ≠ `—` (U+2014).
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      {
+        user: "Quiero mas informacion!",
+        expect: {
+          doesNotNotify: true,
+          contains: ["Team Scaglia", "---", "drive.google.com"],
+          custom: (out) => {
+            // Apertura: 3 bloques separados por `---` (al menos 2 separadores).
+            const sep = (out.responseText.match(/\n---\n/g) ?? []).length;
+            if (sep < 2)
+              return `apertura debería tener 3 bloques separados por '---' (encontré ${sep} separadores)`;
+            // Sanity: no debe contener el char real `—` (U+2014).
+            if (out.responseText.includes("—"))
+              return "la respuesta contiene em dash real (—); el separador debe ser '---'";
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Pide hablar con asesor: deriva con 'pide_asesor', no 'fuera_de_conocimiento'",
     // Bug visto en prod: "quiero hablar con un asesor" caía a
     // fuera_de_conocimiento (la IA no sabía qué responder) cuando en

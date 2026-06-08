@@ -20,9 +20,15 @@ import type { Json } from "@/lib/supabase/types";
 // runAgent — entry point del sistema agéntico.
 //
 // Orquesta el loop EXTERNO: corre el orquestador, lo valida con el evaluator
-// y reintenta con feedback hasta MAX_ITERATIONS. Si el orquestador notifica
-// al equipo (tool notify_team) o si no se logra una respuesta validada, se
-// registra una notificación y la conversación queda en manos de un humano.
+// y reintenta con feedback hasta MAX_ITERATIONS (default 2 = 1 generación
+// + 1 reintento). El evaluator es flaco — solo chequea grounding crítico
+// y no_revela_ia; el estilo se normaliza en código (ver sanitize.ts) antes
+// de llegar acá. Si tras 2 intentos el evaluator sigue rechazando, es señal
+// de que algo de la respuesta no podemos sostener con la KB, así que
+// derivamos a un humano (fuera_de_conocimiento).
+//
+// Si el orquestador notifica al equipo directamente (tool notify_team) la
+// conversación se congela y queda en manos de un humano.
 //
 // No inserta nada en `messages`: de eso se encarga el worker de jobs.
 // ===========================================================================

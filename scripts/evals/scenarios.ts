@@ -162,6 +162,49 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Contacto registrado en Kommo + info simple → responde con KB, NO deriva",
+    // Bug visto en feedback (Manuel, msg 13610493, 2026-05-29): lead
+    // registrado en Kommo preguntó "hace cuanto venden el ombu?" y la IA
+    // derivó como cliente_existente con responseText vacío. Manuel:
+    // "deberíamos nutrir esa info? se supone que la tienen". La info SÍ
+    // está en la KB (Ombú: 2018). Federico decidió: si es pregunta simple
+    // de KB → responder; si es técnica → atajo de servicio técnico.
+    now: VIERNES_MANANA,
+    isExistingCustomer: true,
+    turns: [
+      {
+        user: "hace cuanto venden el ombu?",
+        expect: {
+          doesNotNotify: true,
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            if (!/2018/.test(out.responseText))
+              return "no menciona 2018 (el dato está en la KB)";
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
+    name: "Contacto registrado en Kommo + problema técnico → atajo de servicio técnico",
+    // Complemento del caso anterior: si la consulta es técnica (algo roto),
+    // SÍ debe derivar con el número de servicio técnico.
+    now: VIERNES_MANANA,
+    isExistingCustomer: true,
+    turns: [
+      {
+        user: "no me anda el bidet, pierde presión",
+        expect: {
+          notifies: "cliente_existente",
+          contains: ["2763-0700"],
+        },
+      },
+    ],
+  },
+
+  {
     name: "Repregunta comercial (no técnica): no abrir menú de dudas",
     // Bug visto en feedback (Federico): después de describir Ombú vs Ceibo
     // el agente cerraba con "Qué te interesa más saber, las funciones de

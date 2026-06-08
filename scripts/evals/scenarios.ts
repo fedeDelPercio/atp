@@ -162,6 +162,58 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Repregunta comercial (no técnica): no abrir menú de dudas",
+    // Bug visto en feedback (Federico): después de describir Ombú vs Ceibo
+    // el agente cerraba con "Qué te interesa más saber, las funciones de
+    // cada modelo o los requisitos de instalación?". Eso abre menú de
+    // exploración técnica en vez de empujar a la compra. La repregunta
+    // tiene que medir intención: "ya los conocías?", "cuál te interesa
+    // más?", "te imaginás reemplazando el tuyo?", etc.
+    now: VIERNES_MANANA,
+    turns: [
+      { user: "hola, quiero info de los inodoros inteligentes" },
+      {
+        user: "para mi departamento, estoy refaccionando",
+        expect: {
+          doesNotNotify: true,
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            // Anti-patrón concreto del feedback de Federico.
+            if (
+              /qu[eé] te interesa m[áa]s saber/i.test(out.responseText) ||
+              /funciones de cada modelo o los requisitos/i.test(out.responseText) ||
+              /funciones de los modelos o los requisitos/i.test(out.responseText)
+            ) {
+              return "usa repregunta técnica (menú de dudas), debería ser comercial";
+            }
+            // Otras formas de "abrir menú" en vez de empujar.
+            if (
+              /qu[eé] otro detalle te puedo aclarar/i.test(out.responseText) ||
+              /hay algo m[áa]s que quieras saber/i.test(out.responseText) ||
+              /qu[eé] m[áa]s quer[ée]s saber/i.test(out.responseText) ||
+              /te interesa seguir viendo opciones/i.test(out.responseText)
+            ) {
+              return "abre menú de dudas en vez de empujar a la compra";
+            }
+            // Heurística positiva: debería tener una marca comercial.
+            // Aceptamos: oferta de llamada (santino/asesor) o repregunta
+            // de preferencia ("cuál", "ya los conoc", "te imaginas",
+            // "tenías visto").
+            const tieneCierreComercial =
+              /santino|asesor|nuestro asesor/i.test(lower) ||
+              /(cu[áa]l.*(interesa|preferis|te llama)|cu[áa]l te.*atrap|ya los conoc|ya hab[íi]as visto|ten[íi]as visto|te imagin)/i.test(
+                lower,
+              );
+            if (!tieneCierreComercial)
+              return "no cierra con avance comercial (oferta de llamada o repregunta de preferencia)";
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Primera persona del plural: 'tenemos showroom', NO 'tienen'",
     // Bug visto en feedback (Manuel, 2026-05-29): "Tienen showroom en
     // Arenales 605...". Tiene que ser "Tenemos" porque el agente es parte

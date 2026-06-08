@@ -229,16 +229,45 @@ export async function evaluateResponse(params: {
  */
 function suggestionConcludesApprove(suggestion: string): boolean {
   const s = suggestion.toLowerCase();
-  return (
+  // Capa 1: conclusión positiva explícita (el modelo se contradice
+  // diciendo "aprobá" pero devuelve pass:false).
+  const concludesApprove =
     /aprobá la respuesta/.test(s) ||
     /aprob[áa]r la respuesta/.test(s) ||
     /corrigiendo el veredicto a pass:?\s*true/.test(s) ||
     /la respuesta es v[áa]lida/.test(s) ||
     /la respuesta pasa todos los criterios/.test(s) ||
     /todos los criterios.*(se cumplen|son v[áa]lidos|cumplen)/.test(s) ||
-    /no hay alucinaci[óo]n/.test(s) ||
     /todas las afirmaciones son v[áa]lidas/.test(s) ||
     /veredicto final: la respuesta es v[áa]lida/.test(s) ||
-    /reconsiderando.*(aprob|v[áa]lida|pasa todos)/.test(s)
-  );
+    /reconsiderando.*(aprob|v[áa]lida|pasa todos)/.test(s);
+  if (concludesApprove) return true;
+
+  // Capa 2: el evaluator admite que los datos son correctos pero igual
+  // rechaza por presentación / estructura / flujo. Eso NO es grounding,
+  // es coaching del flow del orchestrator. Patrón visto en prod
+  // (preuba 2026-06-08): "la URL es correcta según la KB, pero la
+  // estructura no respeta el flujo comercial".
+  const admitsDataCorrect =
+    /no hay alucinaci[óo]n/.test(s) ||
+    /no es (una )?alucinaci[óo]n/.test(s) ||
+    /la url.*(es correcta|coincide|es v[áa]lida|es la oficial)/.test(s) ||
+    /(el|los) dato(s)? (es|son) (correcto|correctos|v[áa]lido|v[áa]lidos)/.test(s) ||
+    /datos.*coincide(n)? con la kb/.test(s) ||
+    /no rompe la kb/.test(s) ||
+    /la informaci[óo]n es correcta/.test(s) ||
+    /las afirmaciones (de producto )?(son v[áa]lidas|son correctas)/.test(s);
+
+  const isStructureComplaint =
+    /(la )?estructura.*no respeta/.test(s) ||
+    /(no respeta|fuera de)?\s*(el )?flujo comercial/.test(s) ||
+    /(la )?presentaci[óo]n.*(genera confusi[óo]n|invierte|no es la indicada)/.test(s) ||
+    /(es )?prematur[oa]/.test(s) ||
+    /sin contextualizar/.test(s) ||
+    /(la )?estrategia.*no est[áa] respaldada/.test(s) ||
+    /(la )?redacci[óo]n.*(podr[íi]a|deber[íi]a)/.test(s);
+
+  // Si admite que los datos están bien pero su queja es estructural,
+  // tratamos como pass:true. El estilo y flow los maneja el orchestrator.
+  return admitsDataCorrect && isStructureComplaint;
 }

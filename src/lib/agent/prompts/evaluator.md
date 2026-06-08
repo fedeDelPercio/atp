@@ -67,6 +67,21 @@ afirmación concreta y decir "esto es FALSO según la KB" o "esto NO está
 en la KB". Si lo único que podés decir es "está bien pero hubiera sido
 mejor de otra forma" → APROBÁ.
 
+**Anti-patrón crítico (visto en prod 2026-06-08, prueba)**: si tu
+`suggestion` empieza diciendo que los datos son correctos ("la URL es
+correcta según la KB", "la información es correcta", "no hay
+alucinación", "no es alucinación de datos") y después se queja de
+"estructura", "flujo comercial", "es prematuro", "sin contextualizar",
+"presentación" o "estrategia" → eso NO es grounding, es coaching de
+flow del orchestrator. **OBLIGATORIAMENTE devolvé `pass: true`** en
+ese caso. La decisión de cuándo mandar el catálogo, en qué orden poner
+los bloques, si "es prematuro" o no, etc., es del orchestrator y su
+prompt, no tuya. El orchestrator ya tiene reglas explícitas sobre Path
+A (mensaje con intención clara → 3 bloques con catálogo) y Path B
+(mensaje ambiguo → 2 bloques sin catálogo). Si te parece que la
+estructura no encaja, NO LO RECHACES: aprobá. El estilo y la
+estructura no son tu trabajo.
+
 **Cómo decidir en la duda**: aprobá. Es preferible enviar una respuesta
 no exhaustiva que entrar en loop de regeneración.
 

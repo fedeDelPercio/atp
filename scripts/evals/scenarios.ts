@@ -162,6 +162,34 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Path A: 'quiero mas informacion' → 3 bloques con catálogo (no se cae a Path B)",
+    // Bug visto en prod (preuba, 2026-06-08): ante "quiero mas informacion"
+    // el orchestrator generó correctamente los 3 bloques con catálogo, pero
+    // el evaluator rechazó con grounding por "estructura prematura". El
+    // orchestrator mutiló en iter 2 sacando el catálogo. Defensa en código
+    // + prompt: si el evaluator admite que datos son correctos y se queja
+    // de estructura/flujo, forzamos pass:true.
+    now: VIERNES_MANANA,
+    turns: [
+      {
+        user: "quiero mas informacion",
+        expect: {
+          doesNotNotify: true,
+          // El bloque del catálogo debe estar.
+          contains: ["1de1bTiiqnDCbeTUKtADCfW6PgcCvTYaq"],
+          custom: (out) => {
+            // 3 bloques separados por ---.
+            const sep = (out.responseText.match(/\n---\n/g) ?? []).length;
+            if (sep < 2)
+              return `Path A requiere 3 bloques (saludo + catálogo + pregunta), encontré ${sep + 1}`;
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Objeción uso+instalación sobre Ceibo: rebate sin meter presión proactiva",
     // Bug visto en prod (Julian, 2026-06-08): ante "Buenas! Me gusta el
     // Ceibo, es dificil de usar instalar no?" el agente metió "El Ceibo

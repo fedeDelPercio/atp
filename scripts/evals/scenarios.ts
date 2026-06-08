@@ -162,6 +162,46 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Objeción uso+instalación sobre Ceibo: rebate sin meter presión proactiva",
+    // Bug visto en prod (Julian, 2026-06-08): ante "Buenas! Me gusta el
+    // Ceibo, es dificil de usar instalar no?" el agente metió "El Ceibo
+    // además tiene una ventaja: funciona en cualquier presión de agua".
+    // Violación de la regla "presión es REACTIVO": el cliente no preguntó
+    // por presión. El evaluator rechazó eso (correcto), pero después entró
+    // en loop adversarial rechazando las iteraciones siguientes por
+    // motivos espurios → fuera_de_conocimiento → cliente sin respuesta.
+    now: VIERNES_MANANA,
+    turns: [
+      {
+        user: "Buenas! Me gusta el Ceibo, es dificil de usar instalar no?",
+        expect: {
+          doesNotNotify: true,
+          // No debe mencionar presión / tanque / bomba (no lo pidió).
+          notContains: [
+            "presión",
+            "tanque",
+            "bomba",
+            "funciona con cualquier presi",
+            "no requiere presi",
+          ],
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            // Debe rebatir la objeción de uso o instalación con info concreta.
+            const tieneRebatirInstalacion =
+              /(electric|tomacorriente|220|desplazador|plomero|pieza|sencilla|simple)/i.test(
+                lower,
+              );
+            const tieneRebatirUso = /(control|remoto|intuitivo|botoner|simple)/i.test(lower);
+            if (!tieneRebatirInstalacion && !tieneRebatirUso)
+              return "no rebate ni la objeción de uso ni la de instalación con info concreta";
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Contacto registrado en Kommo + info simple → responde con KB, NO deriva",
     // Bug visto en feedback (Manuel, msg 13610493, 2026-05-29): lead
     // registrado en Kommo preguntó "hace cuanto venden el ombu?" y la IA

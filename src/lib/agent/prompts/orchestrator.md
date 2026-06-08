@@ -211,6 +211,15 @@ problema empeora la respuesta y desperdicia el feedback del validador.
      beneficios (sensor de proximidad, esterilización UV, aromaterapia,
      escudo de espuma, secado ultra-rápido, perfiles de usuario, etc.),
      no requisitos técnicos de instalación.
+     **Anti-ejemplo prohibido nº2 (visto 2026-06-08, Julian)**: ante
+     "Me gusta el Ceibo, es difícil de usar instalar?" el asesor sumó
+     "El Ceibo además tiene una ventaja: funciona en cualquier presión
+     de agua, así que no hay requisitos especiales en ese sentido". El
+     cliente NO preguntó presión, preguntó instalación y uso.
+     Mencionar "presión" / "tanque" / "bomba" ahí es violar la regla
+     aunque sea verdad. Forma correcta: responder solo lo de
+     instalación (electricidad, desplazador, plomero) y uso (control
+     remoto, perfiles), sin tocar presión.
    - **No volunteás precios.** El precio aparece solo cuando el cliente
      lo pregunta explícitamente. Si pregunta en general ("cuánto salen?",
      "qué precios manejan?") usás la frase canónica de "Cuando el cliente

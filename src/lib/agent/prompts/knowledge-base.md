@@ -129,7 +129,13 @@ y asiento calefaccionado. Las diferencias principales están en
   bomba está incluido?": decir que la bomba va por cuenta del cliente
   (cualquier plomero la consigue) y, si quiere más detalle, ofrecer que
   Santino lo llame para asesorarlo.
-- **Sin tanque ni mochila:** se conecta directo a la red.
+- **Sin mochila tradicional:** ningún modelo de iBath usa mochila
+  externa estilo inodoro convencional. Se conectan directo a la red de
+  agua, vía flexible de ½ pulgada. (Aclaración técnica: el Ombú no
+  tiene ningún tanque ni interno; el Ceibo y Ceibo W sí tienen un
+  pequeño tanque integrado con bomba dentro del propio artefacto, lo
+  que les permite funcionar en cualquier presión — ese detalle es
+  reactivo, no se menciona proactivamente.)
 
 ## iBath Ceibo (modelo XP104)
 

@@ -144,17 +144,35 @@ export async function evaluateResponse(params: {
       parsed.suggestion === null || parsed.suggestion.trim() === ""
         ? null
         : parsed.suggestion;
-    // Safety net: si el evaluator rechaza pero no puede justificar
+    // Safety net 1: si el evaluator rechaza pero no puede justificar
     // (suggestion vacio), aprobamos. Sin feedback concreto, el orquestador no
     // puede corregir y reintentar lo mismo agota tokens sin valor. Es la
     // traduccion del "en la duda, aprobar" del prompt del evaluator: solo se
     // rechaza con explicacion accionable.
-    const finalPass = parsed.pass || normalizedSuggestion === null;
+    //
+    // Safety net 2 (CRITICA): si el suggestion concluye positivamente pero
+    // devuelve pass:false, el modelo se esta contradiciendo a si mismo.
+    // Forzamos pass:true. Sumado tras ver el bug en Quintaglia (Etel +
+    // Margarita 2026-06-08): el evaluator decia "aproba la respuesta" en
+    // el suggestion y devolvia pass:false. Aplicado tambien aca por
+    // defense-in-depth.
+    const finalPass =
+      parsed.pass ||
+      normalizedSuggestion === null ||
+      suggestionConcludesApprove(normalizedSuggestion);
     evaluation = {
       pass: finalPass,
       failedCriteria: finalPass ? [] : parsed.failedCriteria,
       suggestion: finalPass ? null : normalizedSuggestion,
     };
+    if (finalPass && !parsed.pass) {
+      console.warn(
+        `[evaluator] auto-overrode pass=false → pass=true por suggestion ` +
+          `contradictorio (trace ${ctx.traceId}, iter ${ctx.iteration}). ` +
+          `Criterios reportados: ${parsed.failedCriteria.join(",")}. ` +
+          `Suggestion: ${normalizedSuggestion?.slice(0, 200)}`,
+      );
+    }
   } catch (err) {
     // Output malformado, abort, o cualquier error: se trata como rechazo.
     evaluation = {
@@ -197,4 +215,30 @@ export async function evaluateResponse(params: {
   }
 
   return evaluation;
+}
+
+/**
+ * Heurística defensiva: cuando el LLM evaluator se contradice diciendo
+ * "aprobá" / "es válida" en el `suggestion` pero igual devolvió `pass:false`,
+ * tratamos esa contradicción como una aprobación. Defense-in-depth para que
+ * el lead no quede sin respuesta cuando el modelo razona caóticamente.
+ *
+ * Match conservador: requiere una frase conclusiva clara, no solo "está
+ * bien" suelto en una oración intermedia. Las frases listadas vienen de
+ * patrones observados en producción de Quintaglia (2026-06-07 y 2026-06-08).
+ */
+function suggestionConcludesApprove(suggestion: string): boolean {
+  const s = suggestion.toLowerCase();
+  return (
+    /aprobá la respuesta/.test(s) ||
+    /aprob[áa]r la respuesta/.test(s) ||
+    /corrigiendo el veredicto a pass:?\s*true/.test(s) ||
+    /la respuesta es v[áa]lida/.test(s) ||
+    /la respuesta pasa todos los criterios/.test(s) ||
+    /todos los criterios.*(se cumplen|son v[áa]lidos|cumplen)/.test(s) ||
+    /no hay alucinaci[óo]n/.test(s) ||
+    /todas las afirmaciones son v[áa]lidas/.test(s) ||
+    /veredicto final: la respuesta es v[áa]lida/.test(s) ||
+    /reconsiderando.*(aprob|v[áa]lida|pasa todos)/.test(s)
+  );
 }

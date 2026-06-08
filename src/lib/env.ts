@@ -70,11 +70,12 @@ const serverSchema = z.object({
   ANTHROPIC_MODEL_ORCHESTRATOR: z.string().default("claude-sonnet-4-6"),
   ANTHROPIC_MODEL_SUBAGENT: z.string().default("claude-haiku-4-5"),
   ANTHROPIC_MODEL_EVALUATOR: z.string().default("claude-haiku-4-5"),
-  // Cap del loop orquestador+evaluator. Default 2 (1 generación + 1
-  // reintento si el evaluator rechaza por grounding). El evaluator nuevo
-  // es muy flaco (solo grounding crítico + no_revela_ia), así que tras 2
-  // intentos sin pasar es razonable derivar a un humano.
-  AGENT_MAX_ITERATIONS: z.coerce.number().int().positive().default(2),
+  // Cap del loop orquestador+evaluator. Default 3 (1 generación + 2
+  // reintentos). El evaluator chequea grounding crítico + no_revela_ia;
+  // si tras 3 iter sigue rechazando, run.ts distingue rechazo crítico
+  // (deriva a humano) vs no crítico (envía la última respuesta al cliente
+  // con log warning, sin notificar).
+  AGENT_MAX_ITERATIONS: z.coerce.number().int().positive().default(3),
   AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
   CRON_SECRET: z.string().min(1, "CRON_SECRET es obligatoria"),
   WEBHOOK_SIGNING_SECRET: z

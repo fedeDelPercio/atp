@@ -20,12 +20,18 @@ import type { Json } from "@/lib/supabase/types";
 // runAgent — entry point del sistema agéntico.
 //
 // Orquesta el loop EXTERNO: corre el orquestador, lo valida con el evaluator
-// y reintenta con feedback hasta MAX_ITERATIONS (default 2 = 1 generación
-// + 1 reintento). El evaluator es flaco — solo chequea grounding crítico
-// y no_revela_ia; el estilo se normaliza en código (ver sanitize.ts) antes
-// de llegar acá. Si tras 2 intentos el evaluator sigue rechazando, es señal
-// de que algo de la respuesta no podemos sostener con la KB, así que
-// derivamos a un humano (fuera_de_conocimiento).
+// y reintenta con feedback hasta MAX_ITERATIONS (default 3 = 1 generación +
+// 2 reintentos). El evaluator es flaco — solo chequea grounding crítico y
+// no_revela_ia; el estilo se normaliza en código (ver sanitize.ts) antes
+// de llegar acá.
+//
+// Si tras 3 iter el evaluator sigue rechazando, distinguimos:
+//   - Crítico (grounding sobre dato concreto de KB o no_revela_ia) →
+//     derivar a humano como fuera_de_conocimiento.
+//   - No crítico (queja vaga sobre presentación/estructura/flujo) →
+//     enviar la última respuesta del orchestrator al cliente igual +
+//     console.warn. Sin notificación al equipo, sin lead. Premisa: el
+//     evaluator se equivoca a menudo; un cliente sin respuesta es peor.
 //
 // Si el orquestador notifica al equipo directamente (tool notify_team) la
 // conversación se congela y queda en manos de un humano.
@@ -115,6 +121,14 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
   let totalLatency = 0;
   let evaluatorFeedback: string | null = null;
   let iterationsRun = 0;
+  // Estado del último intento, para poder enviar la respuesta final al
+  // cliente cuando el evaluator rechaza por motivos no críticos tras
+  // agotarse las iteraciones (ver sección 3 abajo).
+  let lastResponseText: string | null = null;
+  let lastEvaluation: {
+    failedCriteria: string[];
+    suggestion: string | null;
+  } | null = null;
 
   // 2. Loop de reintentos con el evaluator.
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
@@ -251,19 +265,63 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
 
     // No pasó la validación: guardar feedback y reintentar.
     evaluatorFeedback = evaluation.suggestion;
+    lastResponseText = orch.responseText;
+    lastEvaluation = {
+      failedCriteria: evaluation.failedCriteria,
+      suggestion: evaluation.suggestion,
+    };
   }
 
-  // 3. Se agotaron las iteraciones sin una respuesta validada: la IA no pudo
-  //    responder de forma confiable -> notificar al equipo y CORTAR (no
-  //    seguir gastando tokens ni mandar nada al lead). El summary incluye
-  //    el ultimo feedback del evaluator para que el admin entienda que
-  //    seguia fallando.
+  // 3. Se agotaron las iteraciones sin una respuesta validada. Distinguir:
+  //
+  //    a) **Rechazo CRÍTICO**: el evaluator se quejó por algo de grounding
+  //       real (precio falso, URL inventada, feature mal atribuida) o no_revela_ia.
+  //       En ese caso derivamos a humano: la IA no puede sostener la respuesta.
+  //
+  //    b) **Rechazo NO CRÍTICO**: el evaluator se quejó por cosas vagas
+  //       (presentación, estructura, flujo, coaching). Esto es ruido del
+  //       evaluator, no un problema real con la respuesta. Enviamos la
+  //       última respuesta del orchestrator igual + log warning (sin
+  //       notificar al equipo, sin crear lead). Premisa: el evaluator se
+  //       equivoca a menudo; un cliente sin respuesta es peor.
+  const lastEvaluationSafe = lastEvaluation ?? { failedCriteria: [], suggestion: null };
+  const isCriticalReject = isCriticalRejectByEvaluator(lastEvaluationSafe);
+
+  if (!isCriticalReject && lastResponseText) {
+    console.warn(
+      `[run] Tras ${iterationsRun} iteraciones el evaluator sigue rechazando ` +
+        `por motivos NO críticos (${lastEvaluationSafe.failedCriteria.join(",")}). ` +
+        `Envío la última respuesta al cliente igual. trace=${traceId}. ` +
+        `Suggestion: ${lastEvaluationSafe.suggestion?.slice(0, 200)}`,
+    );
+    await finalizeTrace(traceId, {
+      status: "completed",
+      iterations: iterationsRun,
+      totalInput,
+      totalOutput,
+      totalLatency,
+      evaluatorPassed: false,
+      escalationReason: null,
+    });
+    await dispatchEvent("agent.responded", {
+      conversationId: input.conversationId,
+      traceId,
+      message: lastResponseText,
+    });
+    return {
+      traceId,
+      assistantMessage: lastResponseText,
+      status: "completed",
+    };
+  }
+
+  // Crítico (o no hay última respuesta para enviar): derivar.
   const category: NotificationCategory = "fuera_de_conocimiento";
-  const reason = `Agente bloqueado: el evaluator rechazo ${iterationsRun} veces seguidas.`;
+  const reason = `Agente bloqueado: el evaluator rechazo ${iterationsRun} veces seguidas con motivo critico.`;
   const summary = [
     `Consulta del cliente: "${input.userMessage}"`,
     "",
-    `El agente intento responder ${iterationsRun} veces y el evaluator rechazo cada intento.`,
+    `El agente intento responder ${iterationsRun} veces y el evaluator rechazo cada intento por un motivo critico de grounding o identidad.`,
     evaluatorFeedback
       ? `Ultimo feedback del evaluator: ${evaluatorFeedback}`
       : "Sin feedback registrado.",
@@ -290,7 +348,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     conversationId: input.conversationId,
     traceId,
     category,
-    reason: "max_iterations_sin_respuesta_validada",
+    reason: "max_iterations_sin_respuesta_validada_critica",
   });
   return {
     traceId,
@@ -299,6 +357,47 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     escalationReason: category,
     escalationIsNew,
   };
+}
+
+/**
+ * Heurística: decidir si el rechazo del evaluator al agotarse las iteraciones
+ * es crítico (debemos derivar) o no (podemos enviar la respuesta).
+ *
+ * **Crítico**:
+ * - failedCriteria incluye `no_revela_ia` (siempre crítico).
+ * - failedCriteria incluye `grounding` Y el suggestion menciona keywords
+ *   concretos de KB falsos: precio numérico, URL/link, frases tipo "no figura
+ *   en la KB", "distinto al de la KB", "inventad", "no existe".
+ *
+ * **NO crítico** (default):
+ * - El evaluator se queja de cosas vagas: estructura, presentación, flujo,
+ *   coaching, "prematuro", "podría ser más claro". Estos son los rechazos
+ *   espurios que ya venimos viendo (evaluator haiku como cajón de sastre).
+ *
+ * En caso de duda, default = NO crítico (priorizamos enviar respuesta al
+ * cliente sobre derivar por las dudas). Si esto deja pasar alguna
+ * alucinación real, queda en logs del servidor para diagnosticar después.
+ */
+function isCriticalRejectByEvaluator(evaluation: {
+  failedCriteria: string[];
+  suggestion: string | null;
+}): boolean {
+  if (evaluation.failedCriteria.includes("no_revela_ia")) return true;
+  if (!evaluation.failedCriteria.includes("grounding")) return false;
+  if (!evaluation.suggestion) return false; // sin justificación = no crítico
+  const s = evaluation.suggestion.toLowerCase();
+  return (
+    /\$\s?\d{1,3}([.,]\d{3})+/.test(s) || // precio en pesos: $1.990.000
+    /usd\s?\d{2,3}([.,]\d{3})?/.test(s) || // precio en USD
+    /(url|link|drive\.google|brochure).*(inventad|incorrect|falso|no es|distint)/.test(s) ||
+    /no figura en la kb/.test(s) ||
+    /no est[áa] en la kb/.test(s) ||
+    /no aparece en la kb/.test(s) ||
+    /distint[oa] al? de la kb/.test(s) ||
+    /no existe en la kb/.test(s) ||
+    /feature.*(inventad|inexistent|no es)/.test(s) ||
+    /(precio|modelo|garant[ií]a|env[ií]o).*(no figura|no est[áa]|inventad|incorrect|falso)/.test(s)
+  );
 }
 
 // --- helpers ---------------------------------------------------------------

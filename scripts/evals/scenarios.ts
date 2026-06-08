@@ -514,6 +514,27 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Opener canónico (saludo+brochure+pregunta) NO se rechaza por coherencia",
+    // Bug visto en prod (2026-06-08, Etel + Margarita): el evaluator rechazó
+    // 3 veces el opener canónico "Hola... / brochure / Alguna de estas
+    // opciones es compatible con lo que estás buscando?" alegando que
+    // "estas opciones" no tiene referente (debería ser el brochure). El
+    // evaluator hasta razonaba "la respuesta es válida, aprobá" pero
+    // devolvía pass: false. Defensa en código + prompt para que esto no
+    // vuelva a pasar.
+    now: VIERNES_DENTRO_HORARIO,
+    turns: [
+      {
+        user: "Quiero mas informacion!",
+        expect: {
+          doesNotNotify: true,
+          contains: ["Team Scaglia", "Alguna de estas opciones"],
+        },
+      },
+    ],
+  },
+
+  {
     name: "Pide hablar con asesor: deriva con 'pide_asesor', no 'fuera_de_conocimiento'",
     // Bug visto en prod: "quiero hablar con un asesor" caía a
     // fuera_de_conocimiento (la IA no sabía qué responder) cuando en

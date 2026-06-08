@@ -162,6 +162,49 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Lead da contexto del destinatario → prosa fluida + recomendar uno (NO bullets de ambos)",
+    // Bug visto en testing (2026-06-08): ante "Es para el baño de mi suegra"
+    // el agente respondió con 12 bullets enumerando features de Ombú y
+    // Ceibo en paralelo. Federico: "queda muy largo, no es tan comercial".
+    // La regla nueva (cuando hay contexto del lead, prosa fluida con
+    // recomendación directa) debería darse acá.
+    now: VIERNES_MANANA,
+    turns: [
+      { user: "uds venden bidets?" },
+      {
+        user: "Es para el baño de mi suegra",
+        expect: {
+          doesNotNotify: true,
+          custom: (out) => {
+            const text = out.responseText;
+            // Heurística 1: NO formato bullets pesado. Contar líneas que
+            // empiezan con "- " (después de saltos de línea). Más de 4
+            // bullets totales = ficha técnica.
+            const bulletLines = (text.match(/^\s*-\s+/gm) ?? []).length;
+            if (bulletLines > 4)
+              return `usa ${bulletLines} bullets (debería ir en prosa fluida cuando el lead da contexto)`;
+
+            // Heurística 2: NO debería ser excesivamente largo. Ficha
+            // técnica = más de 700 chars. Una recomendación fluida cabe
+            // bien debajo.
+            if (text.length > 700)
+              return `respuesta de ${text.length} chars (muy largo para WhatsApp; debería ser más sintética)`;
+
+            // Heurística 3: debería recomendar UNO de los dos modelos.
+            // Buscamos que mencione "Ceibo" o "Ombú" como recomendación
+            // (la primera mención de un modelo es la recomendación).
+            const lower = text.toLowerCase();
+            if (!/ceibo|omb[úu]/i.test(lower))
+              return "no menciona ningún modelo concreto";
+
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Path A: 'quiero mas informacion' → 3 bloques con catálogo (no se cae a Path B)",
     // Bug visto en prod (preuba, 2026-06-08): ante "quiero mas informacion"
     // el orchestrator generó correctamente los 3 bloques con catálogo, pero

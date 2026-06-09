@@ -47,6 +47,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   cliente_existente: "Cliente existente",
   fuera_de_conocimiento: "Fuera de conocimiento",
   consulta_financiacion: "Consulta financiación",
+  consulta_otro_desarrollo: "Pregunta por otro desarrollo",
   visita_obra: "Visita a obra",
 };
 
@@ -81,6 +82,11 @@ const CATEGORY_PRESENTATION: Record<
     eyebrow: "Consulta de financiación",
     subjectPrefix: "Consulta de financiación",
     summaryHeading: "Resumen del agente",
+  },
+  consulta_otro_desarrollo: {
+    eyebrow: "Pregunta por otro desarrollo",
+    subjectPrefix: "Pregunta por otro desarrollo",
+    summaryHeading: "Resumen de la conversación",
   },
   cliente_existente: {
     eyebrow: "Cliente existente",

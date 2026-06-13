@@ -37,6 +37,8 @@ export type Database = {
           client_slug: string;
           simulated_timestamp: string | null;
           is_existing_customer: boolean;
+          property_slug: string | null;
+          follow_up_sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +54,8 @@ export type Database = {
           client_slug?: string;
           simulated_timestamp?: string | null;
           is_existing_customer?: boolean;
+          property_slug?: string | null;
+          follow_up_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -67,6 +71,8 @@ export type Database = {
           client_slug?: string;
           simulated_timestamp?: string | null;
           is_existing_customer?: boolean;
+          property_slug?: string | null;
+          follow_up_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -522,6 +528,20 @@ export type Database = {
       claim_agent_jobs: {
         Args: { p_limit: number };
         Returns: Database["public"]["Tables"]["agent_jobs"]["Row"][];
+      };
+      find_followup_candidates: {
+        Args: {
+          p_delay_ms: number;
+          p_sources: string[];
+          p_client_slug: string;
+        };
+        Returns: {
+          conversation_id: string;
+          source: string;
+          external_id: string | null;
+          wa_jid: string | null;
+          last_assistant_at: string;
+        }[];
       };
     };
     Enums: { [_ in never]: never };

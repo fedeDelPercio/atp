@@ -72,6 +72,32 @@ const serverSchema = z.object({
   ANTHROPIC_MODEL_EVALUATOR: z.string().default("claude-haiku-4-5"),
   AGENT_MAX_ITERATIONS: z.coerce.number().int().positive().default(3),
   AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
+  // --- Follow-up automatico (mensaje "te recuerdo que sigo por aca" tras X
+  //     minutos sin respuesta del lead) ----------------------------------
+  // Master switch. Mientras este off el endpoint /api/follow-ups/dispatch
+  // responde 200 pero no hace nada. Asi en main + prod no se enciende sin
+  // querer.
+  FOLLOW_UP_ENABLED: z
+    .union([z.literal("true"), z.literal("false")])
+    .default("false")
+    .transform((v) => v === "true"),
+  // Tiempo de inactividad desde el ultimo mensaje del asistente que dispara
+  // el follow-up. Default 5 min para testing en panel; en prod va a 24hs
+  // (86_400_000).
+  FOLLOW_UP_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(300_000),
+  // CSV de sources elegibles. Empezamos con 'test' (panel) y despues
+  // sumamos 'whatsapp' cuando lo bajemos a prod.
+  FOLLOW_UP_SOURCES: z.string().default("test"),
+  // Texto literal del mensaje. Mismo estilo que Mica: sin punto final, un
+  // emoji ocasional permitido.
+  FOLLOW_UP_TEXT: z
+    .string()
+    .min(1)
+    .default("Quedo por acá si te surge cualquier duda 🙌"),
   CRON_SECRET: z.string().min(1, "CRON_SECRET es obligatoria"),
   WEBHOOK_SIGNING_SECRET: z
     .string()
@@ -124,6 +150,10 @@ export function serverEnv(): ServerEnv {
     ANTHROPIC_MODEL_EVALUATOR: process.env.ANTHROPIC_MODEL_EVALUATOR,
     AGENT_MAX_ITERATIONS: process.env.AGENT_MAX_ITERATIONS,
     AGENT_TIMEOUT_MS: process.env.AGENT_TIMEOUT_MS,
+    FOLLOW_UP_ENABLED: process.env.FOLLOW_UP_ENABLED,
+    FOLLOW_UP_DELAY_MS: process.env.FOLLOW_UP_DELAY_MS,
+    FOLLOW_UP_SOURCES: process.env.FOLLOW_UP_SOURCES,
+    FOLLOW_UP_TEXT: process.env.FOLLOW_UP_TEXT,
     CRON_SECRET: process.env.CRON_SECRET,
     WEBHOOK_SIGNING_SECRET: process.env.WEBHOOK_SIGNING_SECRET,
     GMAIL_USER: process.env.GMAIL_USER,

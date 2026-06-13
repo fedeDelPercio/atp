@@ -4,11 +4,18 @@
     {
       "path": "/api/jobs/process",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/follow-ups/dispatch",
+      "schedule": "*/1 * * * *"
     }
   ],
   "functions": {
     "src/app/api/jobs/process/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/follow-ups/dispatch/route.ts": {
+      "maxDuration": 60
     }
   }
 }

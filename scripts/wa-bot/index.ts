@@ -11,6 +11,7 @@ import "./env-loader";
 
 import { startBot } from "./baileys-client";
 import { startDisconnectWatcher, stopDisconnectWatcher } from "./disconnect-watcher";
+import { startFollowUpPoller, stopFollowUpPoller } from "./follow-up-poller";
 import { setWaState } from "./connection-state";
 import { getClientSlug } from "./supabase-client";
 
@@ -23,6 +24,10 @@ async function main(): Promise<void> {
   // No lo hacemos para no pisar info útil de una conexión anterior viva.
 
   startDisconnectWatcher();
+  // Poller del endpoint /api/follow-ups/dispatch. Suple al cron de Vercel
+  // (plan Hobby no permite frecuencia menor a diaria). Independiente del
+  // sock de Baileys: corre aunque la sesion de WhatsApp este caida.
+  startFollowUpPoller();
 
   try {
     await startBot();
@@ -39,12 +44,14 @@ async function main(): Promise<void> {
 process.on("SIGINT", async () => {
   console.log("[bot] SIGINT, shutdown graceful...");
   stopDisconnectWatcher();
+  stopFollowUpPoller();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   console.log("[bot] SIGTERM, shutdown graceful...");
   stopDisconnectWatcher();
+  stopFollowUpPoller();
   process.exit(0);
 });
 

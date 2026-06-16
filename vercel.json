@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/follow-ups/dispatch",
-      "schedule": "*/1 * * * *"
+      "schedule": "0 9 * * *"
     }
   ],
   "functions": {

@@ -29,7 +29,6 @@ import { runAgent } from "../../src/lib/agent/run";
 import type { HistoryMessage } from "../../src/lib/agent/types";
 import { transcribeAudio, TranscriptionError } from "../../src/lib/transcription";
 import { getSupabaseClient, getClientSlug } from "./supabase-client";
-import { getWaState } from "./connection-state";
 
 const HISTORY_LIMIT = 20;
 const DEBOUNCE_MS = 20_000;
@@ -131,17 +130,21 @@ export async function handleIncomingMessages(
   console.log(`[bot] ← ${phone} (${pushName ?? "?"}): "${text.slice(0, 80)}"`);
 
   // === 2. Resolver conversación ===
+  // Para conversaciones NUEVAS aplicamos CTA-gating: solo arranca en modo
+  // AI si el primer mensaje matchea un CTA canónico de Instagram Ads
+  // ("Quiero más información" / "Quiero hablar con un asesor"). Todo lo
+  // demás arranca HUMAN porque es probablemente alguien conocido
+  // escribiéndole a la cuenta. Conversaciones existentes mantienen su modo.
   const supabase = getSupabaseClient();
   const slug = getClientSlug();
-  const waState = await getWaState();
-  const defaultMode = waState?.default_mode === "AI" ? "AI" : "HUMAN";
+  const startMode: "AI" | "HUMAN" = detectInstagramCta(text) ? "AI" : "HUMAN";
   const conversationId = await getOrCreateConversation(
     phone,
     pushName,
     slug,
     isLid,
     remoteJid,
-    defaultMode,
+    startMode,
   );
   if (!conversationId) {
     console.error(`[bot] no se pudo resolver conversación para ${phone}`);
@@ -337,13 +340,39 @@ function extractText(msg: proto.IWebMessageInfo): string | null {
   return null;
 }
 
+/**
+ * Detecta si el primer mensaje del lead viene desde un CTA de Instagram
+ * Ads. Los anuncios mandan dos textos canónicos por defecto:
+ *   - "Quiero más información" (interés general)
+ *   - "Quiero hablar con un asesor" (interés alto)
+ *
+ * Si matchea, la conversación arranca en modo AI. Si NO matchea, asumimos
+ * que es alguien conocido escribiéndole a la dueña del WhatsApp (no un
+ * lead nuevo): arranca en modo HUMAN y la IA no responde hasta que se
+ * cambie manualmente desde el panel.
+ *
+ * Es tolerante con: tildes faltantes, mayúsculas/minúsculas, prefijo de
+ * audio transcripto (🎙️), saludos pegados, espacios extra.
+ */
+function detectInstagramCta(text: string): boolean {
+  const normalized = text
+    .replace(/^🎙️\s*/, "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, ""); // quita tildes
+  return (
+    /quiero\s+mas\s+informacion/.test(normalized) ||
+    /quiero\s+hablar\s+con\s+(un|una)?\s*asesor/.test(normalized)
+  );
+}
+
 async function getOrCreateConversation(
   phone: string,
   pushName: string | null,
   slug: string,
   isLid: boolean,
   remoteJid: string,
-  defaultMode: "AI" | "HUMAN",
+  startMode: "AI" | "HUMAN",
 ): Promise<string | null> {
   const supabase = getSupabaseClient();
   // Buscar por (client_slug, source, external_id).
@@ -375,7 +404,7 @@ async function getOrCreateConversation(
       source: "whatsapp",
       external_id: phone,
       wa_jid: remoteJid,
-      mode: defaultMode,
+      mode: startMode,
     })
     .select("id")
     .single();
@@ -383,7 +412,9 @@ async function getOrCreateConversation(
     console.error(`[bot] no se pudo crear conv para ${phone}:`, error);
     return null;
   }
-  console.log(`[bot] conv creada ${created.id} para +${phone} (${displayName})`);
+  console.log(
+    `[bot] conv creada ${created.id} para +${phone} (${displayName}) mode=${startMode}`,
+  );
   return created.id;
 }
 

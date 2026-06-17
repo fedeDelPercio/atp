@@ -160,7 +160,12 @@ export async function evaluateResponse(params: {
     const finalPass =
       parsed.pass ||
       normalizedSuggestion === null ||
-      suggestionConcludesApprove(normalizedSuggestion);
+      suggestionConcludesApprove(normalizedSuggestion) ||
+      isLegitimateFranjaAcuse({
+        userMessage: params.userMessage,
+        assistantResponse: params.assistantResponse,
+        failedCriteria: parsed.failedCriteria,
+      });
     evaluation = {
       pass: finalPass,
       failedCriteria: finalPass ? [] : parsed.failedCriteria,
@@ -228,6 +233,46 @@ export async function evaluateResponse(params: {
  * bien" suelto en una oración intermedia. Las frases listadas vienen de
  * patrones observados en producción (2026-06-07 y 2026-06-08).
  */
+/**
+ * Heurística defensiva específica del flow interes_compra / pide_asesor.
+ *
+ * Cuando:
+ *   - el ÚLTIMO mensaje del lead es una franja horaria ("tarde" / "mañana"
+ *     / "después del mediodía" / "ok mañana", etc),
+ *   - y la respuesta del orchestrator es el ACUSE esperado por el prompt
+ *     ("te llaman por la <franja>", "te contactan por la <franja>", etc),
+ *     opcionalmente seguido del pedido del email,
+ *   - y el evaluator rechazó por estilo_imperativo,
+ * entonces forzamos pass:true. El acuse afirmativo de la franja NO es
+ * imperativo: es el ACK del flujo (el lead ya dio el sí, no tiene sentido
+ * convertirlo a "si te parece"). Sin esta defensa el evaluator bloquea
+ * los 3 reintentos y deriva como fuera_de_conocimiento.
+ *
+ * Observado en producción (2026-06-17): trace ad94b453, conv "validacion-
+ * followup-bot". Mica respondió "Genial, te llaman por la tarde. Para
+ * dejarlo registrado, me pasás tu mail?" → evaluador rechazó 3 veces →
+ * derivación incorrecta.
+ */
+function isLegitimateFranjaAcuse(args: {
+  userMessage: string;
+  assistantResponse: string;
+  failedCriteria: string[];
+}): boolean {
+  if (!args.failedCriteria.includes("estilo_imperativo")) return false;
+  const u = args.userMessage.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const a = args.assistantResponse.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const userConfirmedFranja =
+    /\b(maniana|manana|tarde|mediodi[ao]|siesta)\b/.test(u) ||
+    /a\s+partir\s+de\s+(las|las\s+\d)/.test(u) ||
+    /despu[eé]s\s+de\s+(las|el\s+mediodia)/.test(u);
+  if (!userConfirmedFranja) return false;
+  const acuseShape =
+    /te\s+(llaman|llama|contactan|contacta|llamamos|contactamos)/.test(a) ||
+    /(un\s+asesor|el\s+asesor)\s+(se\s+comunica|te\s+llama|se\s+contacta)/.test(a) ||
+    /te\s+van\s+a\s+(llamar|contactar)/.test(a);
+  return acuseShape;
+}
+
 function suggestionConcludesApprove(suggestion: string): boolean {
   const s = suggestion.toLowerCase();
   return (

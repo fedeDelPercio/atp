@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { dispatchEvent } from "@/lib/webhooks/dispatcher";
+import { ensureLeadForConversation } from "@/lib/leads/ensure";
 
 export const dynamic = "force-dynamic";
 // after() necesita que la funcion siga viva hasta despues del debounce.
@@ -113,6 +114,10 @@ export async function POST(req: NextRequest) {
     .from("conversations")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId);
+
+  // 3.5. Asegurar el lead (idempotente). Si no existe, lo crea con smart_tag
+  //      = 'curioso' por default. Si existe, refresca smart_tag/temperatura.
+  void ensureLeadForConversation(conversationId);
 
   // 4. Notificar el evento a los webhooks salientes suscriptos.
   await dispatchEvent("message.received", {

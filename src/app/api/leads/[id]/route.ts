@@ -24,6 +24,12 @@ const patchSchema = z.object({
   unit_typology: z.string().max(120).nullable().optional(),
   call_notes: z.string().max(4000).nullable().optional(),
   contacted_by: z.string().uuid().nullable().optional(),
+  smart_tag: z
+    .enum(["curioso", "busca_a_estrenar", "interes_otras_opciones", "interesado"])
+    .nullable()
+    .optional(),
+  temperatura: z.enum(["frio", "tibio", "caliente"]).nullable().optional(),
+  smart_tag_manual: z.boolean().optional(),
 });
 
 // ===========================================================================

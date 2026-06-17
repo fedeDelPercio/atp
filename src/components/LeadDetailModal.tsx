@@ -5,7 +5,19 @@ import Link from "next/link";
 import { ChevronDown, Loader2, MessageCircle, X, Save, Trash2 } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
-import type { Lead, LeadStatus } from "@/lib/supabase/types";
+import type {
+  Lead,
+  LeadSmartTag,
+  LeadStatus,
+  LeadTemperatura,
+} from "@/lib/supabase/types";
+import {
+  SMART_TAG_LABEL,
+  SMART_TAGS_ORDERED,
+  TEMPERATURA_DOT,
+  TEMPERATURA_LABEL,
+  TEMPERATURAS_ORDERED,
+} from "@/lib/leads/labels";
 
 // Modal de detalle de un lead, reutilizable desde la pagina /leads y desde
 // el header del ConversationPanel. Maneja la edicion de datos de contacto,
@@ -78,6 +90,12 @@ export function LeadDetailModal({
   const [email, setEmail] = useState(lead.email ?? "");
   const [unitTypology, setUnitTypology] = useState(lead.unit_typology ?? "");
   const [callNotes, setCallNotes] = useState(lead.call_notes ?? "");
+  const [smartTag, setSmartTag] = useState<LeadSmartTag | null>(
+    (lead.smart_tag as LeadSmartTag | null) ?? null,
+  );
+  const [temperatura, setTemperatura] = useState<LeadTemperatura | null>(
+    (lead.temperatura as LeadTemperatura | null) ?? null,
+  );
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -89,7 +107,18 @@ export function LeadDetailModal({
     setEmail(lead.email ?? "");
     setUnitTypology(lead.unit_typology ?? "");
     setCallNotes(lead.call_notes ?? "");
-  }, [lead.id, lead.name, lead.phone, lead.email, lead.unit_typology, lead.call_notes]);
+    setSmartTag((lead.smart_tag as LeadSmartTag | null) ?? null);
+    setTemperatura((lead.temperatura as LeadTemperatura | null) ?? null);
+  }, [
+    lead.id,
+    lead.name,
+    lead.phone,
+    lead.email,
+    lead.unit_typology,
+    lead.call_notes,
+    lead.smart_tag,
+    lead.temperatura,
+  ]);
 
   // Cerrar con ESC.
   useEffect(() => {
@@ -103,22 +132,36 @@ export function LeadDetailModal({
   const isWa = lead.phone && /^\d+$/.test(lead.phone);
   const linkBase = isWa ? "/wa" : "/conversations";
 
+  const smartTagChanged = smartTag !== ((lead.smart_tag as LeadSmartTag | null) ?? null);
+  const temperaturaChanged =
+    temperatura !== ((lead.temperatura as LeadTemperatura | null) ?? null);
+
   const dirty =
     name !== (lead.name ?? "") ||
     phone !== (lead.phone ?? "") ||
     email !== (lead.email ?? "") ||
     unitTypology !== (lead.unit_typology ?? "") ||
-    callNotes !== (lead.call_notes ?? "");
+    callNotes !== (lead.call_notes ?? "") ||
+    smartTagChanged ||
+    temperaturaChanged;
 
   async function handleSave() {
     setSaving(true);
-    await onSave(lead.id, {
+    const payload: Partial<Lead> = {
       name: name.trim() || null,
       phone: phone.trim() || null,
       email: email.trim() || null,
       unit_typology: unitTypology.trim() || null,
       call_notes: callNotes.trim() || null,
-    });
+    };
+    // Si el operador editó smart_tag o temperatura: persistir + activar el
+    // flag manual para que la recomputacion automatica no los pise.
+    if (smartTagChanged || temperaturaChanged) {
+      payload.smart_tag = smartTag;
+      payload.temperatura = temperatura;
+      payload.smart_tag_manual = true;
+    }
+    await onSave(lead.id, payload);
     setSaving(false);
   }
 
@@ -158,6 +201,8 @@ export function LeadDetailModal({
               currentStatus={lead.status as LeadStatus}
               onChange={(s) => onStatusChange(lead.id, s)}
             />
+            <SmartTagDropdown value={smartTag} onChange={setSmartTag} />
+            <TemperaturaDropdown value={temperatura} onChange={setTemperatura} />
             <Link
               href={`${linkBase}?id=${lead.conversation_id}`}
               className="flex items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-800"
@@ -165,6 +210,12 @@ export function LeadDetailModal({
               <MessageCircle className="h-3 w-3" strokeWidth={1.75} /> Ver conversación
             </Link>
           </div>
+          {lead.smart_tag_manual && (
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-500">
+              Smart tag y temperatura editados a mano. La clasificación
+              automática no los va a sobrescribir.
+            </p>
+          )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Nombre">
@@ -332,6 +383,130 @@ function StatusDropdown({
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${opt.dot}`} aria-hidden />
                 {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SmartTagDropdown({
+  value,
+  onChange,
+}: {
+  value: LeadSmartTag | null;
+  onChange: (v: LeadSmartTag | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-700"
+      >
+        {value ? SMART_TAG_LABEL[value] : "Sin tag"}
+        <ChevronDown className="h-3 w-3 text-neutral-400" strokeWidth={2} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[75]" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 z-[80] mt-1 w-52 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onChange(null);
+              }}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition ${
+                value === null
+                  ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
+                  : "text-neutral-500 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-800"
+              }`}
+            >
+              Sin tag
+            </button>
+            {SMART_TAGS_ORDERED.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => {
+                  setOpen(false);
+                  onChange(tag);
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition ${
+                  value === tag
+                    ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
+                    : "text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                }`}
+              >
+                {SMART_TAG_LABEL[tag]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TemperaturaDropdown({
+  value,
+  onChange,
+}: {
+  value: LeadTemperatura | null;
+  onChange: (v: LeadTemperatura | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-700"
+      >
+        {value && (
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${TEMPERATURA_DOT[value]}`}
+            aria-hidden
+          />
+        )}
+        {value ? TEMPERATURA_LABEL[value] : "Sin temperatura"}
+        <ChevronDown className="h-3 w-3 text-neutral-400" strokeWidth={2} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[75]" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 z-[80] mt-1 w-44 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onChange(null);
+              }}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition ${
+                value === null
+                  ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
+                  : "text-neutral-500 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-800"
+              }`}
+            >
+              Sin temperatura
+            </button>
+            {TEMPERATURAS_ORDERED.map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setOpen(false);
+                  onChange(t);
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition ${
+                  value === t
+                    ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
+                    : "text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${TEMPERATURA_DOT[t]}`}
+                  aria-hidden
+                />
+                {TEMPERATURA_LABEL[t]}
               </button>
             ))}
           </div>

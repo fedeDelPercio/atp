@@ -27,6 +27,7 @@ import { downloadMediaMessage, type WASocket, type proto } from "@whiskeysockets
 
 import { runAgent } from "../../src/lib/agent/run";
 import type { HistoryMessage } from "../../src/lib/agent/types";
+import { ensureLeadForConversation } from "../../src/lib/leads/ensure";
 import { transcribeAudio, TranscriptionError } from "../../src/lib/transcription";
 import { getSupabaseClient, getClientSlug } from "./supabase-client";
 
@@ -163,6 +164,11 @@ export async function handleIncomingMessages(
     .from("conversations")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId);
+
+  // Asegurar lead asociado (idempotente). Lo hacemos ANTES del debounce
+  // para que el lead aparezca en el panel aunque la conv este en modo
+  // HUMAN o el agente no llegue a correr.
+  void ensureLeadForConversation(conversationId);
 
   // === 4. Programar / extender debounce ===
   // Si ya hay un timer activo para esta conv, lo cancelamos y reprogramamos.
@@ -329,6 +335,10 @@ async function processBurst(ctx: BurstContext): Promise<void> {
     .from("conversations")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId);
+
+  // Recalcular smart_tag + temperatura tras el turno del agente. Idempotente:
+  // si el lead no existe lo crea; si existe y no fue editado a mano, refresca.
+  await ensureLeadForConversation(conversationId);
 }
 
 function extractText(msg: proto.IWebMessageInfo): string | null {

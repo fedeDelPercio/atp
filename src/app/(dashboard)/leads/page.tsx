@@ -11,7 +11,18 @@ import {
   STATUS_OPTIONS,
   humanizeCategory,
 } from "@/components/LeadDetailModal";
-import type { Lead, LeadStatus } from "@/lib/supabase/types";
+import type {
+  Lead,
+  LeadSmartTag,
+  LeadStatus,
+  LeadTemperatura,
+} from "@/lib/supabase/types";
+import {
+  SMART_TAG_LABEL,
+  TEMPERATURA_DOT,
+  TEMPERATURA_LABEL,
+  TEMPERATURA_TEXT,
+} from "@/lib/leads/labels";
 
 // Tab Leads: contactos calificados que el agente derivo al equipo.
 // Cada lead linkea a su conversacion en /wa o /conversations segun el source
@@ -35,11 +46,13 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
+  // Traemos SIEMPRE la lista completa y filtramos client-side. De esta forma
+  // los contadores de cada tab quedan estables (cantidad real por estado) en
+  // lugar de cambiar segun el filtro activo. La lista de leads de un cliente
+  // es chica (decenas, eventual centenas) — paginacion no aplica todavia.
   const fetchLeads = useCallback(async () => {
     try {
-      const url =
-        statusFilter === "all" ? "/api/leads" : `/api/leads?status=${statusFilter}`;
-      const r = await fetch(url, { cache: "no-store" });
+      const r = await fetch("/api/leads", { cache: "no-store" });
       const json = await r.json();
       setLeads((json.leads ?? []) as Lead[]);
     } catch {
@@ -47,7 +60,7 @@ export default function LeadsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
     void fetchLeads();
@@ -60,6 +73,14 @@ export default function LeadsPage() {
     }
     return c;
   }, [leads]);
+
+  const visibleLeads = useMemo(
+    () =>
+      statusFilter === "all"
+        ? leads
+        : leads.filter((l) => l.status === statusFilter),
+    [leads, statusFilter],
+  );
 
   async function patchLead(leadId: string, payload: Partial<Lead>): Promise<Lead | null> {
     try {
@@ -131,7 +152,7 @@ export default function LeadsPage() {
             Leads
           </h1>
           <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-            {leads.length} {leads.length === 1 ? "registro" : "registros"}
+            {visibleLeads.length} {visibleLeads.length === 1 ? "registro" : "registros"}
           </span>
         </div>
 
@@ -167,7 +188,7 @@ export default function LeadsPage() {
           <div className="flex h-full items-center justify-center gap-2 text-[13px] text-neutral-400">
             <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} /> Cargando leads...
           </div>
-        ) : leads.length === 0 ? (
+        ) : visibleLeads.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <UserCheck
               className="h-8 w-8 text-neutral-300 dark:text-neutral-700"
@@ -184,7 +205,7 @@ export default function LeadsPage() {
           </div>
         ) : (
           <ul className="divide-y divide-neutral-100 dark:divide-neutral-900">
-            {leads.map((lead) => (
+            {visibleLeads.map((lead) => (
               <LeadRow
                 key={lead.id}
                 lead={lead}
@@ -234,10 +255,26 @@ function LeadRow({
         <Avatar name={lead.name ?? lead.phone ?? "Lead"} size="md" />
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="truncate text-[13px] font-medium text-neutral-900 dark:text-neutral-100">
               {lead.name ?? "Sin nombre"}
             </p>
+            {lead.smart_tag && (
+              <span className="inline-flex items-center rounded-md border border-neutral-200 px-1.5 py-0.5 text-[10.5px] font-medium tracking-tight-er text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
+                {SMART_TAG_LABEL[lead.smart_tag as LeadSmartTag] ?? lead.smart_tag}
+              </span>
+            )}
+            {lead.temperatura && (
+              <span
+                className={`inline-flex items-center gap-1 text-[11.5px] font-medium tracking-tight-er ${TEMPERATURA_TEXT[lead.temperatura as LeadTemperatura]}`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${TEMPERATURA_DOT[lead.temperatura as LeadTemperatura]}`}
+                  aria-hidden
+                />
+                {TEMPERATURA_LABEL[lead.temperatura as LeadTemperatura]}
+              </span>
+            )}
             <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
               {humanizeCategory(lead.interest_category)}
             </span>

@@ -483,6 +483,9 @@ export type Database = {
           call_notes: string | null;
           contacted_by: string | null;
           contacted_at: string | null;
+          smart_tag: string | null;
+          temperatura: string | null;
+          smart_tag_manual: boolean;
           created_at: string;
           last_contact_at: string;
         };
@@ -500,6 +503,9 @@ export type Database = {
           call_notes?: string | null;
           contacted_by?: string | null;
           contacted_at?: string | null;
+          smart_tag?: string | null;
+          temperatura?: string | null;
+          smart_tag_manual?: boolean;
           created_at?: string;
           last_contact_at?: string;
         };
@@ -517,6 +523,9 @@ export type Database = {
           call_notes?: string | null;
           contacted_by?: string | null;
           contacted_at?: string | null;
+          smart_tag?: string | null;
+          temperatura?: string | null;
+          smart_tag_manual?: boolean;
           created_at?: string;
           last_contact_at?: string;
         };
@@ -601,3 +610,11 @@ export type LeadStatus =
   | "dar_seguimiento"
   | "descartado"
   | "cerrado";
+
+export type LeadSmartTag =
+  | "curioso"
+  | "busca_a_estrenar"
+  | "interes_otras_opciones"
+  | "interesado";
+
+export type LeadTemperatura = "frio" | "tibio" | "caliente";

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { runAgent } from "@/lib/agent/run";
+import { ensureLeadForConversation } from "@/lib/leads/ensure";
 import { testProvider } from "@/lib/providers/test-provider";
 import type { HistoryMessage } from "@/lib/agent/types";
 import type { AgentJob } from "@/lib/supabase/types";
@@ -224,6 +225,11 @@ async function processJob(job: AgentJob): Promise<void> {
       trace_id: result.traceId,
     })
     .eq("id", job.id);
+
+  // Crear / actualizar el lead asociado a la conversacion. El helper es
+  // idempotente: si ya existe, recalcula smart_tag + temperatura desde el
+  // estado actual de la conv (a menos que el operador haya editado a mano).
+  await ensureLeadForConversation(job.conversation_id);
 }
 
 /**

@@ -182,7 +182,9 @@ export function LeadDetailModal({
                 {lead.name ?? "Sin nombre"}
               </h2>
               <p className="mt-0.5 font-mono text-[10.5px] uppercase tracking-wide text-neutral-500 dark:text-neutral-500">
-                {humanizeCategory(lead.interest_category)} · {formatDateLong(lead.created_at)}
+                {lead.interest_category && lead.interest_category !== "sin_categoria"
+                  ? `${humanizeCategory(lead.interest_category)} · ${formatDateLong(lead.created_at)}`
+                  : formatDateLong(lead.created_at)}
               </p>
             </div>
           </div>

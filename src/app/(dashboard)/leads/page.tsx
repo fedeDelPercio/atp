@@ -19,9 +19,11 @@ import type {
 } from "@/lib/supabase/types";
 import {
   SMART_TAG_LABEL,
+  SMART_TAGS_ORDERED,
   TEMPERATURA_DOT,
   TEMPERATURA_LABEL,
   TEMPERATURA_TEXT,
+  TEMPERATURAS_ORDERED,
 } from "@/lib/leads/labels";
 
 // Tab Leads: contactos calificados que el agente derivo al equipo.
@@ -44,6 +46,13 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [smartTagFilter, setSmartTagFilter] = useState<LeadSmartTag | "all">(
+    "all",
+  );
+  const [temperaturaFilter, setTemperaturaFilter] = useState<
+    LeadTemperatura | "all"
+  >("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // Traemos SIEMPRE la lista completa y filtramos client-side. De esta forma
@@ -76,11 +85,30 @@ export default function LeadsPage() {
 
   const visibleLeads = useMemo(
     () =>
-      statusFilter === "all"
-        ? leads
-        : leads.filter((l) => l.status === statusFilter),
-    [leads, statusFilter],
+      leads.filter((l) => {
+        if (statusFilter !== "all" && l.status !== statusFilter) return false;
+        if (smartTagFilter !== "all" && l.smart_tag !== smartTagFilter) return false;
+        if (temperaturaFilter !== "all" && l.temperatura !== temperaturaFilter)
+          return false;
+        if (categoryFilter !== "all" && l.interest_category !== categoryFilter)
+          return false;
+        return true;
+      }),
+    [leads, statusFilter, smartTagFilter, temperaturaFilter, categoryFilter],
   );
+
+  // Categorias presentes en la lista actual de leads. Se calcula sobre la
+  // lista completa (no filtrada) para que el dropdown muestre todas las
+  // categorias existentes en el cliente. Excluye 'sin_categoria' (no aporta).
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of leads) {
+      if (l.interest_category && l.interest_category !== "sin_categoria") {
+        set.add(l.interest_category);
+      }
+    }
+    return Array.from(set).sort();
+  }, [leads]);
 
   async function patchLead(leadId: string, payload: Partial<Lead>): Promise<Lead | null> {
     try {
@@ -183,6 +211,56 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 px-6 py-2.5 dark:border-neutral-800">
+        <FilterSelect
+          label="Tag"
+          value={smartTagFilter}
+          onChange={(v) => setSmartTagFilter(v as LeadSmartTag | "all")}
+          options={[
+            { value: "all", label: "Todos los tags" },
+            ...SMART_TAGS_ORDERED.map((t) => ({
+              value: t,
+              label: SMART_TAG_LABEL[t],
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Temperatura"
+          value={temperaturaFilter}
+          onChange={(v) => setTemperaturaFilter(v as LeadTemperatura | "all")}
+          options={[
+            { value: "all", label: "Todas las temperaturas" },
+            ...TEMPERATURAS_ORDERED.map((t) => ({
+              value: t,
+              label: TEMPERATURA_LABEL[t],
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Categoría"
+          value={categoryFilter}
+          onChange={(v) => setCategoryFilter(v)}
+          options={[
+            { value: "all", label: "Todas las categorías" },
+            ...categories.map((c) => ({ value: c, label: humanizeCategory(c) })),
+          ]}
+        />
+        {(smartTagFilter !== "all" ||
+          temperaturaFilter !== "all" ||
+          categoryFilter !== "all") && (
+          <button
+            onClick={() => {
+              setSmartTagFilter("all");
+              setTemperaturaFilter("all");
+              setCategoryFilter("all");
+            }}
+            className="ml-1 text-[12px] text-neutral-500 transition hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex h-full items-center justify-center gap-2 text-[13px] text-neutral-400">
@@ -275,9 +353,11 @@ function LeadRow({
                 {TEMPERATURA_LABEL[lead.temperatura as LeadTemperatura]}
               </span>
             )}
-            <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-              {humanizeCategory(lead.interest_category)}
-            </span>
+            {lead.interest_category && lead.interest_category !== "sin_categoria" && (
+              <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                {humanizeCategory(lead.interest_category)}
+              </span>
+            )}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-neutral-500 dark:text-neutral-500">
             <span className="flex items-center gap-1">
@@ -342,5 +422,34 @@ function LeadRow({
         </div>
       </div>
     </li>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-[11.5px] text-neutral-500 dark:text-neutral-500">
+      <span className="font-mono uppercase tracking-wide">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[12px] text-neutral-700 outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:focus:border-neutral-600"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

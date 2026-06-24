@@ -318,9 +318,9 @@ export default function LeadsPage() {
           <>
             <div className="sticky top-0 z-10 hidden grid-cols-[1fr_140px_120px_140px_auto] gap-4 border-b border-neutral-200 bg-white px-6 py-2 font-mono text-[10px] uppercase tracking-wide text-neutral-400 sm:grid dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500">
               <span>Datos</span>
-              <span>Tipo</span>
-              <span>Temperatura</span>
-              <span>Step</span>
+              <span className="text-center">Tipo</span>
+              <span className="text-center">Temperatura</span>
+              <span className="text-center">Step</span>
               <span />
             </div>
             <ul className="divide-y divide-neutral-100 dark:divide-neutral-900">
@@ -402,7 +402,7 @@ function LeadRow({
         </div>
       </div>
 
-      <div className="text-[12px] text-neutral-700 dark:text-neutral-300">
+      <div className="flex justify-center text-[12px] text-neutral-700 dark:text-neutral-300">
         {lead.smart_tag ? (
           <span className="inline-flex items-center rounded-md border border-neutral-200 px-1.5 py-0.5 text-[10.5px] font-medium tracking-tight-er dark:border-neutral-800">
             {SMART_TAG_LABEL[lead.smart_tag as LeadSmartTag] ?? lead.smart_tag}
@@ -412,7 +412,7 @@ function LeadRow({
         )}
       </div>
 
-      <div>
+      <div className="flex justify-center">
         {lead.temperatura ? (
           <span
             className={`inline-flex items-center gap-1 text-[11.5px] font-medium tracking-tight-er ${TEMPERATURA_TEXT[lead.temperatura as LeadTemperatura]}`}
@@ -428,7 +428,7 @@ function LeadRow({
         )}
       </div>
 
-      <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <div className="relative flex justify-center" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="flex w-full items-center justify-between gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-700"

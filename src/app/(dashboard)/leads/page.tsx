@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Loader2, MessageCircle, Phone, UserCheck, Home } from "lucide-react";
+import {
+  ChevronDown,
+  Loader2,
+  MessageCircle,
+  Phone,
+  Search,
+  UserCheck,
+  Home,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useProfile } from "@/components/ProfileProvider";
 import { Avatar } from "@/components/Avatar";
@@ -53,6 +61,7 @@ export default function LeadsPage() {
     LeadTemperatura | "all"
   >("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // Traemos SIEMPRE la lista completa y filtramos client-side. De esta forma
@@ -83,19 +92,29 @@ export default function LeadsPage() {
     return c;
   }, [leads]);
 
-  const visibleLeads = useMemo(
-    () =>
-      leads.filter((l) => {
-        if (statusFilter !== "all" && l.status !== statusFilter) return false;
-        if (smartTagFilter !== "all" && l.smart_tag !== smartTagFilter) return false;
-        if (temperaturaFilter !== "all" && l.temperatura !== temperaturaFilter)
-          return false;
-        if (categoryFilter !== "all" && l.interest_category !== categoryFilter)
-          return false;
-        return true;
-      }),
-    [leads, statusFilter, smartTagFilter, temperaturaFilter, categoryFilter],
-  );
+  const visibleLeads = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (smartTagFilter !== "all" && l.smart_tag !== smartTagFilter) return false;
+      if (temperaturaFilter !== "all" && l.temperatura !== temperaturaFilter)
+        return false;
+      if (categoryFilter !== "all" && l.interest_category !== categoryFilter)
+        return false;
+      if (q) {
+        const hay = `${l.name ?? ""} ${l.phone ?? ""} ${l.email ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [
+    leads,
+    statusFilter,
+    smartTagFilter,
+    temperaturaFilter,
+    categoryFilter,
+    searchQuery,
+  ]);
 
   // Categorias presentes en la lista actual de leads. Se calcula sobre la
   // lista completa (no filtrada) para que el dropdown muestre todas las
@@ -182,6 +201,20 @@ export default function LeadsPage() {
           <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
             {visibleLeads.length} {visibleLeads.length === 1 ? "registro" : "registros"}
           </span>
+        </div>
+
+        <div className="relative flex w-full items-center sm:w-64">
+          <Search
+            className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500"
+            strokeWidth={1.75}
+          />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por nombre, teléfono o email"
+            className="w-full rounded-md border border-neutral-200 bg-white pl-7 pr-3 py-1.5 text-[12px] outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-neutral-600"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-1">
@@ -282,16 +315,25 @@ export default function LeadsPage() {
             </div>
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-100 dark:divide-neutral-900">
-            {visibleLeads.map((lead) => (
-              <LeadRow
-                key={lead.id}
-                lead={lead}
-                onStatusChange={updateStatus}
-                onSelect={() => setSelectedLead(lead)}
-              />
-            ))}
-          </ul>
+          <>
+            <div className="sticky top-0 z-10 hidden grid-cols-[1fr_140px_120px_140px_auto] gap-4 border-b border-neutral-200 bg-white px-6 py-2 font-mono text-[10px] uppercase tracking-wide text-neutral-400 sm:grid dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500">
+              <span>Datos</span>
+              <span>Tipo</span>
+              <span>Temperatura</span>
+              <span>Step</span>
+              <span />
+            </div>
+            <ul className="divide-y divide-neutral-100 dark:divide-neutral-900">
+              {visibleLeads.map((lead) => (
+                <LeadRow
+                  key={lead.id}
+                  lead={lead}
+                  onStatusChange={updateStatus}
+                  onSelect={() => setSelectedLead(lead)}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
@@ -326,33 +368,16 @@ function LeadRow({
 
   return (
     <li
-      className="cursor-pointer px-6 py-3 transition hover:bg-neutral-50 dark:hover:bg-neutral-900/40"
+      className="grid cursor-pointer grid-cols-1 gap-2 px-6 py-3 transition hover:bg-neutral-50 sm:grid-cols-[1fr_140px_120px_140px_auto] sm:items-center sm:gap-4 dark:hover:bg-neutral-900/40"
       onClick={onSelect}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 min-w-0">
         <Avatar name={lead.name ?? lead.phone ?? "Lead"} size="md" />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <p className="truncate text-[13px] font-medium text-neutral-900 dark:text-neutral-100">
               {lead.name ?? "Sin nombre"}
             </p>
-            {lead.smart_tag && (
-              <span className="inline-flex items-center rounded-md border border-neutral-200 px-1.5 py-0.5 text-[10.5px] font-medium tracking-tight-er text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
-                {SMART_TAG_LABEL[lead.smart_tag as LeadSmartTag] ?? lead.smart_tag}
-              </span>
-            )}
-            {lead.temperatura && (
-              <span
-                className={`inline-flex items-center gap-1 text-[11.5px] font-medium tracking-tight-er ${TEMPERATURA_TEXT[lead.temperatura as LeadTemperatura]}`}
-              >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${TEMPERATURA_DOT[lead.temperatura as LeadTemperatura]}`}
-                  aria-hidden
-                />
-                {TEMPERATURA_LABEL[lead.temperatura as LeadTemperatura]}
-              </span>
-            )}
             {lead.interest_category && lead.interest_category !== "sin_categoria" && (
               <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                 {humanizeCategory(lead.interest_category)}
@@ -375,52 +400,81 @@ function LeadRow({
             </span>
           </div>
         </div>
+      </div>
 
-        <Link
-          href={`${linkBase}?id=${lead.conversation_id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="hidden items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1.5 text-[12px] text-neutral-600 transition hover:border-neutral-300 hover:bg-white sm:flex dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
-        >
-          <MessageCircle className="h-3 w-3" strokeWidth={1.75} /> Ver conversación
-        </Link>
+      <div className="text-[12px] text-neutral-700 dark:text-neutral-300">
+        {lead.smart_tag ? (
+          <span className="inline-flex items-center rounded-md border border-neutral-200 px-1.5 py-0.5 text-[10.5px] font-medium tracking-tight-er dark:border-neutral-800">
+            {SMART_TAG_LABEL[lead.smart_tag as LeadSmartTag] ?? lead.smart_tag}
+          </span>
+        ) : (
+          <span className="text-neutral-400 dark:text-neutral-600">—</span>
+        )}
+      </div>
 
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-700"
+      <div>
+        {lead.temperatura ? (
+          <span
+            className={`inline-flex items-center gap-1 text-[11.5px] font-medium tracking-tight-er ${TEMPERATURA_TEXT[lead.temperatura as LeadTemperatura]}`}
           >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${TEMPERATURA_DOT[lead.temperatura as LeadTemperatura]}`}
+              aria-hidden
+            />
+            {TEMPERATURA_LABEL[lead.temperatura as LeadTemperatura]}
+          </span>
+        ) : (
+          <span className="text-[12px] text-neutral-400 dark:text-neutral-600">—</span>
+        )}
+      </div>
+
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-700"
+        >
+          <span className="flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 rounded-full ${statusOpt.dot}`} aria-hidden />
             {statusOpt.label}
-            <ChevronDown className="h-3 w-3 text-neutral-400" strokeWidth={2} />
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-[55]" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 z-[60] mt-1 w-48 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
-                {STATUS_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setMenuOpen(false);
-                      if (opt.value !== lead.status) {
-                        void onStatusChange(lead.id, opt.value);
-                      }
-                    }}
-                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition ${
-                      opt.value === lead.status
-                        ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
-                        : "text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${opt.dot}`} aria-hidden />
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+          </span>
+          <ChevronDown className="h-3 w-3 text-neutral-400" strokeWidth={2} />
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-[55]" onClick={() => setMenuOpen(false)} />
+            <div className="absolute right-0 z-[60] mt-1 w-48 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-soft dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-soft-dark">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (opt.value !== lead.status) {
+                      void onStatusChange(lead.id, opt.value);
+                    }
+                  }}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition ${
+                    opt.value === lead.status
+                      ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
+                      : "text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${opt.dot}`} aria-hidden />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
+
+      <Link
+        href={`${linkBase}?id=${lead.conversation_id}`}
+        onClick={(e) => e.stopPropagation()}
+        className="hidden items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1.5 text-[12px] text-neutral-600 transition hover:border-neutral-300 hover:bg-white sm:flex dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
+      >
+        <MessageCircle className="h-3 w-3" strokeWidth={1.75} /> Ver conversación
+      </Link>
+
     </li>
   );
 }

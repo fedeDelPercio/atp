@@ -199,29 +199,29 @@ export function LeadDetailModal({
 
         <div className="space-y-5 px-5 py-5">
           <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-            <div className="space-y-1">
+            <div className="flex flex-col items-center gap-1">
               <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                Step
+                STEP
               </p>
               <StatusDropdown
                 currentStatus={lead.status as LeadStatus}
                 onChange={(s) => onStatusChange(lead.id, s)}
               />
             </div>
-            <div className="space-y-1 border-l border-neutral-200 pl-5 dark:border-neutral-800">
-              <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                Smart tags
+            <div className="space-y-1 border-x border-neutral-200 px-5 dark:border-neutral-800">
+              <p className="text-center font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                SMART TAGS
               </p>
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="space-y-1">
-                  <p className="text-[10.5px] text-neutral-400 dark:text-neutral-500">
-                    Tipo
+              <div className="flex flex-wrap items-end justify-center gap-3">
+                <div className="flex flex-col items-center gap-1">
+                  <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                    TIPO
                   </p>
                   <SmartTagDropdown value={smartTag} onChange={setSmartTag} />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10.5px] text-neutral-400 dark:text-neutral-500">
-                    Temperatura
+                <div className="flex flex-col items-center gap-1">
+                  <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                    TEMPERATURA
                   </p>
                   <TemperaturaDropdown
                     value={temperatura}

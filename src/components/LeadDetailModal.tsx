@@ -198,16 +198,41 @@ export function LeadDetailModal({
         </div>
 
         <div className="space-y-5 px-5 py-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusDropdown
-              currentStatus={lead.status as LeadStatus}
-              onChange={(s) => onStatusChange(lead.id, s)}
-            />
-            <SmartTagDropdown value={smartTag} onChange={setSmartTag} />
-            <TemperaturaDropdown value={temperatura} onChange={setTemperatura} />
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+            <div className="space-y-1">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Step
+              </p>
+              <StatusDropdown
+                currentStatus={lead.status as LeadStatus}
+                onChange={(s) => onStatusChange(lead.id, s)}
+              />
+            </div>
+            <div className="space-y-1 border-l border-neutral-200 pl-5 dark:border-neutral-800">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Smart tags
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <p className="text-[10.5px] text-neutral-400 dark:text-neutral-500">
+                    Tipo
+                  </p>
+                  <SmartTagDropdown value={smartTag} onChange={setSmartTag} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10.5px] text-neutral-400 dark:text-neutral-500">
+                    Temperatura
+                  </p>
+                  <TemperaturaDropdown
+                    value={temperatura}
+                    onChange={setTemperatura}
+                  />
+                </div>
+              </div>
+            </div>
             <Link
               href={`${linkBase}?id=${lead.conversation_id}`}
-              className="flex items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-800"
+              className="flex items-center gap-1.5 self-end rounded-md border border-neutral-200 px-2.5 py-1.5 text-[12px] text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-800"
             >
               <MessageCircle className="h-3 w-3" strokeWidth={1.75} /> Ver conversación
             </Link>

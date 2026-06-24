@@ -27,17 +27,19 @@ export const TEMPERATURA_LABEL: Record<LeadTemperatura, string> = {
   caliente: "Caliente",
 };
 
-// Punto de color asociado a la temperatura, en la paleta del design system
-// (ok / warn / red, sin gradientes ni fondos rellenos).
+// Punto de color asociado a la temperatura. Solo color en dot + texto,
+// nunca fondo de bloque (regla del design system). La paleta es semantica:
+// celeste = frio, naranja = tibio, rojo = caliente — matchea la intuicion
+// cultural del usuario.
 export const TEMPERATURA_DOT: Record<LeadTemperatura, string> = {
-  frio: "bg-neutral-400 dark:bg-neutral-500",
-  tibio: "bg-warn",
+  frio: "bg-sky-500",
+  tibio: "bg-orange-500",
   caliente: "bg-red-600",
 };
 
 export const TEMPERATURA_TEXT: Record<LeadTemperatura, string> = {
-  frio: "text-neutral-500 dark:text-neutral-400",
-  tibio: "text-warn",
+  frio: "text-sky-600 dark:text-sky-400",
+  tibio: "text-orange-600 dark:text-orange-500",
   caliente: "text-red-600 dark:text-red-500",
 };
 

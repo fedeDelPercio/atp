@@ -316,7 +316,7 @@ export default function LeadsPage() {
           </div>
         ) : (
           <>
-            <div className="sticky top-0 z-10 hidden grid-cols-[1fr_140px_120px_140px_auto] gap-4 border-b border-neutral-200 bg-white px-6 py-2 font-mono text-[10px] uppercase tracking-wide text-neutral-400 sm:grid dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500">
+            <div className="sticky top-0 z-10 hidden grid-cols-[1fr_140px_120px_140px_160px] gap-4 border-b border-neutral-200 bg-white px-6 py-2 font-mono text-[10px] uppercase tracking-wide text-neutral-400 sm:grid dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500">
               <span>Datos</span>
               <span className="text-center">Tipo</span>
               <span className="text-center">Temperatura</span>
@@ -368,7 +368,7 @@ function LeadRow({
 
   return (
     <li
-      className="grid cursor-pointer grid-cols-1 gap-2 px-6 py-3 transition hover:bg-neutral-50 sm:grid-cols-[1fr_140px_120px_140px_auto] sm:items-center sm:gap-4 dark:hover:bg-neutral-900/40"
+      className="grid cursor-pointer grid-cols-1 gap-2 px-6 py-3 transition hover:bg-neutral-50 sm:grid-cols-[1fr_140px_120px_140px_160px] sm:items-center sm:gap-4 dark:hover:bg-neutral-900/40"
       onClick={onSelect}
     >
       <div className="flex items-center gap-3 min-w-0">

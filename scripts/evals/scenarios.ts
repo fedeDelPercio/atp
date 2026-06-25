@@ -381,6 +381,60 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    name: "Fuera de conocimiento: deriva SIN mencionar KB / 'no tengo' / 'lo anoto'",
+    // Bug visto en prod (Federico, 2026-06-25): ante una consulta no cubierta
+    // por la KB, el agente respondió "Eso no lo tengo en la KB, pero se lo
+    // dejo anotado a Santino para que te lo confirme cuando te contacte
+    // mañana". Doble violación: meta-comenta su propio conocimiento ("no
+    // tengo") y delata el sistema ("KB"). Regla nueva: cuando no puede
+    // responder, deriva en silencio con el wording de cierre de
+    // fuera_de_conocimiento; NUNCA explica al cliente qué sabe y qué no.
+    now: VIERNES_MANANA,
+    turns: [
+      { user: "hola, quiero info" },
+      { user: "para mi casa" },
+      {
+        user: "tienen modelos con tapa de madera maciza?",
+        expect: {
+          custom: (out) => {
+            const lower = out.responseText.toLowerCase();
+            // Bloqueado: cualquier referencia a la propia base / sistema /
+            // info que tiene o no tiene.
+            const metaConocimiento = [
+              "kb",
+              "base de conocimiento",
+              "base de datos",
+              "mi sistema",
+              "no tengo",
+              "no me figura",
+              "no manejo",
+              "no cuento con",
+              "no aparece",
+              "lo dejo anotado",
+              "lo dejo apuntado",
+              "le anoto",
+              "le pregunto a",
+              "le consulto a",
+              "se lo paso a",
+              "lo voy a consultar",
+              "lo voy a chequear",
+              "voy a averiguar",
+              "no manejamos esa info",
+              "no tengo esa info",
+            ];
+            for (const term of metaConocimiento) {
+              if (lower.includes(term)) {
+                return `meta-comenta sobre conocimiento: contiene "${term}"`;
+              }
+            }
+            return null;
+          },
+        },
+      },
+    ],
+  },
+
+  {
     name: "Off-topic primera vez: NO deriva, redirige al producto",
     // Bug visto en feedback (Manuel): lead pregunta "cuanto esta el dolar?"
     // y la IA deriva con fuera_de_conocimiento a la primera. Regla nueva:

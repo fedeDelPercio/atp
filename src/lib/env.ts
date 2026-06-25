@@ -100,6 +100,13 @@ const serverSchema = z.object({
   // webhook entrante venga de esa cuenta (evita que otro Kommo apunte por
   // accidente a este endpoint).
   KOMMO_ACCOUNT_ID: z.coerce.number().int().positive().default(33057135),
+  // Whitelist de contact_ids autorizados a disparar el agente. Coma-
+  // separated. Cuando está seteada, el endpoint solo procesa mensajes que
+  // vengan de esos contactos. Cuando está vacía o ausente, el endpoint
+  // procesa cualquier mensaje (modo "prod abierto"). Durante el testing
+  // ponemos los contact_ids del equipo aquí para no responderle a leads
+  // reales accidentalmente.
+  KOMMO_ALLOWED_CONTACT_IDS: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -131,6 +138,7 @@ export function serverEnv(): ServerEnv {
     KOMMO_WEBHOOK_SECRET: process.env.KOMMO_WEBHOOK_SECRET,
     KOMMO_REPLY_BOT_ID: process.env.KOMMO_REPLY_BOT_ID,
     KOMMO_ACCOUNT_ID: process.env.KOMMO_ACCOUNT_ID,
+    KOMMO_ALLOWED_CONTACT_IDS: process.env.KOMMO_ALLOWED_CONTACT_IDS,
   });
   if (!parsed.success) {
     throw new Error(

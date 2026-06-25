@@ -100,6 +100,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: `type=${incoming.type}` });
   }
 
+  // 4b. Whitelist por contact_id (modo testing). Cuando ALLOWED_CONTACT_IDS
+  //     está seteada, solo respondemos a los contactos listados ahí. Si está
+  //     vacía o ausente, respondemos a todos (modo prod). Defensa crítica
+  //     mientras validamos: evita que el agente conteste a leads reales del
+  //     cliente sin querer.
+  const allowedRaw = env.KOMMO_ALLOWED_CONTACT_IDS;
+  if (allowedRaw && allowedRaw.trim()) {
+    const allowed = new Set(
+      allowedRaw
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter((n) => Number.isFinite(n) && n > 0),
+    );
+    if (!incoming.contactId || !allowed.has(incoming.contactId)) {
+      console.log(
+        `[kommo/incoming] contact_id ${incoming.contactId} NO whitelisted, skip`,
+      );
+      return NextResponse.json({
+        ok: true,
+        skipped: "contact_not_whitelisted",
+      });
+    }
+  }
+
   const supabase = getSupabaseServerClient();
 
   // 5. Conversation: matchear por kommo_lead_id o crear.

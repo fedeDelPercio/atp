@@ -58,24 +58,6 @@ export async function POST(req: NextRequest) {
     : parseKommoFormPayload(rawText);
 
   if (!incoming) {
-    // Si el rawText menciona "audio", "voice", "media" o "attachment" pero
-    // nuestro parser no lo entendió, es muy probable que sea un audio
-    // entrante cuyo shape no contempla nuestro parser. Logueamos el body
-    // completo (truncado a 2000 chars) para diagnosticar.
-    const isProbablyMedia = /audio|voice|media|attachment|file_link/i.test(
-      rawText,
-    );
-    if (isProbablyMedia) {
-      console.warn(
-        "[kommo/incoming] POSIBLE AUDIO no parseado, dump del body completo:",
-        rawText.slice(0, 2000),
-      );
-    } else {
-      console.warn(
-        "[kommo/incoming] sin mensaje en body (probable evento no relevante). Body:",
-        rawText.slice(0, 500),
-      );
-    }
     return NextResponse.json({ ok: true, skipped: "no_message" });
   }
 
@@ -284,24 +266,24 @@ interface IncomingMessage {
 function parseKommoFormPayload(rawText: string): IncomingMessage | null {
   const params = new URLSearchParams(rawText);
   const msgPrefix = "message[add][0]";
-  const get = (suffix: string): string | null =>
-    params.get(`${msgPrefix}[${suffix}]`);
+  // Helper para keys anidadas estilo PHP: pasar segmentos sin brackets.
+  // get("attachment", "link") → params.get("message[add][0][attachment][link]")
+  const get = (...keys: string[]): string | null => {
+    const fullKey = msgPrefix + keys.map((k) => `[${k}]`).join("");
+    return params.get(fullKey);
+  };
 
   const leadIdStr = get("entity_id");
   const text = get("text") ?? "";
 
-  // Detección de audio: el payload de Kommo para mensajes de voz suele
-  // incluir un attachment con type=voice|audio y un link al archivo. La
-  // estructura exacta varía según el canal (WA Business, Telegram, etc).
-  // Probamos varias claves comunes y nos quedamos con la primera URL.
-  const audioUrl =
-    get("attachment[link]") ??
-    get("attachment[url]") ??
-    get("media[link]") ??
-    get("media[url]") ??
-    get("media") ??
-    get("voice[link]") ??
-    null;
+  // Tipo de mensaje según Kommo: "text", "voice", "picture", "file", etc.
+  // Para audios (voice) bajamos el attachment[link] y lo mandamos a Whisper.
+  // Para otros media no soportados (picture/file) devolvemos null y el
+  // endpoint hace skip — el lead manda media, el equipo lo atiende manual.
+  const messageType = (get("message_type") ?? get("attachment", "type") ?? "")
+    .toLowerCase();
+  const isVoice = messageType === "voice" || messageType === "audio";
+  const audioUrl = isVoice ? get("attachment", "link") : null;
 
   // Sin entity_id no podemos identificar el lead. Si hay audio pero no
   // texto, esperamos audio y dejamos que se transcriba después.
@@ -311,7 +293,7 @@ function parseKommoFormPayload(rawText: string): IncomingMessage | null {
   const leadId = Number(leadIdStr);
   if (!Number.isFinite(leadId) || leadId <= 0) return null;
 
-  const contactIdStr = get("contact_id") ?? get("author[id]");
+  const contactIdStr = get("contact_id") ?? get("author", "id");
   const contactId = contactIdStr ? Number(contactIdStr) : null;
 
   const accountIdStr = params.get("account[id]");
@@ -324,8 +306,8 @@ function parseKommoFormPayload(rawText: string): IncomingMessage | null {
     type: get("type"),
     accountId: accountId && Number.isFinite(accountId) ? accountId : null,
     authorPhone:
-      get("author[phone]") ?? get("phone") ?? params.get("contact[phone]"),
-    authorName: get("author[name]") ?? get("author[full_name]"),
+      get("author", "phone") ?? get("phone") ?? params.get("contact[phone]"),
+    authorName: get("author", "name") ?? get("author", "full_name"),
     messageId: get("id"),
     audioUrl,
   };

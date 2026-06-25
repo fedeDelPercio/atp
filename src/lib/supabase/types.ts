@@ -86,6 +86,7 @@ export type Database = {
           content: string;
           trace_id: string | null;
           delivered_at: string | null;
+          kommo_message_id: string | null;
           client_slug: string;
           created_at: string;
         };
@@ -96,6 +97,7 @@ export type Database = {
           content: string;
           trace_id?: string | null;
           delivered_at?: string | null;
+          kommo_message_id?: string | null;
           client_slug?: string;
           created_at?: string;
         };
@@ -106,6 +108,7 @@ export type Database = {
           content?: string;
           trace_id?: string | null;
           delivered_at?: string | null;
+          kommo_message_id?: string | null;
           client_slug?: string;
           created_at?: string;
         };

@@ -126,7 +126,24 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabaseServerClient();
 
-  // 5. Conversation: matchear por kommo_lead_id o crear.
+  // 5. IDEMPOTENCIA: si ya procesamos este message_id de Kommo, devolver 200
+  //    sin hacer nada. Kommo dispara el webhook múltiples veces para el
+  //    mismo mensaje (visto en prod: gap de 4 min entre original y duplicado).
+  if (incoming.messageId) {
+    const { data: existing } = await supabase
+      .from("messages")
+      .select("id")
+      .eq("kommo_message_id", incoming.messageId)
+      .maybeSingle();
+    if (existing) {
+      console.log(
+        `[kommo/incoming] duplicate kommo_message_id=${incoming.messageId}, skip`,
+      );
+      return NextResponse.json({ ok: true, skipped: "duplicate" });
+    }
+  }
+
+  // 6. Conversation: matchear por kommo_lead_id o crear.
   const conversationId = await findOrCreateConversation({
     leadId: incoming.leadId,
     contactId: incoming.contactId ?? null,
@@ -134,17 +151,26 @@ export async function POST(req: NextRequest) {
     displayName: incoming.authorName?.trim() || `Lead ${incoming.leadId}`,
   });
 
-  // 6. Insertar mensaje del lead.
+  // 7. Insertar mensaje del lead (con kommo_message_id para idempotencia).
   const { data: msg, error: msgErr } = await supabase
     .from("messages")
     .insert({
       conversation_id: conversationId,
       role: "user",
       content: incoming.text,
+      kommo_message_id: incoming.messageId,
     })
     .select("id")
     .single();
   if (msgErr || !msg) {
+    // Si fue por unique violation (race condition con otro disparo
+    // concurrente del mismo mensaje), lo tratamos como duplicate.
+    if (msgErr?.code === "23505") {
+      console.log(
+        `[kommo/incoming] race condition, kommo_message_id ya existe: ${incoming.messageId}`,
+      );
+      return NextResponse.json({ ok: true, skipped: "duplicate_race" });
+    }
     console.error("[kommo/incoming] no se pudo insertar mensaje:", msgErr);
     return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
   }
@@ -282,6 +308,8 @@ interface IncomingMessage {
   accountId: number | null;
   authorPhone: string | null;
   authorName: string | null;
+  /** ID único del mensaje en Kommo. Lo usamos para idempotencia. */
+  messageId: string | null;
 }
 
 /**
@@ -320,6 +348,7 @@ function parseKommoFormPayload(rawText: string): IncomingMessage | null {
     authorPhone:
       get("author[phone]") ?? get("phone") ?? params.get("contact[phone]"),
     authorName: get("author[name]") ?? get("author[full_name]"),
+    messageId: get("id"),
   };
 }
 
@@ -343,6 +372,7 @@ function parseJsonPayload(rawText: string): IncomingMessage | null {
       accountId: null,
       authorPhone: (body.phone as string | undefined) ?? null,
       authorName: (body.contact_name as string | undefined) ?? null,
+      messageId: (body.message_id as string | undefined) ?? null,
     };
   } catch {
     return null;

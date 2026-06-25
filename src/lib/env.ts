@@ -81,6 +81,25 @@ const serverSchema = z.object({
   WEBHOOK_SIGNING_SECRET: z
     .string()
     .min(1, "WEBHOOK_SIGNING_SECRET es obligatoria"),
+  // Kommo CRM. Opcionales en build: si no están seteadas, las llamadas
+  // a `getAccount()` u otros helpers tiran KommoConfigError en runtime.
+  // Eso permite buildear / testear el panel sin tener la integración lista.
+  KOMMO_SUBDOMAIN: z.string().optional(),
+  KOMMO_LONG_LIVED_TOKEN: z.string().optional(),
+  // Secret compartido con webhook configurado en Kommo. El webhook nativo
+  // de Kommo no firma con HMAC, así que como defensa básica verificamos
+  // este token en query string (`?secret=...`). El "secret" en la URL no
+  // queda en logs accesibles a terceros mientras el endpoint sea privado.
+  KOMMO_WEBHOOK_SECRET: z.string().optional(),
+  // ID del Salesbot "Mensaje IA" que envía la respuesta al lead. Es un bot
+  // mínimo de 1 step "Mensaje" con `{{contact.cf_1101964}}`. Lo lanzamos
+  // programáticamente vía POST /api/v2/salesbot/run después de procesar
+  // con el agente y setear el custom field con la respuesta.
+  KOMMO_REPLY_BOT_ID: z.coerce.number().int().positive().default(64074),
+  // ID de cuenta Kommo del cliente. Si está seteado, validamos que el
+  // webhook entrante venga de esa cuenta (evita que otro Kommo apunte por
+  // accidente a este endpoint).
+  KOMMO_ACCOUNT_ID: z.coerce.number().int().positive().default(33057135),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -107,6 +126,11 @@ export function serverEnv(): ServerEnv {
     AGENT_TIMEOUT_MS: process.env.AGENT_TIMEOUT_MS,
     CRON_SECRET: process.env.CRON_SECRET,
     WEBHOOK_SIGNING_SECRET: process.env.WEBHOOK_SIGNING_SECRET,
+    KOMMO_SUBDOMAIN: process.env.KOMMO_SUBDOMAIN,
+    KOMMO_LONG_LIVED_TOKEN: process.env.KOMMO_LONG_LIVED_TOKEN,
+    KOMMO_WEBHOOK_SECRET: process.env.KOMMO_WEBHOOK_SECRET,
+    KOMMO_REPLY_BOT_ID: process.env.KOMMO_REPLY_BOT_ID,
+    KOMMO_ACCOUNT_ID: process.env.KOMMO_ACCOUNT_ID,
   });
   if (!parsed.success) {
     throw new Error(

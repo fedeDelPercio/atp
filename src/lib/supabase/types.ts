@@ -37,6 +37,8 @@ export type Database = {
           client_slug: string;
           simulated_timestamp: string | null;
           is_existing_customer: boolean;
+          kommo_lead_id: number | null;
+          kommo_contact_id: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +54,8 @@ export type Database = {
           client_slug?: string;
           simulated_timestamp?: string | null;
           is_existing_customer?: boolean;
+          kommo_lead_id?: number | null;
+          kommo_contact_id?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -67,6 +71,8 @@ export type Database = {
           client_slug?: string;
           simulated_timestamp?: string | null;
           is_existing_customer?: boolean;
+          kommo_lead_id?: number | null;
+          kommo_contact_id?: number | null;
           created_at?: string;
           updated_at?: string;
         };

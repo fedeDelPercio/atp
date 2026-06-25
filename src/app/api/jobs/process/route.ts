@@ -3,6 +3,13 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { runAgent } from "@/lib/agent/run";
 import { testProvider } from "@/lib/providers/test-provider";
+import {
+  setContactTextField,
+  launchSalesbot,
+  KommoApiError,
+  KommoConfigError,
+} from "@/lib/kommo/client";
+import { KOMMO_CONTACT_FIELD_RESPUESTA_IA } from "@/lib/kommo/mapping";
 import type { HistoryMessage } from "@/lib/agent/types";
 import type { AgentJob } from "@/lib/supabase/types";
 
@@ -111,33 +118,63 @@ async function processJob(job: AgentJob): Promise<void> {
     return;
   }
 
-  // Mensaje del usuario que originó el job.
-  const { data: userMsg, error: userErr } = await supabase
-    .from("messages")
-    .select("content")
-    .eq("id", job.user_message_id)
-    .single();
-  if (userErr || !userMsg) {
-    throw new Error("No se encontró el mensaje del usuario");
-  }
-
-  // Historial: últimos N mensajes previos de la conversación.
-  const { data: msgs } = await supabase
+  // BATCH: agarrar TODOS los mensajes user "pendientes" de la conversation,
+  // es decir, los que llegaron después de la última respuesta del assistant.
+  // Esto soporta el debounce: si el lead mandó varios mensajes seguidos
+  // (texto + audio + texto) y reseteamos el timer cada vez, ahora los
+  // procesamos todos juntos como un solo turno.
+  const { data: allMsgs } = await supabase
     .from("messages")
     .select("id, role, content, created_at")
     .eq("conversation_id", job.conversation_id)
     .order("created_at", { ascending: true });
+  const msgs = allMsgs ?? [];
 
-  const history: HistoryMessage[] = (msgs ?? [])
-    .filter((m) => m.id !== job.user_message_id)
+  // Cutoff = created_at del último assistant message. Los user messages
+  // posteriores a ese cutoff son los "pendientes a procesar".
+  const lastAssistantIdx = findLastIndex(
+    msgs,
+    (m) => m.role === "assistant" || m.role === "human",
+  );
+  const cutoffIdx = lastAssistantIdx >= 0 ? lastAssistantIdx : -1;
+  const pendingUserMsgs = msgs
+    .slice(cutoffIdx + 1)
+    .filter((m) => m.role === "user");
+
+  if (pendingUserMsgs.length === 0) {
+    // Edge case: el job estaba pendiente pero ya no hay user msgs sin
+    // responder. Marcamos completed y salimos.
+    await supabase
+      .from("agent_jobs")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        error: "Sin mensajes pendientes (probable race con otro worker).",
+      })
+      .eq("id", job.id);
+    return;
+  }
+
+  // Combinar los mensajes pendientes en un solo "userMessage". Si hay
+  // más de uno, los unimos con doble salto de línea para que el agente
+  // los vea como ráfagas de la misma persona.
+  const userMessage = pendingUserMsgs.map((m) => m.content).join("\n\n");
+
+  // Historial = todo lo previo al primer pendiente, limitado a HISTORY_LIMIT.
+  const firstPendingIdx = msgs.findIndex((m) => m.id === pendingUserMsgs[0]?.id);
+  const historyMsgs = msgs.slice(0, firstPendingIdx);
+  const history: HistoryMessage[] = historyMsgs
     .slice(-HISTORY_LIMIT)
     .map((m) => ({ role: m.role as HistoryMessage["role"], content: m.content }));
 
-  // Correr el agente.
+  // userMessageId del trace = el último user message (el que disparó el
+  // último reset del debounce).
+  const triggerMsgId = pendingUserMsgs[pendingUserMsgs.length - 1]?.id ?? job.user_message_id;
+
   const result = await runAgent({
     conversationId: job.conversation_id,
-    userMessageId: job.user_message_id,
-    userMessage: userMsg.content,
+    userMessageId: triggerMsgId,
+    userMessage,
     history,
   });
 
@@ -202,6 +239,44 @@ async function processJob(job: AgentJob): Promise<void> {
   // Entrega externa del canal (no-op en el provider de test).
   await testProvider.sendMessage(job.conversation_id, result.assistantMessage);
 
+  // KOMMO sync: si la conversation es de WhatsApp via Kommo (tiene
+  // kommo_contact_id), seteamos el custom field con la respuesta del
+  // agente y lanzamos el bot mínimo que la envía al lead via WA.
+  if (result.assistantMessage.trim()) {
+    const { data: convInfo } = await supabase
+      .from("conversations")
+      .select("source, kommo_contact_id, kommo_lead_id")
+      .eq("id", job.conversation_id)
+      .maybeSingle();
+    if (
+      convInfo?.source === "whatsapp" &&
+      convInfo.kommo_contact_id &&
+      convInfo.kommo_lead_id
+    ) {
+      try {
+        await setContactTextField({
+          contactId: convInfo.kommo_contact_id,
+          fieldId: KOMMO_CONTACT_FIELD_RESPUESTA_IA,
+          value: result.assistantMessage,
+        });
+        await launchSalesbot({
+          botId: serverEnv().KOMMO_REPLY_BOT_ID,
+          leadId: convInfo.kommo_lead_id,
+        });
+      } catch (err) {
+        if (err instanceof KommoApiError) {
+          console.error(
+            `[jobs/process] Kommo sync fail (contact=${convInfo.kommo_contact_id}, lead=${convInfo.kommo_lead_id}): ${err.status} ${err.body}`,
+          );
+        } else if (err instanceof KommoConfigError) {
+          console.warn("[jobs/process] Kommo no configurado, skip sync");
+        } else {
+          console.error("[jobs/process] error inesperado en Kommo sync:", err);
+        }
+      }
+    }
+  }
+
   // Job terminado. El estado real del agente vive en el trace.
   await supabase
     .from("agent_jobs")
@@ -211,6 +286,15 @@ async function processJob(job: AgentJob): Promise<void> {
       trace_id: result.traceId,
     })
     .eq("id", job.id);
+}
+
+// Polyfill mínimo de findLastIndex para compatibilidad TS strict (Node
+// 22 ya lo tiene, pero `tsconfig` puede no incluir la lib ES2023).
+function findLastIndex<T>(arr: T[], pred: (v: T) => boolean): number {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] !== undefined && pred(arr[i] as T)) return i;
+  }
+  return -1;
 }
 
 /**

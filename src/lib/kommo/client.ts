@@ -276,6 +276,24 @@ export async function setContactTextField(args: {
 }
 
 /**
+ * Devuelve la lista de etiquetas (tags) asociadas a un contacto. Se usa
+ * para el switch IA/Humano: si el contacto tiene una etiqueta especial
+ * (ej. "humano_atiende"), el endpoint deja de procesar mensajes y un
+ * asesor toma manualmente la conversación.
+ *
+ * Kommo devuelve los tags en `_embedded.tags`. Si no hay tags, devolvemos
+ * array vacío.
+ */
+export async function getContactTags(
+  contactId: number,
+): Promise<{ id: number; name: string }[]> {
+  const data = await request<{
+    _embedded?: { tags?: { id: number; name: string }[] };
+  }>(`/contacts/${contactId}?with=tags`);
+  return data._embedded?.tags ?? [];
+}
+
+/**
  * Lanza un Salesbot programáticamente en un lead específico. Esto es lo que
  * usamos para responder al lead: el bot referido es un Salesbot mínimo de
  * 1 step que envía `{{contact.cf_1101964}}` (la respuesta del agente que

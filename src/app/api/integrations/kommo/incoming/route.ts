@@ -1,75 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
-import { runAgent } from "@/lib/agent/run";
 import {
-  KOMMO_PIPELINE_ID,
-  KOMMO_CONTACT_FIELD_RESPUESTA_IA,
-  statusIdForCategory,
-} from "@/lib/kommo/mapping";
-import {
-  updateLeadStatus,
-  setContactTextField,
-  launchSalesbot,
+  getContactTags,
   KommoApiError,
   KommoConfigError,
 } from "@/lib/kommo/client";
-import type { HistoryMessage } from "@/lib/agent/types";
+import { transcribeAudio, TranscriptionError } from "@/lib/transcription";
 
 export const dynamic = "force-dynamic";
-// El agente puede tardar ~5-15s; reservamos 60s de margen. El webhook
-// nativo de Kommo no espera la respuesta para postear nada al lead (eso lo
-// hace el bot que lanzamos al final), así que el timeout solo lo limita
-// Vercel.
-export const maxDuration = 60;
+// El receiver es liviano (parse + encolar). Si llega un audio, también
+// transcribe sincrónicamente con Whisper (~3-5s). Reservamos 30s para no
+// pelearnos con el timeout de Vercel.
+export const maxDuration = 30;
 
 // ===========================================================================
 // POST /api/integrations/kommo/incoming
 //
-// Receptor del webhook NATIVO de Kommo (Centro integraciones → WEB HOOKS),
-// suscripto al evento "Mensaje entrante recibido". Kommo manda el payload
-// como form-urlencoded con claves anidadas estilo PHP:
+// Receptor del webhook NATIVO de Kommo, suscripto a "Mensaje entrante
+// recibido". Hace solo lo liviano:
 //
-//   message[add][0][text]=Hola
-//   message[add][0][entity_id]=28051622   (lead id)
-//   message[add][0][contact_id]=30175914
-//   message[add][0][chat_id]=abc-uuid
-//   message[add][0][talk_id]=13509
-//   message[add][0][type]=incoming
-//   account[id]=33057135
-//   account[subdomain]=infoibathcomar
+//   1. Auth (secret en query string).
+//   2. Parse del body urlencoded estilo Kommo (`message[add][0][*]`).
+//   3. Whitelist por account_id + contact_id.
+//   4. Idempotencia: si ya procesamos este kommo_message_id, skip.
+//   5. Check etiqueta `humano_atiende` del contacto → si la tiene, NO
+//      respondemos (asesor humano atiende).
+//   6. Si es audio, transcribir con Whisper antes de seguir.
+//   7. Insertar mensaje en la DB.
+//   8. Encolar/actualizar agent_job con process_at = now + DEBOUNCE_MS
+//      (debounce: si llega otro mensaje en ese plazo reseteamos el timer
+//      y procesamos todo junto).
+//   9. Auto-trigger del worker via after() + setTimeout para que despache
+//      cuando el timer expira (Vercel Hobby no nos da cron de minutos).
+//   10. Devolver 200 a Kommo.
 //
-// Flujo:
-//   1. Auth: query param `?secret=...` (Kommo nativo no firma HMAC).
-//   2. Parse del body urlencoded + filtrar solo mensajes entrantes.
-//   3. Validar account_id matchea KOMMO_ACCOUNT_ID (anti-spoof básico).
-//   4. Match/alta de conversation por kommo_lead_id.
-//   5. Insertar mensaje del lead, correr `runAgent` síncrono.
-//   6. PATCH contact con cf respuesta_ia = respuesta del agente.
-//   7. POST /api/v2/salesbot/run con KOMMO_REPLY_BOT_ID → bot envía cf al lead.
-//   8. Si hubo escalation, mover lead a etapa correspondiente + nota.
-//
-// Devuelve 200 a Kommo sin esperar nada (Kommo no procesa el response).
+// El runAgent + setContactTextField + launchSalesbot quedan en el WORKER
+// (/api/jobs/process), que procesa el batch acumulado.
 // ===========================================================================
 
-const HISTORY_LIMIT = 10;
-
 export async function POST(req: NextRequest) {
-  // 1. Auth básico por query secret (Kommo nativo no firma webhooks).
   const env = serverEnv();
-  const expectedSecret = env.KOMMO_WEBHOOK_SECRET;
-  if (expectedSecret) {
-    const provided = req.nextUrl.searchParams.get("secret");
-    if (provided !== expectedSecret) {
-      console.warn("[kommo/incoming] rechazado: secret inválido o ausente");
+
+  // 1. Auth.
+  if (env.KOMMO_WEBHOOK_SECRET) {
+    if (req.nextUrl.searchParams.get("secret") !== env.KOMMO_WEBHOOK_SECRET) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
   }
 
-  // 2. Parse del body. Kommo nativo manda form-urlencoded con claves
-  //    anidadas estilo PHP (`message[add][0][text]`). Soportamos también
-  //    JSON por si alguien usa este endpoint manualmente.
+  // 2. Parse body.
   const rawText = await req.text();
   const contentType = req.headers.get("content-type") ?? "";
   const incoming = contentType.includes("application/json")
@@ -77,34 +58,20 @@ export async function POST(req: NextRequest) {
     : parseKommoFormPayload(rawText);
 
   if (!incoming) {
-    console.warn("[kommo/incoming] no se pudo extraer mensaje del body. Body:", rawText.slice(0, 500));
-    // Devolvemos 200 para que Kommo no reintente. Algunos eventos (ej.
-    // mensajes outbound, edits, etc.) llegan a este mismo webhook pero no
-    // los procesamos.
+    console.warn(
+      "[kommo/incoming] sin mensaje en body (probable evento no relevante). Body:",
+      rawText.slice(0, 500),
+    );
     return NextResponse.json({ ok: true, skipped: "no_message" });
   }
 
-  // 3. Validar account_id (defensa contra spoof y contra que apuntemos por
-  //    accidente a este endpoint desde otra cuenta Kommo).
+  // 3. Validar account + whitelist + type=incoming.
   if (incoming.accountId && incoming.accountId !== env.KOMMO_ACCOUNT_ID) {
-    console.warn(
-      `[kommo/incoming] account_id ${incoming.accountId} no matchea ${env.KOMMO_ACCOUNT_ID}`,
-    );
     return NextResponse.json({ error: "Cuenta no autorizada" }, { status: 403 });
   }
-
-  // 4. Filtrar: solo procesamos mensajes ENTRANTES (del lead). Los outbound
-  //    (que mandamos nosotros o los asesores humanos) también disparan
-  //    "Mensaje entrante recibido" en algunas configs.
   if (incoming.type && incoming.type !== "incoming") {
     return NextResponse.json({ ok: true, skipped: `type=${incoming.type}` });
   }
-
-  // 4b. Whitelist por contact_id (modo testing). Cuando ALLOWED_CONTACT_IDS
-  //     está seteada, solo respondemos a los contactos listados ahí. Si está
-  //     vacía o ausente, respondemos a todos (modo prod). Defensa crítica
-  //     mientras validamos: evita que el agente conteste a leads reales del
-  //     cliente sin querer.
   const allowedRaw = env.KOMMO_ALLOWED_CONTACT_IDS;
   if (allowedRaw && allowedRaw.trim()) {
     const allowed = new Set(
@@ -126,9 +93,7 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabaseServerClient();
 
-  // 5. IDEMPOTENCIA: si ya procesamos este message_id de Kommo, devolver 200
-  //    sin hacer nada. Kommo dispara el webhook múltiples veces para el
-  //    mismo mensaje (visto en prod: gap de 4 min entre original y duplicado).
+  // 4. Idempotencia: skip si ya procesamos este kommo_message_id.
   if (incoming.messageId) {
     const { data: existing } = await supabase
       .from("messages")
@@ -136,14 +101,59 @@ export async function POST(req: NextRequest) {
       .eq("kommo_message_id", incoming.messageId)
       .maybeSingle();
     if (existing) {
-      console.log(
-        `[kommo/incoming] duplicate kommo_message_id=${incoming.messageId}, skip`,
-      );
       return NextResponse.json({ ok: true, skipped: "duplicate" });
     }
   }
 
-  // 6. Conversation: matchear por kommo_lead_id o crear.
+  // 5. Tag humana: si el contacto tiene la etiqueta, no procesamos. El
+  //    asesor humano atiende. Volver a IA = sacar la etiqueta manualmente.
+  if (incoming.contactId) {
+    try {
+      const tags = await getContactTags(incoming.contactId);
+      const humanTag = env.KOMMO_HUMAN_TAG_NAME.toLowerCase();
+      const hasHumanTag = tags.some(
+        (t) => t.name?.toLowerCase() === humanTag,
+      );
+      if (hasHumanTag) {
+        // Insertamos el mensaje del lead igual (para que el equipo vea el
+        // historial en el panel), pero NO encolamos job.
+        await insertUserMessage(supabase, {
+          conversationId: await findOrCreateConversation({
+            leadId: incoming.leadId,
+            contactId: incoming.contactId,
+            phone: incoming.authorPhone ?? `kommo_lead_${incoming.leadId}`,
+            displayName: incoming.authorName?.trim() || `Lead ${incoming.leadId}`,
+            mode: "HUMAN",
+          }),
+          content: incoming.text,
+          kommoMessageId: incoming.messageId,
+        });
+        return NextResponse.json({ ok: true, status: "human_mode" });
+      }
+    } catch (err) {
+      // Si Kommo tira error consultando tags, NO bloqueamos el flow:
+      // log warning y procesamos como si no tuviera tag (mejor responder
+      // que dejar al lead sin respuesta).
+      console.warn("[kommo/incoming] error consultando tags:", err);
+    }
+  }
+
+  // 6. Si es audio, transcribir antes de insertar (Whisper ~3-5s).
+  let finalText = incoming.text;
+  if (incoming.audioUrl) {
+    try {
+      finalText = await transcribeAudioFromUrl(incoming.audioUrl);
+      console.log(
+        `[kommo/incoming] audio transcripto (${finalText.length} chars)`,
+      );
+    } catch (err) {
+      console.error("[kommo/incoming] error transcribiendo audio:", err);
+      // Fallback: si la transcripción falla, marcamos como audio sin texto.
+      finalText = "[Audio recibido — no se pudo transcribir]";
+    }
+  }
+
+  // 7. Conversation + mensaje del lead.
   const conversationId = await findOrCreateConversation({
     leadId: incoming.leadId,
     contactId: incoming.contactId ?? null,
@@ -151,153 +161,97 @@ export async function POST(req: NextRequest) {
     displayName: incoming.authorName?.trim() || `Lead ${incoming.leadId}`,
   });
 
-  // 7. Insertar mensaje del lead (con kommo_message_id para idempotencia).
-  const { data: msg, error: msgErr } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: conversationId,
-      role: "user",
-      content: incoming.text,
-      kommo_message_id: incoming.messageId,
-    })
-    .select("id")
-    .single();
-  if (msgErr || !msg) {
-    // Si fue por unique violation (race condition con otro disparo
-    // concurrente del mismo mensaje), lo tratamos como duplicate.
-    if (msgErr?.code === "23505") {
-      console.log(
-        `[kommo/incoming] race condition, kommo_message_id ya existe: ${incoming.messageId}`,
-      );
-      return NextResponse.json({ ok: true, skipped: "duplicate_race" });
-    }
-    console.error("[kommo/incoming] no se pudo insertar mensaje:", msgErr);
-    return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
-  }
-
-  // 7. Si la conversación está en mode=HUMAN, NO corremos el agente. Un
-  //    asesor está atendiendo manualmente; el bot se queda mudo.
+  // Antes de insertar: si la conversation YA está en mode=HUMAN (porque
+  // un asesor la tomó desde el panel ATP, no por etiqueta de Kommo),
+  // tampoco procesamos. Mantenemos el mensaje en el historial pero no
+  // encolamos job.
   const { data: conv } = await supabase
     .from("conversations")
     .select("mode")
     .eq("id", conversationId)
     .maybeSingle();
   if (conv?.mode === "HUMAN") {
-    await supabase
-      .from("conversations")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", conversationId);
-    return NextResponse.json({ ok: true, status: "human_mode" });
-  }
-
-  // 8. Historial (últimos N excluyendo el mensaje recién insertado).
-  const { data: history } = await supabase
-    .from("messages")
-    .select("id, role, content, created_at")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
-  const trimmedHistory: HistoryMessage[] = (history ?? [])
-    .filter((m) => m.id !== msg.id)
-    .slice(-HISTORY_LIMIT)
-    .map((m) => ({
-      role: m.role as HistoryMessage["role"],
-      content: m.content,
-    }));
-
-  // 9. Correr el agente sincrónicamente.
-  const result = await runAgent({
-    conversationId,
-    userMessageId: msg.id,
-    userMessage: incoming.text,
-    history: trimmedHistory,
-  });
-
-  // 10. Persistir la respuesta del agente como mensaje(s) del assistant.
-  const segments = result.assistantMessage
-    .split(/\n\s*---\s*\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  let lastMessageId: string | null = null;
-  for (let i = 0; i < segments.length; i++) {
-    const isLast = i === segments.length - 1;
-    const { data: inserted } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversationId,
-        role: "assistant",
-        content: segments[i] ?? "",
-        trace_id: isLast ? result.traceId : null,
-      })
-      .select("id")
-      .single();
-    if (isLast && inserted) lastMessageId = inserted.id;
-  }
-  if (lastMessageId) {
-    await supabase
-      .from("agent_traces")
-      .update({ assistant_message_id: lastMessageId })
-      .eq("id", result.traceId);
-  }
-
-  // 11. Setear cf_respuesta_ia en el CONTACTO + lanzar el bot que envía
-  //     ese cf al lead via WA Lite. Si alguno falla, log y seguimos (el
-  //     panel queda consistente, solo no llega el mensaje al lead).
-  if (incoming.contactId && result.assistantMessage.trim()) {
-    try {
-      await setContactTextField({
-        contactId: incoming.contactId,
-        fieldId: KOMMO_CONTACT_FIELD_RESPUESTA_IA,
-        value: result.assistantMessage,
-      });
-      await launchSalesbot({
-        botId: env.KOMMO_REPLY_BOT_ID,
-        leadId: incoming.leadId,
-      });
-    } catch (err) {
-      if (err instanceof KommoApiError) {
-        console.error(
-          `[kommo/incoming] error al setear cf o lanzar bot (contact=${incoming.contactId}, lead=${incoming.leadId}): ${err.status} ${err.body}`,
-        );
-      } else if (err instanceof KommoConfigError) {
-        console.warn("[kommo/incoming] Kommo no configurado, skip cf+bot");
-      } else {
-        console.error("[kommo/incoming] error inesperado:", err);
-      }
-    }
-  }
-
-  // 12. Si hubo escalation, mover lead en Kommo + sumar cartel system.
-  if (
-    (result.status === "escalated" || result.status === "failed") &&
-    result.escalationIsNew !== false
-  ) {
-    await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      role: "system",
-      content: `Derivado al equipo: ${humanize(result.escalationReason ?? "Notificación")}`,
-    });
-    await syncEscalationToKommo({
-      leadId: incoming.leadId,
-      category: result.escalationReason ?? null,
+    await insertUserMessage(supabase, {
       conversationId,
+      content: finalText,
+      kommoMessageId: incoming.messageId,
+    });
+    return NextResponse.json({ ok: true, status: "human_mode_panel" });
+  }
+
+  const msg = await insertUserMessage(supabase, {
+    conversationId,
+    content: finalText,
+    kommoMessageId: incoming.messageId,
+  });
+  if (!msg) {
+    return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
+  }
+
+  // 8. Encolar/actualizar agent_job con debounce. Si ya hay un job pending
+  //    para esta conversation, reseteamos process_at (timer del debounce).
+  //    Si no hay, creamos uno nuevo.
+  const debounceMs = env.DEBOUNCE_MS;
+  const processAt = new Date(Date.now() + debounceMs).toISOString();
+
+  const { data: existingJob } = await supabase
+    .from("agent_jobs")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingJob) {
+    await supabase
+      .from("agent_jobs")
+      .update({
+        process_at: processAt,
+        process_after: processAt,
+        user_message_id: msg.id,
+      })
+      .eq("id", existingJob.id);
+  } else {
+    await supabase.from("agent_jobs").insert({
+      conversation_id: conversationId,
+      user_message_id: msg.id,
+      status: "pending",
+      process_at: processAt,
+      process_after: processAt,
+      client_slug: "ibath",
     });
   }
 
-  await supabase
-    .from("conversations")
-    .update({ updated_at: new Date().toISOString() })
-    .eq("id", conversationId);
+  // 9. Auto-trigger del worker: esperamos el debounce y disparamos un fetch
+  //    a /api/jobs/process. `after()` mantiene viva la función serverless
+  //    aunque ya devolvimos 200 al webhook. Si llega otro mensaje en el
+  //    debounce que resetea el timer, este fetch igual va a disparar al
+  //    final, el worker va a ver que el job tiene process_at > now y no
+  //    procesará (claim_agent_jobs solo agarra los listos). Costo extra
+  //    aceptable.
+  after(
+    (async () => {
+      await new Promise((resolve) => setTimeout(resolve, debounceMs + 500));
+      await fetch(`${req.nextUrl.origin}/api/jobs/process`, {
+        method: "POST",
+        headers: { "x-cron-secret": env.CRON_SECRET },
+      }).catch((err) => {
+        console.error("[kommo/incoming] error disparando worker:", err);
+      });
+    })(),
+  );
 
   return NextResponse.json({
     ok: true,
-    status: result.status,
+    status: "queued",
     conversation_id: conversationId,
-    trace_id: result.traceId,
+    process_at: processAt,
   });
 }
 
 // ---------------------------------------------------------------------------
-// Parsers de payload
+// Parsers
 // ---------------------------------------------------------------------------
 
 interface IncomingMessage {
@@ -308,28 +262,38 @@ interface IncomingMessage {
   accountId: number | null;
   authorPhone: string | null;
   authorName: string | null;
-  /** ID único del mensaje en Kommo. Lo usamos para idempotencia. */
   messageId: string | null;
+  /** URL del audio si el mensaje es de voz. null si es texto. */
+  audioUrl: string | null;
 }
 
-/**
- * Parsea el body urlencoded de un webhook nativo de Kommo y extrae el
- * primer mensaje entrante encontrado bajo `message[add][N][*]`. Si no hay
- * mensajes en `add`, devuelve null (puede ser un evento de otro tipo).
- */
 function parseKommoFormPayload(rawText: string): IncomingMessage | null {
   const params = new URLSearchParams(rawText);
-  // Reagrupar claves anidadas tipo `message[add][0][text]` en un objeto
-  // navegable. Solo armamos el primer mensaje (index 0); webhooks de Kommo
-  // típicamente mandan un mensaje por hit, pero permitimos múltiples bajo
-  // el mismo array sin procesarlos para no duplicar agente.
   const msgPrefix = "message[add][0]";
   const get = (suffix: string): string | null =>
     params.get(`${msgPrefix}[${suffix}]`);
 
   const leadIdStr = get("entity_id");
-  const text = get("text");
-  if (!leadIdStr || !text) return null;
+  const text = get("text") ?? "";
+
+  // Detección de audio: el payload de Kommo para mensajes de voz suele
+  // incluir un attachment con type=voice|audio y un link al archivo. La
+  // estructura exacta varía según el canal (WA Business, Telegram, etc).
+  // Probamos varias claves comunes y nos quedamos con la primera URL.
+  const audioUrl =
+    get("attachment[link]") ??
+    get("attachment[url]") ??
+    get("media[link]") ??
+    get("media[url]") ??
+    get("media") ??
+    get("voice[link]") ??
+    null;
+
+  // Sin entity_id no podemos identificar el lead. Si hay audio pero no
+  // texto, esperamos audio y dejamos que se transcriba después.
+  if (!leadIdStr) return null;
+  if (!text && !audioUrl) return null;
+
   const leadId = Number(leadIdStr);
   if (!Number.isFinite(leadId) || leadId <= 0) return null;
 
@@ -349,16 +313,23 @@ function parseKommoFormPayload(rawText: string): IncomingMessage | null {
       get("author[phone]") ?? get("phone") ?? params.get("contact[phone]"),
     authorName: get("author[name]") ?? get("author[full_name]"),
     messageId: get("id"),
+    audioUrl,
   };
 }
 
-/** Variante JSON: para invocación manual o testing con curl. */
 function parseJsonPayload(rawText: string): IncomingMessage | null {
   try {
     const body = JSON.parse(rawText) as Record<string, unknown>;
     const leadId = Number(body.lead_id ?? body.entity_id);
     const text = String(body.message ?? body.text ?? "");
-    if (!Number.isFinite(leadId) || leadId <= 0 || !text) return null;
+    const audioUrl =
+      typeof body.audio_url === "string"
+        ? body.audio_url
+        : typeof body.attachment_url === "string"
+          ? body.attachment_url
+          : null;
+    if (!Number.isFinite(leadId) || leadId <= 0) return null;
+    if (!text && !audioUrl) return null;
     const contactIdRaw = body.contact_id;
     const contactId =
       contactIdRaw != null && Number.isFinite(Number(contactIdRaw))
@@ -373,6 +344,7 @@ function parseJsonPayload(rawText: string): IncomingMessage | null {
       authorPhone: (body.phone as string | undefined) ?? null,
       authorName: (body.contact_name as string | undefined) ?? null,
       messageId: (body.message_id as string | undefined) ?? null,
+      audioUrl,
     };
   } catch {
     return null;
@@ -380,14 +352,67 @@ function parseJsonPayload(rawText: string): IncomingMessage | null {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers de DB y CRM
+// Audio
 // ---------------------------------------------------------------------------
+
+async function transcribeAudioFromUrl(url: string): Promise<string> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) {
+    throw new TranscriptionError(
+      `Descarga de audio falló: HTTP ${res.status} en ${url.slice(0, 100)}`,
+    );
+  }
+  const blob = await res.blob();
+  // Intentamos deducir el filename de la URL; si falla, default ogg
+  // (formato típico de WhatsApp).
+  const urlPath = new URL(url).pathname;
+  const guessExt = urlPath.match(/\.(\w{3,4})(?:$|\?)/)?.[1] ?? "ogg";
+  return transcribeAudio(blob, {
+    language: "es",
+    filename: `voice.${guessExt}`,
+    mimeType: blob.type || `audio/${guessExt}`,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Helpers de DB
+// ---------------------------------------------------------------------------
+
+async function insertUserMessage(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  args: {
+    conversationId: string;
+    content: string;
+    kommoMessageId: string | null;
+  },
+): Promise<{ id: string } | null> {
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: args.conversationId,
+      role: "user",
+      content: args.content,
+      kommo_message_id: args.kommoMessageId,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    if (error.code === "23505") {
+      // race condition con otro disparo del mismo mensaje.
+      return null;
+    }
+    console.error("[kommo/incoming] insertUserMessage error:", error);
+    return null;
+  }
+  return data;
+}
 
 async function findOrCreateConversation(args: {
   leadId: number;
   contactId: number | null;
   phone: string;
   displayName: string;
+  mode?: "AI" | "HUMAN";
 }): Promise<string> {
   const supabase = getSupabaseServerClient();
 
@@ -406,7 +431,7 @@ async function findOrCreateConversation(args: {
       external_id: args.phone,
       kommo_lead_id: args.leadId,
       kommo_contact_id: args.contactId,
-      mode: "AI",
+      mode: args.mode ?? "AI",
       client_slug: "ibath",
     })
     .select("id")
@@ -420,54 +445,9 @@ async function findOrCreateConversation(args: {
   return created.id;
 }
 
-async function syncEscalationToKommo(args: {
-  leadId: number;
-  category: string | null;
-  conversationId: string;
-}): Promise<void> {
-  try {
-    const statusId = statusIdForCategory(args.category);
-    const noteText = buildKommoNote({
-      category: args.category,
-      conversationId: args.conversationId,
-    });
-    await updateLeadStatus({
-      leadId: args.leadId,
-      pipelineId: KOMMO_PIPELINE_ID,
-      statusId,
-      noteText,
-    });
-  } catch (err) {
-    if (err instanceof KommoConfigError) {
-      console.warn(`[kommo/incoming] Kommo no configurado; skip sync para lead ${args.leadId}`);
-      return;
-    }
-    if (err instanceof KommoApiError) {
-      console.error(
-        `[kommo/incoming] Kommo respondió ${err.status} al mover lead ${args.leadId}:`,
-        err.body,
-      );
-      return;
-    }
-    console.error("[kommo/incoming] error inesperado al sync con Kommo:", err);
-  }
-}
-
-function buildKommoNote(args: {
-  category: string | null;
-  conversationId: string;
-}): string {
-  const cat = args.category ? humanize(args.category) : "Notificación";
-  const panelUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://atp-ibath.vercel.app";
-  return [
-    `Lead derivado automaticamente por el agente IA.`,
-    `Categoria: ${cat}`,
-    `Ver conversacion: ${panelUrl}/conversations/${args.conversationId}`,
-  ].join("\n");
-}
-
-function humanize(category: string): string {
-  return category
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+// Re-export para que el sistema sepa que estos tipos se usan (silencia
+// warnings de lint en algunas configs estrictas).
+export type { IncomingMessage };
+// suppress unused imports
+void KommoApiError;
+void KommoConfigError;

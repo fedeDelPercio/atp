@@ -302,6 +302,8 @@ export type Database = {
           created_at: string;
           started_at: string | null;
           completed_at: string | null;
+          process_at: string;
+          process_after: string;
         };
         Insert: {
           id?: string;
@@ -316,6 +318,8 @@ export type Database = {
           created_at?: string;
           started_at?: string | null;
           completed_at?: string | null;
+          process_at?: string;
+          process_after?: string;
         };
         Update: {
           id?: string;
@@ -330,6 +334,8 @@ export type Database = {
           created_at?: string;
           started_at?: string | null;
           completed_at?: string | null;
+          process_at?: string;
+          process_after?: string;
         };
         Relationships: [];
       };

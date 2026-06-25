@@ -107,6 +107,16 @@ const serverSchema = z.object({
   // ponemos los contact_ids del equipo aquí para no responderle a leads
   // reales accidentalmente.
   KOMMO_ALLOWED_CONTACT_IDS: z.string().optional(),
+  // Nombre de la etiqueta del contacto que silencia al agente. Cuando un
+  // contacto tiene esta tag, el endpoint deja de procesar mensajes (el
+  // asesor humano toma manualmente). Volver a IA = quitar la tag.
+  KOMMO_HUMAN_TAG_NAME: z.string().default("humano_atiende"),
+  // Debounce: cuanto tiempo esperamos despues del ultimo mensaje del lead
+  // antes de despachar al agente. Si llega otro mensaje antes del timer,
+  // reseteamos. Permite al lead mandar varios mensajes seguidos (texto +
+  // audio + texto) y que el agente los procese todos juntos como un solo
+  // turno. Default: 60s en prod, 20s para testing. Configurable via env.
+  DEBOUNCE_MS: z.coerce.number().int().nonnegative().default(60000),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -139,6 +149,8 @@ export function serverEnv(): ServerEnv {
     KOMMO_REPLY_BOT_ID: process.env.KOMMO_REPLY_BOT_ID,
     KOMMO_ACCOUNT_ID: process.env.KOMMO_ACCOUNT_ID,
     KOMMO_ALLOWED_CONTACT_IDS: process.env.KOMMO_ALLOWED_CONTACT_IDS,
+    KOMMO_HUMAN_TAG_NAME: process.env.KOMMO_HUMAN_TAG_NAME,
+    DEBOUNCE_MS: process.env.DEBOUNCE_MS,
   });
   if (!parsed.success) {
     throw new Error(

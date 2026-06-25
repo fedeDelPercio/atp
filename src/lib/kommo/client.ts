@@ -262,15 +262,30 @@ export async function setContactTextField(args: {
   fieldId: number;
   value: string;
 }): Promise<void> {
+  await setContactTextFields({
+    contactId: args.contactId,
+    fields: [{ fieldId: args.fieldId, value: args.value }],
+  });
+}
+
+/**
+ * Setea varios custom fields del contacto en un solo PATCH (atomico).
+ * Lo usamos para escribir los 3 fields de "respuesta_ia" cuando el agente
+ * devuelve la respuesta partida en burbujas: si solo hay 1, los otros 2
+ * van como cadena vacia para limpiar restos del turno anterior y que el
+ * condicional del bot no dispare burbujas fantasma.
+ */
+export async function setContactTextFields(args: {
+  contactId: number;
+  fields: { fieldId: number; value: string }[];
+}): Promise<void> {
   await request<unknown>(`/contacts/${args.contactId}`, {
     method: "PATCH",
     body: JSON.stringify({
-      custom_fields_values: [
-        {
-          field_id: args.fieldId,
-          values: [{ value: args.value }],
-        },
-      ],
+      custom_fields_values: args.fields.map((f) => ({
+        field_id: f.fieldId,
+        values: [{ value: f.value }],
+      })),
     }),
   });
 }

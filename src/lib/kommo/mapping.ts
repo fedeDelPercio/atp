@@ -37,12 +37,15 @@ export function statusIdForCategory(category: string | null | undefined): number
 }
 
 /**
- * Custom field del contacto donde guardamos la última respuesta del agente.
- * El Salesbot lo lee como `{{contact.cf_1101964}}` y lo envía al lead via
- * WA Lite. Es el workaround necesario porque la integración privada no
- * tiene scope `chats` para mandar mensajes via Chats API directamente.
+ * Custom fields del contacto donde guardamos la respuesta del agente
+ * partida en hasta 3 burbujas. El Salesbot tiene 3 steps Mensaje en
+ * serie: el primero envía cf_1101964 sin condición, el 2do y 3ro tienen
+ * condicional "field no vacío" para no disparar burbujas fantasma.
  *
- * Tipo del field: textarea (>256 chars). El field corto (1101962) está
- * deprecado por límite de 256.
+ * Cada turno seteamos los 3 fields (los segmentos faltantes con cadena
+ * vacía) para limpiar restos del turno anterior.
+ *
+ * Tipo de los fields: textarea (>256 chars). El field corto (1101962)
+ * está deprecado por límite de 256.
  */
-export const KOMMO_CONTACT_FIELD_RESPUESTA_IA = 1101964;
+export const KOMMO_CONTACT_FIELDS_RESPUESTA_IA = [1101964, 1101978, 1101980] as const;

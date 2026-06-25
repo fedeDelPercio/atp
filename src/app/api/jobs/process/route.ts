@@ -4,12 +4,12 @@ import { serverEnv } from "@/lib/env";
 import { runAgent } from "@/lib/agent/run";
 import { testProvider } from "@/lib/providers/test-provider";
 import {
-  setContactTextField,
+  setContactTextFields,
   launchSalesbot,
   KommoApiError,
   KommoConfigError,
 } from "@/lib/kommo/client";
-import { KOMMO_CONTACT_FIELD_RESPUESTA_IA } from "@/lib/kommo/mapping";
+import { KOMMO_CONTACT_FIELDS_RESPUESTA_IA } from "@/lib/kommo/mapping";
 import type { HistoryMessage } from "@/lib/agent/types";
 import type { AgentJob } from "@/lib/supabase/types";
 
@@ -240,8 +240,12 @@ async function processJob(job: AgentJob): Promise<void> {
   await testProvider.sendMessage(job.conversation_id, result.assistantMessage);
 
   // KOMMO sync: si la conversation es de WhatsApp via Kommo (tiene
-  // kommo_contact_id), seteamos el custom field con la respuesta del
-  // agente y lanzamos el bot mínimo que la envía al lead via WA.
+  // kommo_contact_id), seteamos los custom fields con la respuesta del
+  // agente partida en hasta 3 burbujas y lanzamos el bot, que tiene 3
+  // steps Mensaje con condicional "field no vacío" para el 2do y 3ro.
+  // Los fields no usados van como "" para limpiar restos del turno
+  // anterior (sin esto, una respuesta vieja de 3 burbujas seguida de
+  // una de 1 dispararía burbujas fantasma).
   if (result.assistantMessage.trim()) {
     const { data: convInfo } = await supabase
       .from("conversations")
@@ -254,10 +258,15 @@ async function processJob(job: AgentJob): Promise<void> {
       convInfo.kommo_lead_id
     ) {
       try {
-        await setContactTextField({
+        const fields = KOMMO_CONTACT_FIELDS_RESPUESTA_IA.map(
+          (fieldId, idx) => ({
+            fieldId,
+            value: segments[idx] ?? "",
+          }),
+        );
+        await setContactTextFields({
           contactId: convInfo.kommo_contact_id,
-          fieldId: KOMMO_CONTACT_FIELD_RESPUESTA_IA,
-          value: result.assistantMessage,
+          fields,
         });
         await launchSalesbot({
           botId: serverEnv().KOMMO_REPLY_BOT_ID,

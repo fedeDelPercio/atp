@@ -58,10 +58,24 @@ export async function POST(req: NextRequest) {
     : parseKommoFormPayload(rawText);
 
   if (!incoming) {
-    console.warn(
-      "[kommo/incoming] sin mensaje en body (probable evento no relevante). Body:",
-      rawText.slice(0, 500),
+    // Si el rawText menciona "audio", "voice", "media" o "attachment" pero
+    // nuestro parser no lo entendió, es muy probable que sea un audio
+    // entrante cuyo shape no contempla nuestro parser. Logueamos el body
+    // completo (truncado a 2000 chars) para diagnosticar.
+    const isProbablyMedia = /audio|voice|media|attachment|file_link/i.test(
+      rawText,
     );
+    if (isProbablyMedia) {
+      console.warn(
+        "[kommo/incoming] POSIBLE AUDIO no parseado, dump del body completo:",
+        rawText.slice(0, 2000),
+      );
+    } else {
+      console.warn(
+        "[kommo/incoming] sin mensaje en body (probable evento no relevante). Body:",
+        rawText.slice(0, 500),
+      );
+    }
     return NextResponse.json({ ok: true, skipped: "no_message" });
   }
 

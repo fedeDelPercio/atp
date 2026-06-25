@@ -294,6 +294,20 @@ export async function getContactTags(
 }
 
 /**
+ * Idéntico a `getContactTags` pero para un lead. La UI de Kommo invita a
+ * etiquetar el lead (zona visible en el kanban), así que el check de
+ * "humano_atiende" en el receiver mira ambos lugares.
+ */
+export async function getLeadTags(
+  leadId: number,
+): Promise<{ id: number; name: string }[]> {
+  const data = await request<{
+    _embedded?: { tags?: { id: number; name: string }[] };
+  }>(`/leads/${leadId}?with=tags`);
+  return data._embedded?.tags ?? [];
+}
+
+/**
  * Lanza un Salesbot programáticamente en un lead específico. Esto es lo que
  * usamos para responder al lead: el bot referido es un Salesbot mínimo de
  * 1 step que envía `{{contact.cf_1101964}}` (la respuesta del agente que

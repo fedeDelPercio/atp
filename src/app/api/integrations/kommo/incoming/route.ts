@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import {
   getContactTags,
+  getLeadTags,
   KommoApiError,
   KommoConfigError,
 } from "@/lib/kommo/client";
@@ -101,37 +102,42 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 5. Tag humana: si el contacto tiene la etiqueta, no procesamos. El
-  //    asesor humano atiende. Volver a IA = sacar la etiqueta manualmente.
-  if (incoming.contactId) {
-    try {
-      const tags = await getContactTags(incoming.contactId);
-      const humanTag = env.KOMMO_HUMAN_TAG_NAME.toLowerCase();
-      const hasHumanTag = tags.some(
-        (t) => t.name?.toLowerCase() === humanTag,
-      );
-      if (hasHumanTag) {
-        // Insertamos el mensaje del lead igual (para que el equipo vea el
-        // historial en el panel), pero NO encolamos job.
-        await insertUserMessage(supabase, {
-          conversationId: await findOrCreateConversation({
-            leadId: incoming.leadId,
-            contactId: incoming.contactId,
-            phone: incoming.authorPhone ?? `kommo_lead_${incoming.leadId}`,
-            displayName: incoming.authorName?.trim() || `Lead ${incoming.leadId}`,
-            mode: "HUMAN",
-          }),
-          content: incoming.text,
-          kommoMessageId: incoming.messageId,
-        });
-        return NextResponse.json({ ok: true, status: "human_mode" });
-      }
-    } catch (err) {
-      // Si Kommo tira error consultando tags, NO bloqueamos el flow:
-      // log warning y procesamos como si no tuviera tag (mejor responder
-      // que dejar al lead sin respuesta).
-      console.warn("[kommo/incoming] error consultando tags:", err);
+  // 5. Tag humana: si el contacto o el lead tienen la etiqueta, no
+  //    procesamos. El asesor humano atiende. Volver a IA = sacar la
+  //    etiqueta. Chequeamos ambos lugares porque la UI de Kommo invita a
+  //    aplicar la tag en el lead (visible en kanban) más que en el contacto.
+  try {
+    const humanTag = env.KOMMO_HUMAN_TAG_NAME.toLowerCase();
+    const [contactTags, leadTags] = await Promise.all([
+      incoming.contactId
+        ? getContactTags(incoming.contactId).catch(() => [])
+        : Promise.resolve([]),
+      getLeadTags(incoming.leadId).catch(() => []),
+    ]);
+    const hasHumanTag = [...contactTags, ...leadTags].some(
+      (t) => t.name?.toLowerCase() === humanTag,
+    );
+    if (hasHumanTag) {
+      // Insertamos el mensaje del lead igual (para que el equipo vea el
+      // historial en el panel), pero NO encolamos job.
+      await insertUserMessage(supabase, {
+        conversationId: await findOrCreateConversation({
+          leadId: incoming.leadId,
+          contactId: incoming.contactId,
+          phone: incoming.authorPhone ?? `kommo_lead_${incoming.leadId}`,
+          displayName: incoming.authorName?.trim() || `Lead ${incoming.leadId}`,
+          mode: "HUMAN",
+        }),
+        content: incoming.text,
+        kommoMessageId: incoming.messageId,
+      });
+      return NextResponse.json({ ok: true, status: "human_mode" });
     }
+  } catch (err) {
+    // Si Kommo tira error consultando tags, NO bloqueamos el flow:
+    // log warning y procesamos como si no tuviera tag (mejor responder
+    // que dejar al lead sin respuesta).
+    console.warn("[kommo/incoming] error consultando tags:", err);
   }
 
   // 6. Si es audio, transcribir antes de insertar (Whisper ~3-5s).

@@ -117,6 +117,13 @@ const serverSchema = z.object({
   // audio + texto) y que el agente los procese todos juntos como un solo
   // turno. Default: 60s en prod, 20s para testing. Configurable via env.
   DEBOUNCE_MS: z.coerce.number().int().nonnegative().default(60000),
+  // Gmail SMTP para notificar al equipo via mail cuando el agente deriva.
+  // Requiere 2FA + App Password generado en myaccount.google.com/apppasswords.
+  // Si falta alguna de las tres, el envio se skipea con warning (no bloquea
+  // el flujo del agente: la derivacion queda en la DB y el panel igual).
+  GMAIL_USER: z.string().email().optional(),
+  GMAIL_APP_PASSWORD: z.string().optional(),
+  ESCALATION_EMAIL_TO: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -151,6 +158,9 @@ export function serverEnv(): ServerEnv {
     KOMMO_ALLOWED_CONTACT_IDS: process.env.KOMMO_ALLOWED_CONTACT_IDS,
     KOMMO_HUMAN_TAG_NAME: process.env.KOMMO_HUMAN_TAG_NAME,
     DEBOUNCE_MS: process.env.DEBOUNCE_MS,
+    GMAIL_USER: process.env.GMAIL_USER,
+    GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
+    ESCALATION_EMAIL_TO: process.env.ESCALATION_EMAIL_TO,
   });
   if (!parsed.success) {
     throw new Error(

@@ -3,6 +3,7 @@ import "server-only";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { dispatchEvent } from "@/lib/webhooks/dispatcher";
+import { sendEscalationEmail } from "@/lib/email";
 import { runOrchestrator } from "./orchestrator";
 import { evaluateResponse } from "./evaluator";
 import { getTimeContext } from "./business-hours";
@@ -176,6 +177,16 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         traceId,
         error: reason,
       });
+      if (escalationIsNew) {
+        await sendEscalationEmailForConv({
+          conversationId: input.conversationId,
+          category: "falla_tecnica",
+          reason,
+          summary:
+            `El agente no pudo procesar el mensaje del cliente ("${input.userMessage}") ` +
+            `por un error tecnico: ${reason}. Requiere respuesta manual de un asesor.`,
+        });
+      }
       // assistantMessage vacío: el worker no inserta ninguna burbuja para el
       // cliente. escalationReason = la categoría (no el error crudo) para que
       // el cartel del panel diga "Falla técnica" y no filtre el detalle.
@@ -219,6 +230,18 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
         reason: orch.notification.reason,
         summary: orch.notification.summary,
       });
+      // Mail al equipo: SOLO si la derivacion es nueva (recordNotification
+      // hace dedupe por categoria/conversacion). Sin esto, si el agente
+      // sigue charlando tras derivar y vuelve a notify_team la misma
+      // categoria, mandariamos mail duplicado.
+      if (escalationIsNew) {
+        await sendEscalationEmailForConv({
+          conversationId: input.conversationId,
+          category,
+          reason: orch.notification.reason,
+          summary: orch.notification.summary,
+        });
+      }
       // Derivación: si el orquestador generó un texto junto con el
       // notify_team (caso típico: cierre de servicio técnico con el
       // teléfono, o cierre de interes_compra anunciando que Santino
@@ -350,6 +373,14 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     category,
     reason: "max_iterations_sin_respuesta_validada_critica",
   });
+  if (escalationIsNew) {
+    await sendEscalationEmailForConv({
+      conversationId: input.conversationId,
+      category,
+      reason,
+      summary,
+    });
+  }
   return {
     traceId,
     assistantMessage: handoffFallbackNotice(timeContext.followUpTiming),
@@ -401,6 +432,39 @@ function isCriticalRejectByEvaluator(evaluation: {
 }
 
 // --- helpers ---------------------------------------------------------------
+
+/**
+ * Wrapper de sendEscalationEmail que enriquece el payload con datos de la
+ * conversation (nombre del lead, kommo_lead_id para el link) consultando
+ * Supabase. Catch global: si el lookup o el SMTP fallan, log y seguimos.
+ */
+async function sendEscalationEmailForConv(args: {
+  conversationId: string;
+  category: string;
+  reason: string | null;
+  summary: string | null;
+}): Promise<void> {
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("display_name, kommo_lead_id")
+      .eq("id", args.conversationId)
+      .maybeSingle();
+    await sendEscalationEmail({
+      category: args.category,
+      reason: args.reason,
+      summary: args.summary,
+      conversationId: args.conversationId,
+      leadDisplayName: conv?.display_name ?? null,
+      kommoLeadId: conv?.kommo_lead_id ?? null,
+      appUrl:
+        process.env.NEXT_PUBLIC_APP_URL ?? "https://atp-ibath.vercel.app",
+    });
+  } catch (err) {
+    console.error("[run] error enviando mail de derivacion:", err);
+  }
+}
 
 /**
  * Registra una notificación al equipo de ventas. Devuelve `true` si insertó

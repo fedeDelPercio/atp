@@ -291,6 +291,39 @@ export async function setContactTextFields(args: {
 }
 
 /**
+ * Trae un contacto por id, incluyendo custom_fields_values donde vive
+ * el telefono (field_code = "PHONE"). Lo usa el mail de derivacion para
+ * mostrar el numero del lead — el webhook nativo de Kommo no lo manda
+ * en el payload del mensaje, asi que toca pedirlo.
+ */
+export async function getContact(
+  contactId: number,
+): Promise<KommoContact | null> {
+  try {
+    return await request<KommoContact>(`/contacts/${contactId}`);
+  } catch (err) {
+    if (err instanceof KommoApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
+ * Extrae el primer telefono del contacto desde custom_fields_values.
+ * Devuelve null si no hay campo PHONE o esta vacio.
+ */
+export function getContactPhone(contact: KommoContact | null): string | null {
+  if (!contact) return null;
+  const fields = contact.custom_fields_values ?? [];
+  for (const f of fields) {
+    if (f.field_code !== "PHONE") continue;
+    for (const v of f.values) {
+      if (v.value?.trim()) return v.value.trim();
+    }
+  }
+  return null;
+}
+
+/**
  * Devuelve la lista de etiquetas (tags) asociadas a un contacto. Se usa
  * para el switch IA/Humano: si el contacto tiene una etiqueta especial
  * (ej. "humano_atiende"), el endpoint deja de procesar mensajes y un

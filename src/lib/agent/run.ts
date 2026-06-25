@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { dispatchEvent } from "@/lib/webhooks/dispatcher";
 import { sendEscalationEmail } from "@/lib/email";
+import { getContact, getContactPhone } from "@/lib/kommo/client";
 import { runOrchestrator } from "./orchestrator";
 import { evaluateResponse } from "./evaluator";
 import { getTimeContext } from "./business-hours";
@@ -448,15 +449,28 @@ async function sendEscalationEmailForConv(args: {
     const supabase = getSupabaseServerClient();
     const { data: conv } = await supabase
       .from("conversations")
-      .select("display_name, kommo_lead_id")
+      .select("display_name, kommo_lead_id, kommo_contact_id")
       .eq("id", args.conversationId)
       .maybeSingle();
+    // Lookup del telefono en Kommo. El webhook nativo no manda
+    // author[phone], asi que toca pedirlo. Best-effort: si falla, mail
+    // sale sin telefono igual.
+    let leadPhone: string | null = null;
+    if (conv?.kommo_contact_id) {
+      try {
+        const contact = await getContact(conv.kommo_contact_id);
+        leadPhone = getContactPhone(contact);
+      } catch (err) {
+        console.warn("[run] no se pudo traer telefono del contacto:", err);
+      }
+    }
     await sendEscalationEmail({
       category: args.category,
       reason: args.reason,
       summary: args.summary,
       conversationId: args.conversationId,
       leadDisplayName: conv?.display_name ?? null,
+      leadPhone,
       kommoLeadId: conv?.kommo_lead_id ?? null,
       appUrl:
         process.env.NEXT_PUBLIC_APP_URL ?? "https://atp-ibath.vercel.app",

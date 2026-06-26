@@ -11,10 +11,12 @@ import {
 import { transcribeAudio, TranscriptionError } from "@/lib/transcription";
 
 export const dynamic = "force-dynamic";
-// El receiver es liviano (parse + encolar). Si llega un audio, también
-// transcribe sincrónicamente con Whisper (~3-5s). Reservamos 30s para no
-// pelearnos con el timeout de Vercel.
-export const maxDuration = 30;
+// El receiver es liviano (parse + encolar + transcribir si hay audio).
+// El maxDuration alto es para que el after() pueda esperar el debounce
+// (DEBOUNCE_MS + 500ms) antes de disparar el worker. Con plan Vercel
+// Pro podemos llegar hasta 800s; reservamos 65s para que un debounce
+// de hasta 60s entre dentro del limite con margen.
+export const maxDuration = 65;
 
 // ===========================================================================
 // POST /api/integrations/kommo/incoming

@@ -3,12 +3,15 @@
   "crons": [
     {
       "path": "/api/jobs/process",
-      "schedule": "0 9 * * *"
+      "schedule": "* * * * *"
     }
   ],
   "functions": {
     "src/app/api/jobs/process/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/integrations/kommo/incoming/route.ts": {
+      "maxDuration": 65
     }
   }
 }

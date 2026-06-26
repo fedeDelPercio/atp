@@ -90,40 +90,39 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
-    name: "Precio general: franja + descuento sin atribuirlo al Ceibo",
+    name: "Precio general: franja sin mencionar descuento (decisión del equipo 2026-06-26)",
     now: VIERNES_MANANA,
     turns: [
       { user: "hola" },
       {
         user: "qué precios manejan?",
         expect: {
-          // Para precio general el speech "uno de nuestros modelos tiene
-          // descuento" (sin nombrarlo) es correcto. Verificamos el techo de la
-          // franja ($2.300.000, consistente en la KB) y que no derive. OJO: el
-          // piso oscila entre $1.200.000 y $1.990.000 por una inconsistencia
-          // en la KB (la frase canónica dice 1.200.000 pero el Ombú vale
-          // 1.990.000); por eso no lo asertamos hasta resolver el dato.
           doesNotNotify: true,
           contains: ["$2.300.000"],
+          custom: (out) => {
+            // Equipo de iBath decidió que el agente NUNCA menciona
+            // descuentos/promos (se cierran con Santino en la llamada).
+            if (/(descuento|promoci[oó]n|promo|rebaja|oferta especial)/i.test(out.responseText))
+              return "menciona descuento/promo (el equipo decidió que no lo haga)";
+            return null;
+          },
         },
       },
     ],
   },
 
   {
-    name: "Descuento solo Ombú: preguntan Ceibo, no inventa descuento",
+    name: "Precio modelo concreto: no menciona descuento",
     now: VIERNES_MANANA,
     turns: [
       { user: "hola" },
       {
-        user: "cuánto sale el Ceibo?",
+        user: "cuánto sale el Ombú?",
         expect: {
           doesNotNotify: true,
           custom: (out) => {
-            // Bug: atribuir descuento al Ceibo. Si habla de descuento, debe
-            // aclarar que es del Ombú (no del Ceibo).
-            if (/descuento/i.test(out.responseText) && !/omb[úu]/i.test(out.responseText))
-              return "atribuye descuento al Ceibo (solo el Ombú tiene)";
+            if (/(descuento|promoci[oó]n|promo|rebaja|oferta especial)/i.test(out.responseText))
+              return "menciona descuento/promo al pasar precio del Ombú";
             return null;
           },
         },
@@ -499,47 +498,29 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
-    name: "Descuento Ombú: usa 'vigente' y NUNCA 'según cada caso'",
-    // Bug visto en feedback (Guille, anotado por Manuel): la IA decía
-    // "El descuento exacto lo maneja nuestro asesor según cada caso, pero
-    // está vigente ahora en el Ombú". A Guille no le gustó "según cada
-    // caso" — debería decir "el descuento vigente a la fecha".
-    //
-    // Chequeamos dos turnos:
-    // - Primer turno: cuando aparece el descuento por primera vez, debe
-    //   usar "vigente" o "activo".
-    // - Segundo turno (repregunta): el wording oficial ya está implícito;
-    //   sólo nos importa que NO use "según cada caso" / similares.
+    name: "Pregunta directa por descuentos: deriva a Santino sin afirmar que existe uno",
+    // Decisión del equipo (2026-06-26): el agente NO menciona descuentos
+    // ni promos en absoluto. Las condiciones especiales las cierra Santino
+    // directo con el cliente. Si el cliente pregunta explícitamente, el
+    // agente responde neutral (ni afirma ni niega) y deriva.
     now: VIERNES_MANANA,
     turns: [
       { user: "hola, quiero info" },
       { user: "para mi casa" },
       {
-        user: "cuanto sale el ombu?",
+        user: "tienen algún descuento o promo?",
         expect: {
           custom: (out) => {
-            const lower = out.responseText.toLowerCase();
-            if (!/descuento/.test(lower)) return null; // si no menciona, ok
-            if (!/(vigente|activ)/.test(lower))
-              return "menciona descuento sin 'vigente' / 'activo' (wording oficial pedido por el equipo)";
-            if (/(seg[uú]n cada caso|seg[uú]n el caso|depende del caso|vemos si aplica)/i.test(out.responseText)) {
-              return "usa wording bloqueado ('según cada caso' / similar)";
+            // No debe afirmar que hay un descuento vigente.
+            if (/(descuento vigente|promoci[oó]n vigente|descuento activo|tenemos un descuento|hay un descuento)/i.test(out.responseText)) {
+              return "afirma que existe un descuento vigente (debe responder neutral derivando a Santino)";
+            }
+            // Debe nombrar a Santino para derivar la consulta.
+            if (!/santino/i.test(out.responseText)) {
+              return "no deriva la consulta a Santino";
             }
             return null;
           },
-        },
-      },
-      {
-        user: "el descuento de que se trata?",
-        expect: {
-          notContains: [
-            "según cada caso",
-            "segun cada caso",
-            "según el caso",
-            "segun el caso",
-            "depende del caso",
-            "vemos si aplica",
-          ],
         },
       },
     ],

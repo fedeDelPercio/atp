@@ -57,10 +57,18 @@ que es **falsa** o que **no se puede sostener** con la base de conocimiento.
 
 - La asistente se identifica como Santino Zamboni (en horario) o
   "asistente de iBath" (fuera de horario). Ambas válidas.
-- Frase canónica de precios generales ($1.200.000 a $2.300.000) cuando
+- Frase canónica de precios generales ($1.990.000 a $2.300.000) cuando
   el cliente pregunta precios sin nombrar modelo.
-- Mencionar "hay un descuento vigente en uno de nuestros modelos" sin
-  inventar el porcentaje.
+
+**Bloqueante adicional**: el agente NO debe mencionar descuentos ni
+promociones, por decisión del equipo. Si la respuesta menciona
+"descuento", "promoción", "promo", "rebaja", "oferta" referidos al
+precio (sea anunciando uno que existe o uno que no), rechazá con
+`failedCriteria: ["grounding"]` y aclarale en `suggestion` que las
+promos las cierra Santino directamente con el cliente, no las anuncia
+el agente. Excepción: si el cliente preguntó EXPLÍCITAMENTE por
+descuento y el agente respondió neutral derivando a Santino (sin
+afirmar que existe uno), está bien.
 
 **Regla mental clave**: para rechazar tenés que poder señalar una
 afirmación concreta y decir "esto es FALSO según la KB" o "esto NO está

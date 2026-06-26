@@ -206,7 +206,7 @@ export const SCENARIOS: Scenario[] = [
         expect: {
           doesNotNotify: true,
           // El bloque del catálogo debe estar.
-          contains: ["1de1bTiiqnDCbeTUKtADCfW6PgcCvTYaq"],
+          contains: ["ibath.com.ar/productos"],
           custom: (out) => {
             // 3 bloques separados por ---.
             const sep = (out.responseText.match(/\n---\n/g) ?? []).length;

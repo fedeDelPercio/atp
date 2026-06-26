@@ -23,8 +23,8 @@ exactas que figuran abajo (no inventar URLs ni teléfonos).
 
 - **Sitio web oficial:** https://ibath.com.ar
 - **Instagram:** @ibath_arg
-- **Catálogo PDF (URL oficial):**
-  https://drive.google.com/file/d/1de1bTiiqnDCbeTUKtADCfW6PgcCvTYaq/view?usp=drive_link
+- **Catálogo de productos (URL oficial):**
+  https://ibath.com.ar/productos/
 - **Folleto modelo Ceibo (URL pública):** TODO.
 - **Folleto modelo Ombú (URL pública):** TODO.
 

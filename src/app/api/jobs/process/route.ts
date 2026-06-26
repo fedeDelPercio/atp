@@ -62,6 +62,12 @@ function isAuthorized(req: NextRequest): boolean {
   );
 }
 
+// El cron de Vercel dispara con GET (no soporta POST). Aceptamos ambos
+// y delegamos al mismo handler. El auto-trigger del receiver usa POST.
+export async function GET(req: NextRequest) {
+  return POST(req);
+}
+
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -261,9 +267,7 @@ async function processJob(job: AgentJob): Promise<void> {
         const fields = KOMMO_CONTACT_FIELDS_RESPUESTA_IA.map(
           (fieldId, idx) => ({
             fieldId,
-            // null = borrar el field (Kommo trata `""` y NULL distinto en
-            // los condicionales del bot; NULL es el unico "vacio" canonico).
-            value: segments[idx] ?? null,
+            value: segments[idx] ?? "",
           }),
         );
         await setContactTextFields({

@@ -272,19 +272,26 @@ export async function setContactTextField(args: {
  * Setea varios custom fields del contacto en un solo PATCH (atomico).
  * Lo usamos para escribir los 3 fields de "respuesta_ia" cuando el agente
  * devuelve la respuesta partida en burbujas: si solo hay 1, los otros 2
- * van como cadena vacia para limpiar restos del turno anterior y que el
- * condicional del bot no dispare burbujas fantasma.
+ * van con `value: null` para limpiar el valor del turno anterior y que el
+ * operador "No igual a Vacio" del bot no dispare burbujas fantasma.
+ *
+ * Kommo trata el "vacio" como NULL, no como string vacio: pasar `""`
+ * deja el field con un string de longitud 0 que algunas versiones de
+ * Kommo NO consideran "vacio". Usar `null` es la forma canonica de
+ * limpiar el field.
  */
 export async function setContactTextFields(args: {
   contactId: number;
-  fields: { fieldId: number; value: string }[];
+  fields: { fieldId: number; value: string | null }[];
 }): Promise<void> {
   await request<unknown>(`/contacts/${args.contactId}`, {
     method: "PATCH",
     body: JSON.stringify({
       custom_fields_values: args.fields.map((f) => ({
         field_id: f.fieldId,
-        values: [{ value: f.value }],
+        // Array vacio = borrar el field. Es lo unico que Kommo trata como
+        // "vacio" sin ambiguedad en el operador de los condicionales.
+        values: f.value === null || f.value === "" ? [] : [{ value: f.value }],
       })),
     }),
   });

@@ -261,7 +261,9 @@ async function processJob(job: AgentJob): Promise<void> {
         const fields = KOMMO_CONTACT_FIELDS_RESPUESTA_IA.map(
           (fieldId, idx) => ({
             fieldId,
-            value: segments[idx] ?? "",
+            // null = borrar el field (Kommo trata `""` y NULL distinto en
+            // los condicionales del bot; NULL es el unico "vacio" canonico).
+            value: segments[idx] ?? null,
           }),
         );
         await setContactTextFields({

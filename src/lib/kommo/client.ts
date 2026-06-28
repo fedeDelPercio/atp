@@ -124,6 +124,9 @@ export async function getAccount(): Promise<KommoAccount> {
 export interface KommoContact {
   id: number;
   name: string;
+  /** Epoch en segundos. Se usa para decidir si el contacto es "nuevo"
+   *  (creado por el mensaje actual) o "pre-existente". */
+  created_at?: number;
   custom_fields_values:
     | { field_code?: string; field_name?: string; values: { value: string }[] }[]
     | null;

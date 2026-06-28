@@ -124,6 +124,20 @@ const serverSchema = z.object({
   GMAIL_USER: z.string().email().optional(),
   GMAIL_APP_PASSWORD: z.string().optional(),
   ESCALATION_EMAIL_TO: z.string().optional(),
+  // Filtros de "contacto nuevo": solo respondemos a leads cuyo contacto
+  // en Kommo es reciente (no atendemos a contactos pre-existentes que
+  // el equipo ya esta manejando manualmente). Estos checks SOLO aplican
+  // cuando la conversation no existe aun en nuestra DB; si ya hay conv
+  // en curso, el agente sigue respondiendo. La whitelist
+  // KOMMO_ALLOWED_CONTACT_IDS bypassea estos filtros (para testing).
+  //
+  // - AGENT_MAX_CONTACT_AGE_HOURS: si el contacto en Kommo se creo hace
+  //   mas de N horas, no respondemos. Default 24.
+  // - AGENT_CONTACT_CUTOFF_DATE: ISO date (ej "2026-06-29T00:00:00-03:00").
+  //   Si esta seteado, contactos creados ANTES de esa fecha quedan
+  //   excluidos. Util para lanzamientos. Opcional.
+  AGENT_MAX_CONTACT_AGE_HOURS: z.coerce.number().positive().default(24),
+  AGENT_CONTACT_CUTOFF_DATE: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -161,6 +175,8 @@ export function serverEnv(): ServerEnv {
     GMAIL_USER: process.env.GMAIL_USER,
     GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
     ESCALATION_EMAIL_TO: process.env.ESCALATION_EMAIL_TO,
+    AGENT_MAX_CONTACT_AGE_HOURS: process.env.AGENT_MAX_CONTACT_AGE_HOURS,
+    AGENT_CONTACT_CUTOFF_DATE: process.env.AGENT_CONTACT_CUTOFF_DATE,
   });
   if (!parsed.success) {
     throw new Error(

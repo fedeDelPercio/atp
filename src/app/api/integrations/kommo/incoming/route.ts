@@ -3,6 +3,7 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import {
+  getContact,
   getContactTags,
   getLeadTags,
   KommoApiError,
@@ -71,6 +72,10 @@ export async function POST(req: NextRequest) {
   if (incoming.type && incoming.type !== "incoming") {
     return NextResponse.json({ ok: true, skipped: `type=${incoming.type}` });
   }
+  // La whitelist tambien actua como bypass del filtro de "contacto nuevo"
+  // mas abajo: si esta seteada, asumimos modo testing y dejamos pasar a
+  // contactos viejos para poder probar.
+  let bypassNewContactFilter = false;
   const allowedRaw = env.KOMMO_ALLOWED_CONTACT_IDS;
   if (allowedRaw && allowedRaw.trim()) {
     const allowed = new Set(
@@ -88,6 +93,7 @@ export async function POST(req: NextRequest) {
         skipped: "contact_not_whitelisted",
       });
     }
+    bypassNewContactFilter = true;
   }
 
   const supabase = getSupabaseServerClient();
@@ -140,6 +146,65 @@ export async function POST(req: NextRequest) {
     // log warning y procesamos como si no tuviera tag (mejor responder
     // que dejar al lead sin respuesta).
     console.warn("[kommo/incoming] error consultando tags:", err);
+  }
+
+  // 5.5. Filtro de "contacto nuevo". El equipo de iBath solo quiere que
+  //      el agente responda a leads cuyo contacto en Kommo se haya creado
+  //      hoy (dentro de las ultimas N horas) y a partir del lanzamiento.
+  //      Si la conv ya existe en Supabase, es una conv en curso → seguimos
+  //      respondiendo sin chequear (la responsabilidad de "es viejo" se
+  //      decide solo al primer mensaje del lead). La whitelist activa
+  //      bypassea este filtro para testing.
+  if (!bypassNewContactFilter && incoming.contactId) {
+    const { data: existingConv } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("kommo_lead_id", incoming.leadId)
+      .maybeSingle();
+    if (!existingConv) {
+      try {
+        const contact = await getContact(incoming.contactId);
+        const createdAtMs = (contact?.created_at ?? 0) * 1000;
+        const ageMs = Date.now() - createdAtMs;
+        const maxAgeMs = env.AGENT_MAX_CONTACT_AGE_HOURS * 3600 * 1000;
+
+        // Cutoff opcional (ej. fecha de lanzamiento): contactos creados
+        // antes de la fecha quedan excluidos.
+        const cutoffRaw = env.AGENT_CONTACT_CUTOFF_DATE;
+        const cutoffMs = cutoffRaw ? Date.parse(cutoffRaw) : NaN;
+        if (
+          Number.isFinite(cutoffMs) &&
+          createdAtMs > 0 &&
+          createdAtMs < cutoffMs
+        ) {
+          console.log(
+            `[kommo/incoming] contact ${incoming.contactId} creado antes del cutoff (${cutoffRaw}), skip`,
+          );
+          return NextResponse.json({
+            ok: true,
+            skipped: "contact_before_cutoff",
+          });
+        }
+
+        if (!createdAtMs || ageMs > maxAgeMs) {
+          const hours = Math.round(ageMs / 3600000);
+          console.log(
+            `[kommo/incoming] contact ${incoming.contactId} creado hace ${hours}h (> ${env.AGENT_MAX_CONTACT_AGE_HOURS}h), skip`,
+          );
+          return NextResponse.json({
+            ok: true,
+            skipped: "contact_too_old",
+          });
+        }
+      } catch (err) {
+        // Si Kommo falla en el lookup, NO bloqueamos: mejor responder
+        // y eventualmente derivar al humano que dejar al lead colgado.
+        console.warn(
+          "[kommo/incoming] error consultando contacto para filtro de edad:",
+          err,
+        );
+      }
+    }
   }
 
   // 6. Si es audio, transcribir antes de insertar (Whisper ~3-5s).

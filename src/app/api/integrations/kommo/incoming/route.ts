@@ -146,63 +146,55 @@ export async function POST(req: NextRequest) {
     console.warn("[kommo/incoming] error consultando tags:", err);
   }
 
-  // 5.5. Filtro de antiguedad del contacto. El equipo de iBath solo
-  //      quiere que el agente responda a leads cuyo contacto en Kommo se
-  //      haya creado recientemente (dentro de las ultimas N horas) y a
-  //      partir de la fecha de lanzamiento. Si la conv ya existe en
-  //      Supabase, es una conv en curso → seguimos respondiendo sin
-  //      chequear (la decision de "es viejo" se toma una sola vez, al
-  //      primer mensaje del lead). Este filtro es INDEPENDIENTE de la
-  //      whitelist: aunque el contacto este whitelisted, igual aplica.
+  // 5.5. Filtro de antiguedad del contacto. El agente IA es solo para
+  //      pre-calificar interesados en la primera etapa: pasadas las
+  //      AGENT_MAX_CONTACT_AGE_HOURS desde la creacion del contacto en
+  //      Kommo, el equipo humano toma el control y el agente deja de
+  //      responder, INCLUSO en conversaciones que ya arranco la IA.
+  //      Tambien se filtran contactos anteriores al cutoff (lanzamiento).
+  //      Aplica siempre, independientemente de la whitelist.
   if (incoming.contactId) {
-    const { data: existingConv } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq("kommo_lead_id", incoming.leadId)
-      .maybeSingle();
-    if (!existingConv) {
-      try {
-        const contact = await getContact(incoming.contactId);
-        const createdAtMs = (contact?.created_at ?? 0) * 1000;
-        const antiguedadMs = Date.now() - createdAtMs;
-        const maxAntiguedadMs = env.AGENT_MAX_CONTACT_AGE_HOURS * 3600 * 1000;
+    try {
+      const contact = await getContact(incoming.contactId);
+      const createdAtMs = (contact?.created_at ?? 0) * 1000;
+      const antiguedadMs = Date.now() - createdAtMs;
+      const maxAntiguedadMs = env.AGENT_MAX_CONTACT_AGE_HOURS * 3600 * 1000;
 
-        // Cutoff opcional (ej. fecha de lanzamiento): contactos creados
-        // antes de la fecha quedan excluidos.
-        const cutoffRaw = env.AGENT_CONTACT_CUTOFF_DATE;
-        const cutoffMs = cutoffRaw ? Date.parse(cutoffRaw) : NaN;
-        if (
-          Number.isFinite(cutoffMs) &&
-          createdAtMs > 0 &&
-          createdAtMs < cutoffMs
-        ) {
-          console.log(
-            `[kommo/incoming] contact ${incoming.contactId} creado antes del cutoff (${cutoffRaw}), skip`,
-          );
-          return NextResponse.json({
-            ok: true,
-            skipped: "contact_before_cutoff",
-          });
-        }
-
-        if (!createdAtMs || antiguedadMs > maxAntiguedadMs) {
-          const horas = Math.round(antiguedadMs / 3600000);
-          console.log(
-            `[kommo/incoming] contact ${incoming.contactId} con antiguedad ${horas}h (> ${env.AGENT_MAX_CONTACT_AGE_HOURS}h), skip`,
-          );
-          return NextResponse.json({
-            ok: true,
-            skipped: "contact_too_old",
-          });
-        }
-      } catch (err) {
-        // Si Kommo falla en el lookup, NO bloqueamos: mejor responder
-        // y eventualmente derivar al humano que dejar al lead colgado.
-        console.warn(
-          "[kommo/incoming] error consultando contacto para filtro de antiguedad:",
-          err,
+      // Cutoff opcional (ej. fecha de lanzamiento): contactos creados
+      // antes de la fecha quedan excluidos.
+      const cutoffRaw = env.AGENT_CONTACT_CUTOFF_DATE;
+      const cutoffMs = cutoffRaw ? Date.parse(cutoffRaw) : NaN;
+      if (
+        Number.isFinite(cutoffMs) &&
+        createdAtMs > 0 &&
+        createdAtMs < cutoffMs
+      ) {
+        console.log(
+          `[kommo/incoming] contact ${incoming.contactId} creado antes del cutoff (${cutoffRaw}), skip`,
         );
+        return NextResponse.json({
+          ok: true,
+          skipped: "contact_before_cutoff",
+        });
       }
+
+      if (!createdAtMs || antiguedadMs > maxAntiguedadMs) {
+        const horas = Math.round(antiguedadMs / 3600000);
+        console.log(
+          `[kommo/incoming] contact ${incoming.contactId} con antiguedad ${horas}h (> ${env.AGENT_MAX_CONTACT_AGE_HOURS}h), skip`,
+        );
+        return NextResponse.json({
+          ok: true,
+          skipped: "contact_too_old",
+        });
+      }
+    } catch (err) {
+      // Si Kommo falla en el lookup, NO bloqueamos: mejor responder
+      // y eventualmente derivar al humano que dejar al lead colgado.
+      console.warn(
+        "[kommo/incoming] error consultando contacto para filtro de antiguedad:",
+        err,
+      );
     }
   }
 

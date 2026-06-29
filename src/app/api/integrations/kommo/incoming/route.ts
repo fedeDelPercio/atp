@@ -72,10 +72,9 @@ export async function POST(req: NextRequest) {
   if (incoming.type && incoming.type !== "incoming") {
     return NextResponse.json({ ok: true, skipped: `type=${incoming.type}` });
   }
-  // La whitelist tambien actua como bypass del filtro de "contacto nuevo"
-  // mas abajo: si esta seteada, asumimos modo testing y dejamos pasar a
-  // contactos viejos para poder probar.
-  let bypassNewContactFilter = false;
+  // Whitelist: solo dejamos pasar contact_ids especificos cuando esta
+  // seteada (modo testing). Es independiente del filtro de antiguedad
+  // de mas abajo: pasar la whitelist NO bypassea ese filtro.
   const allowedRaw = env.KOMMO_ALLOWED_CONTACT_IDS;
   if (allowedRaw && allowedRaw.trim()) {
     const allowed = new Set(
@@ -93,7 +92,6 @@ export async function POST(req: NextRequest) {
         skipped: "contact_not_whitelisted",
       });
     }
-    bypassNewContactFilter = true;
   }
 
   const supabase = getSupabaseServerClient();
@@ -148,14 +146,15 @@ export async function POST(req: NextRequest) {
     console.warn("[kommo/incoming] error consultando tags:", err);
   }
 
-  // 5.5. Filtro de "contacto nuevo". El equipo de iBath solo quiere que
-  //      el agente responda a leads cuyo contacto en Kommo se haya creado
-  //      hoy (dentro de las ultimas N horas) y a partir del lanzamiento.
-  //      Si la conv ya existe en Supabase, es una conv en curso → seguimos
-  //      respondiendo sin chequear (la responsabilidad de "es viejo" se
-  //      decide solo al primer mensaje del lead). La whitelist activa
-  //      bypassea este filtro para testing.
-  if (!bypassNewContactFilter && incoming.contactId) {
+  // 5.5. Filtro de antiguedad del contacto. El equipo de iBath solo
+  //      quiere que el agente responda a leads cuyo contacto en Kommo se
+  //      haya creado recientemente (dentro de las ultimas N horas) y a
+  //      partir de la fecha de lanzamiento. Si la conv ya existe en
+  //      Supabase, es una conv en curso → seguimos respondiendo sin
+  //      chequear (la decision de "es viejo" se toma una sola vez, al
+  //      primer mensaje del lead). Este filtro es INDEPENDIENTE de la
+  //      whitelist: aunque el contacto este whitelisted, igual aplica.
+  if (incoming.contactId) {
     const { data: existingConv } = await supabase
       .from("conversations")
       .select("id")
@@ -165,8 +164,8 @@ export async function POST(req: NextRequest) {
       try {
         const contact = await getContact(incoming.contactId);
         const createdAtMs = (contact?.created_at ?? 0) * 1000;
-        const ageMs = Date.now() - createdAtMs;
-        const maxAgeMs = env.AGENT_MAX_CONTACT_AGE_HOURS * 3600 * 1000;
+        const antiguedadMs = Date.now() - createdAtMs;
+        const maxAntiguedadMs = env.AGENT_MAX_CONTACT_AGE_HOURS * 3600 * 1000;
 
         // Cutoff opcional (ej. fecha de lanzamiento): contactos creados
         // antes de la fecha quedan excluidos.
@@ -186,10 +185,10 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        if (!createdAtMs || ageMs > maxAgeMs) {
-          const hours = Math.round(ageMs / 3600000);
+        if (!createdAtMs || antiguedadMs > maxAntiguedadMs) {
+          const horas = Math.round(antiguedadMs / 3600000);
           console.log(
-            `[kommo/incoming] contact ${incoming.contactId} creado hace ${hours}h (> ${env.AGENT_MAX_CONTACT_AGE_HOURS}h), skip`,
+            `[kommo/incoming] contact ${incoming.contactId} con antiguedad ${horas}h (> ${env.AGENT_MAX_CONTACT_AGE_HOURS}h), skip`,
           );
           return NextResponse.json({
             ok: true,
@@ -200,7 +199,7 @@ export async function POST(req: NextRequest) {
         // Si Kommo falla en el lookup, NO bloqueamos: mejor responder
         // y eventualmente derivar al humano que dejar al lead colgado.
         console.warn(
-          "[kommo/incoming] error consultando contacto para filtro de edad:",
+          "[kommo/incoming] error consultando contacto para filtro de antiguedad:",
           err,
         );
       }

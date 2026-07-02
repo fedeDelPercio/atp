@@ -122,7 +122,6 @@ export default function DashboardPage() {
               value={(stats.byTemperatura["tibio"] ?? 0).toString()}
               icon={Thermometer}
               accent="text-orange-600 dark:text-orange-500"
-              hint="con seguimiento pueden calentarse"
             />
           </div>
 

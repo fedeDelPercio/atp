@@ -313,7 +313,9 @@ function TemperaturaDonut({ data }: { data: Record<string, number> }) {
           );
         })}
         {/* Etiquetas de % sobre el arco. Solo se dibujan para segmentos
-            >= 6% para no saturar con slivers ilegibles. */}
+            >= 6% para no saturar con slivers ilegibles. Fill negro con
+            un halo blanco semi-transparente para asegurar contraste
+            sobre cualquiera de los tres colores (naranja, celeste, rojo). */}
         {segments
           .filter((s) => s.pct >= 6)
           .map((s) => (
@@ -323,10 +325,10 @@ function TemperaturaDonut({ data }: { data: Record<string, number> }) {
               y={s.labelY}
               textAnchor="middle"
               dominantBaseline="central"
-              className="pointer-events-none font-mono text-[10.5px] font-medium fill-white"
+              className="pointer-events-none font-mono text-[10.5px] font-medium fill-neutral-900"
               style={{
                 paintOrder: "stroke",
-                stroke: "rgba(0,0,0,0.35)",
+                stroke: "rgba(255,255,255,0.55)",
                 strokeWidth: 2,
                 strokeLinejoin: "round",
               }}

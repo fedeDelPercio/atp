@@ -10,11 +10,13 @@ import {
   Webhook,
   LogOut,
   MessageCircle,
+  Settings2,
   UserCheck,
   Inbox,
 } from "lucide-react";
 import { useProfile } from "./ProfileProvider";
 import { Avatar } from "./Avatar";
+import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 import { BrandLogo } from "./BrandLogo";
 import { roleLabel } from "@/lib/profile";
@@ -34,6 +36,7 @@ const TABS: Array<{
   { href: "/wa", label: "WhatsApp", icon: MessageCircle, roles: ["dev", "asesor"] },
   { href: "/leads", label: "Leads", icon: UserCheck, roles: ["dev", "client", "asesor"] },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3, roles: ["dev", "client"] },
+  { href: "/seguimientos", label: "Seguimientos", icon: Settings2, roles: ["dev", "client"] },
   { href: "/feedback", label: "Feedback", icon: Inbox, roles: ["dev", "client"] },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, roles: ["dev"] },
 ];
@@ -84,6 +87,7 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-1">
+        <NotificationBell />
         <ThemeToggle />
         <div className="relative">
           <button

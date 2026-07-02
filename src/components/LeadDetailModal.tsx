@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, Loader2, MessageCircle, X, Save, Trash2 } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { FollowupsSection } from "./FollowupsSection";
 import type {
   Lead,
   LeadSmartTag,
@@ -302,6 +303,8 @@ export function LeadDetailModal({
               className="w-full resize-y rounded-md border border-neutral-200 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
             />
           </Field>
+
+          <FollowupsSection leadId={lead.id} />
 
           <div className="grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3 text-[11.5px] dark:border-neutral-900">
             <MetaItem label="Creado" value={formatDateLong(lead.created_at)} />

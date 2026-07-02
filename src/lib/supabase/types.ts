@@ -531,6 +531,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      follow_up_rules: {
+        Row: {
+          client_slug: string;
+          temperatura: string;
+          first_interval_days: number;
+          recurring_interval_days: number;
+          enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          client_slug?: string;
+          temperatura: string;
+          first_interval_days?: number;
+          recurring_interval_days?: number;
+          enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          client_slug?: string;
+          temperatura?: string;
+          first_interval_days?: number;
+          recurring_interval_days?: number;
+          enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_followups: {
+        Row: {
+          id: string;
+          lead_id: string;
+          client_slug: string;
+          kind: string;
+          due_at: string;
+          completed_at: string | null;
+          completed_by: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          client_slug?: string;
+          kind: string;
+          due_at: string;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          client_slug?: string;
+          kind?: string;
+          due_at?: string;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -549,6 +612,7 @@ export type Database = {
           source: string;
           external_id: string | null;
           wa_jid: string | null;
+          display_name: string | null;
           last_assistant_at: string;
         }[];
       };
@@ -577,6 +641,8 @@ export type OutboundWebhookDelivery = Row<"outbound_webhook_deliveries">;
 export type WaConnectionState = Row<"wa_connection_state">;
 export type WaOutbox = Row<"wa_outbox">;
 export type Lead = Row<"leads">;
+export type FollowUpRule = Row<"follow_up_rules">;
+export type LeadFollowup = Row<"lead_followups">;
 
 // Uniones de valores cerrados (los CHECK constraints del schema).
 export type ProfileRole = "dev" | "client" | "asesor";

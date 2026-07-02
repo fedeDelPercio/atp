@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  cancelPendingFollowups,
+  scheduleFirstFollowup,
+} from "@/lib/followups/schedule";
 import type { Update } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +116,20 @@ export async function PATCH(
       .from("conversations")
       .update({ display_name: newDisplayName })
       .eq("id", data.conversation_id);
+  }
+
+  // Hook al ciclo de seguimientos manuales:
+  //  - Primera vez que pasa a contactado -> crea el primer follow-up
+  //    (la funcion es idempotente: si ya existe uno "first" no crea otro).
+  //  - Pasa a cerrado / descartado -> cancela los pendientes para
+  //    limpiarlos de la campanita.
+  if (parsed.data.status === "contactado") {
+    await scheduleFirstFollowup(id);
+  } else if (
+    parsed.data.status === "cerrado" ||
+    parsed.data.status === "descartado"
+  ) {
+    await cancelPendingFollowups(id);
   }
 
   return NextResponse.json({ lead: data });

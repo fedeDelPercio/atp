@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   Loader2,
@@ -63,6 +64,9 @@ export default function LeadsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const openLeadId = searchParams.get("open");
 
   // Traemos SIEMPRE la lista completa y filtramos client-side. De esta forma
   // los contadores de cada tab quedan estables (cantidad real por estado) en
@@ -83,6 +87,21 @@ export default function LeadsPage() {
   useEffect(() => {
     void fetchLeads();
   }, [fetchLeads]);
+
+  // Deep-link: si viene ?open=<lead_id> en la URL (tipico desde la campanita
+  // de notificaciones o desde un mail), abrimos el modal del lead al
+  // cargar la lista. Limpiamos el query param despues para que el back del
+  // browser no reabra el modal.
+  useEffect(() => {
+    if (!openLeadId || leads.length === 0) return;
+    const lead = leads.find((l) => l.id === openLeadId);
+    if (lead) {
+      setSelectedLead(lead);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      router.replace(url.pathname + url.search, { scroll: false });
+    }
+  }, [openLeadId, leads, router]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: leads.length };

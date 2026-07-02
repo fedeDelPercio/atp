@@ -35,8 +35,8 @@ const TABS: Array<{
   { href: "/conversations", label: "Testing", icon: MessagesSquare, roles: ["dev", "client"] },
   { href: "/wa", label: "WhatsApp", icon: MessageCircle, roles: ["dev", "asesor"] },
   { href: "/leads", label: "Leads", icon: UserCheck, roles: ["dev", "client", "asesor"] },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3, roles: ["dev", "client"] },
-  { href: "/seguimientos", label: "Seguimientos", icon: Settings2, roles: ["dev", "client"] },
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3, roles: ["dev", "client", "asesor"] },
+  { href: "/seguimientos", label: "Seguimientos", icon: Settings2, roles: ["dev", "client", "asesor"] },
   { href: "/feedback", label: "Feedback", icon: Inbox, roles: ["dev", "client"] },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, roles: ["dev"] },
 ];

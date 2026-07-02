@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Flame, Loader2, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Flame, Loader2, Thermometer, TrendingUp, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   SMART_TAG_LABEL,
@@ -96,7 +96,10 @@ export default function DashboardPage() {
 
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-5">
-          {/* KPI row */}
+          {/* KPI row. Los calientes y tibios se destacan con acento
+              semantico (red / orange) porque son los que aportan valor de
+              seguimiento: calientes ya listos para cerrar, tibios listos
+              para calentar. */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <KpiTile
               label="Total leads"
@@ -115,9 +118,11 @@ export default function DashboardPage() {
               accent="text-red-600 dark:text-red-500"
             />
             <KpiTile
-              label="Contactados"
-              value={`${stats.contactedPct}%`}
-              icon={BarChart3}
+              label="Tibios"
+              value={(stats.byTemperatura["tibio"] ?? 0).toString()}
+              icon={Thermometer}
+              accent="text-orange-600 dark:text-orange-500"
+              hint="con seguimiento pueden calentarse"
             />
           </div>
 
@@ -177,11 +182,13 @@ function KpiTile({
   value,
   icon: Icon,
   accent,
+  hint,
 }: {
   label: string;
   value: string;
   icon: typeof Users;
   accent?: string;
+  hint?: string;
 }) {
   return (
     <div className="rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900/40">
@@ -197,6 +204,11 @@ function KpiTile({
       >
         {value}
       </div>
+      {hint && (
+        <p className="mt-1 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
@@ -230,11 +242,40 @@ function TemperaturaDonut({ data }: { data: Record<string, number> }) {
     caliente: "#dc2626", // red-600
   };
 
-  const size = 180;
-  const r = 68;
+  const size = 200;
+  const r = 74;
   const strokeWidth = 22;
+  const cx = size / 2;
+  const cy = size / 2;
   const circumference = 2 * Math.PI * r;
-  let offset = 0;
+  let cumulative = 0;
+
+  // Pre-computamos posicion + porcentaje de cada segmento visible para
+  // dibujar etiquetas sobre el arco.
+  const segments = ordered
+    .filter((d) => d.count > 0)
+    .map((d) => {
+      const frac = d.count / total;
+      const arcLen = circumference * frac;
+      const pct = Math.round(frac * 100);
+      // Angulo del punto medio del segmento. Start = -90deg (arriba).
+      const midFrac = cumulative + frac / 2;
+      const midAngle = midFrac * 2 * Math.PI - Math.PI / 2;
+      const labelR = r; // Sobre el arco.
+      const labelX = cx + labelR * Math.cos(midAngle);
+      const labelY = cy + labelR * Math.sin(midAngle);
+      const segment = {
+        key: d.key,
+        color: COLOR[d.key],
+        arcLen,
+        dashOffset: -cumulative * circumference,
+        pct,
+        labelX,
+        labelY,
+      };
+      cumulative += frac;
+      return segment;
+    });
 
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-center sm:gap-8">
@@ -246,49 +287,65 @@ function TemperaturaDonut({ data }: { data: Record<string, number> }) {
       >
         {/* Track gris de fondo */}
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={cx}
+          cy={cy}
           r={r}
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
           className="text-neutral-100 dark:text-neutral-800"
         />
-        {ordered.map((d) => {
-          if (d.count === 0) return null;
-          const frac = d.count / total;
-          const arcLen = circumference * frac;
-          // Separación de 2px entre segmentos (regla del design system).
+        {segments.map((s) => {
           const gapPx = 2;
-          const el = (
+          return (
             <circle
-              key={d.key}
-              cx={size / 2}
-              cy={size / 2}
+              key={s.key}
+              cx={cx}
+              cy={cy}
               r={r}
               fill="none"
-              stroke={COLOR[d.key]}
+              stroke={s.color}
               strokeWidth={strokeWidth}
-              strokeDasharray={`${Math.max(arcLen - gapPx, 0)} ${circumference}`}
-              strokeDashoffset={-offset}
-              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              strokeDasharray={`${Math.max(s.arcLen - gapPx, 0)} ${circumference}`}
+              strokeDashoffset={s.dashOffset}
+              transform={`rotate(-90 ${cx} ${cy})`}
               strokeLinecap="butt"
             />
           );
-          offset += arcLen;
-          return el;
         })}
+        {/* Etiquetas de % sobre el arco. Solo se dibujan para segmentos
+            >= 6% para no saturar con slivers ilegibles. */}
+        {segments
+          .filter((s) => s.pct >= 6)
+          .map((s) => (
+            <text
+              key={`lbl-${s.key}`}
+              x={s.labelX}
+              y={s.labelY}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="pointer-events-none font-mono text-[10.5px] font-medium fill-white"
+              style={{
+                paintOrder: "stroke",
+                stroke: "rgba(0,0,0,0.35)",
+                strokeWidth: 2,
+                strokeLinejoin: "round",
+              }}
+            >
+              {s.pct}%
+            </text>
+          ))}
         <text
-          x={size / 2}
-          y={size / 2 - 4}
+          x={cx}
+          y={cy - 4}
           textAnchor="middle"
           className="font-mono text-[10px] uppercase tracking-wide fill-neutral-400 dark:fill-neutral-500"
         >
           Total
         </text>
         <text
-          x={size / 2}
-          y={size / 2 + 16}
+          x={cx}
+          y={cy + 16}
           textAnchor="middle"
           className="font-mono text-[20px] font-medium fill-neutral-900 dark:fill-neutral-50"
         >
@@ -299,6 +356,9 @@ function TemperaturaDonut({ data }: { data: Record<string, number> }) {
       <ul className="flex flex-col gap-2">
         {ordered.map((d) => {
           const pct = total > 0 ? Math.round((d.count / total) * 100) : 0;
+          // Usamos el mismo hex que el arco (COLOR) para que el numero
+          // "cante" con el color del segmento sin ambiguedad de tokens
+          // Tailwind y quede consistente entre light y dark.
           return (
             <li
               key={d.key}
@@ -311,10 +371,16 @@ function TemperaturaDonut({ data }: { data: Record<string, number> }) {
               <span className="min-w-[70px] font-medium text-neutral-700 dark:text-neutral-300">
                 {d.label}
               </span>
-              <span className={`font-mono text-[11px] ${TEMPERATURA_TEXT[d.key]}`}>
+              <span
+                className="font-mono text-[13px] font-medium"
+                style={{ color: COLOR[d.key] }}
+              >
                 {d.count}
               </span>
-              <span className="font-mono text-[10.5px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+              <span
+                className="font-mono text-[11px] font-medium"
+                style={{ color: COLOR[d.key], opacity: 0.75 }}
+              >
                 {pct}%
               </span>
             </li>

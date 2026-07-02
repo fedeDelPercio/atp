@@ -65,6 +65,7 @@ const ROLE_ACCESS: Record<string, ProfileRole[]> = {
   "/conversations": ["dev", "client"],
   "/wa": ["dev", "asesor"],
   "/leads": ["dev", "client", "asesor"],
+  "/dashboard": ["dev", "client"],
   "/feedback": ["dev", "client"],
   "/webhooks": ["dev"],
 };

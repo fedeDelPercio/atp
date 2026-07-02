@@ -92,12 +92,16 @@ const serverSchema = z.object({
   // CSV de sources elegibles. Empezamos con 'test' (panel) y despues
   // sumamos 'whatsapp' cuando lo bajemos a prod.
   FOLLOW_UP_SOURCES: z.string().default("test"),
-  // Texto literal del mensaje. Mismo estilo que Mica: sin punto final, un
-  // emoji ocasional permitido.
+  // Texto literal del mensaje. El marcador `{NOMBRE}` se reemplaza en
+  // runtime por " <primer nombre>" (con espacio adelante) si el lead
+  // tiene display_name, o por "" si no lo tiene. Asi el saludo queda
+  // "Hola Fede!" con nombre o "Hola!" sin nombre.
   FOLLOW_UP_TEXT: z
     .string()
     .min(1)
-    .default("Quedo por acá si te surge cualquier duda 🙌"),
+    .default(
+      "Hola{NOMBRE}! queria saber si pudiste revisar la informacion que te envie. Entiendo que estas decisiones llevan su tiempo, pero queria consultarte si pudiste evaluarlo y si hay algun aspecto sobre el que necesites mas informacion, estoy a disposicion para ayudarte en lo que necesites",
+    ),
   CRON_SECRET: z.string().min(1, "CRON_SECRET es obligatoria"),
   WEBHOOK_SIGNING_SECRET: z
     .string()

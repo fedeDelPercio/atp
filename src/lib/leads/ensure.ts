@@ -75,7 +75,15 @@ export async function ensureLeadForConversation(
     }
 
     // Crear lead nuevo.
-    const phone = conv.wa_jid?.split("@")[0] ?? conv.external_id ?? null;
+    // OJO: si el JID termina en `@lid`, el numero antes del `@` NO es un
+    // telefono real — es un Linked ID opaco que WhatsApp usa para privacidad
+    // cuando el remitente no esta en contactos del receptor. Guardar eso
+    // como "phone" muestra IDs sin sentido tipo 20250787627030 en la UI.
+    // En ese caso dejamos phone en null y la UI muestra "—".
+    const isLidJid = conv.wa_jid?.endsWith("@lid") ?? false;
+    const phone = isLidJid
+      ? null
+      : (conv.wa_jid?.split("@")[0] ?? conv.external_id ?? null);
     const name = conv.display_name ?? null;
 
     await supabase.from("leads").insert({

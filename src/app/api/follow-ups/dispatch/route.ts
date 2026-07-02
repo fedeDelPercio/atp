@@ -38,7 +38,32 @@ interface FollowupCandidate {
   source: string;
   external_id: string | null;
   wa_jid: string | null;
+  display_name: string | null;
   last_assistant_at: string;
+}
+
+// El template usa el marcador `{NOMBRE}` para insertar el primer nombre del
+// lead (con espacio adelante). Si no hay nombre disponible, se reemplaza
+// por string vacio y la oracion sigue siendo natural ("Hola!" en vez de
+// "Hola Fede!"). El marcador NO se procesa en ninguna otra parte del
+// texto: es responsabilidad de este helper mantener el copy coherente.
+function personalizeText(template: string, displayName: string | null): string {
+  const firstName = extractFirstName(displayName);
+  const nombrePart = firstName ? ` ${firstName}` : "";
+  return template.replace(/\{NOMBRE\}/g, nombrePart);
+}
+
+function extractFirstName(displayName: string | null): string | null {
+  if (!displayName) return null;
+  const trimmed = displayName.trim();
+  if (!trimmed) return null;
+  // Descartar valores que no son nombres reales: telefonos "+549..."
+  // y placeholders como "Contacto" que ponia el bot cuando no habia
+  // pushName. Un nombre real arranca con letra.
+  if (/^[+\d]/.test(trimmed)) return null;
+  if (trimmed.toLowerCase() === "contacto") return null;
+  const first = trimmed.split(/\s+/)[0] ?? "";
+  return first.length > 0 ? first : null;
 }
 
 export async function POST(req: NextRequest) {
@@ -90,7 +115,8 @@ export async function POST(req: NextRequest) {
   const failed: string[] = [];
 
   for (const cand of candidates) {
-    const ok = await dispatchOne(cand, env.FOLLOW_UP_TEXT);
+    const finalText = personalizeText(env.FOLLOW_UP_TEXT, cand.display_name);
+    const ok = await dispatchOne(cand, finalText);
     if (ok) dispatched++;
     else failed.push(cand.conversation_id);
   }

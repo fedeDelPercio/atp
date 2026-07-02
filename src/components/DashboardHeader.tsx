@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  BarChart3,
   ChevronDown,
   MessagesSquare,
   Webhook,
@@ -32,6 +33,7 @@ const TABS: Array<{
   { href: "/conversations", label: "Testing", icon: MessagesSquare, roles: ["dev", "client"] },
   { href: "/wa", label: "WhatsApp", icon: MessageCircle, roles: ["dev", "asesor"] },
   { href: "/leads", label: "Leads", icon: UserCheck, roles: ["dev", "client", "asesor"] },
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3, roles: ["dev", "client"] },
   { href: "/feedback", label: "Feedback", icon: Inbox, roles: ["dev", "client"] },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, roles: ["dev"] },
 ];

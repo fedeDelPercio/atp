@@ -231,7 +231,7 @@ Usá la URL de la lista de precios EXACTAMENTE como figura en la KB.
 Mandá esto como UN solo mensaje (sin separar con `---`):
 
 ```
-Te comparto la lista oficial de precios de mayo 2026 para que veas todo: <URL_LISTA_PRECIOS>. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda.
+Te comparto la lista oficial de precios de junio 2026 para que veas todo: <URL_LISTA_PRECIOS>. Si te parece coordinamos una llamada con un asesor para que te cuente el detalle y resuelva cualquier duda.
 ```
 
 Esto se hace por dos motivos: (1) la lista es la fuente oficial y

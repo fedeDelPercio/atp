@@ -1,7 +1,7 @@
 <!--
   BASE DE CONOCIMIENTO — Quintaglia
   =================================
-  Fuente: brochure oficial, lista de precios "Mayo 2026" y memoria
+  Fuente: brochure oficial, lista de precios "Junio 2026" y memoria
   descriptiva (carpeta _kb-source/, no commiteada).
 
   Reglas para el agente:
@@ -11,7 +11,7 @@
    - Los campos marcados como TODO son datos que el cliente todavía no
      pasó. No improvisarlos.
 
-  Última actualización: Mayo 2026 (lista de precios vigente).
+  Última actualización: Junio 2026 (lista de precios vigente).
 -->
 
 # Materiales a compartir
@@ -21,8 +21,8 @@ la URL exacta tal como figura abajo (no inventar, no acortar, no parafrasear).
 
 - **Brochure del proyecto 3 de Febrero 2781:**
   https://drive.google.com/file/d/1VN6sROzIpPCn7ORttgDB2HmYG-uEADCE/view?usp=sharing
-- **Lista de precios oficial Mayo 2026:**
-  https://drive.google.com/file/d/1VmFe0NrlHUuAgGpMmGdDcbnr90LlkGTS/view?usp=sharing
+- **Lista de precios oficial Junio 2026:**
+  https://drive.google.com/file/d/1pdo-3-tx34r6Jiv0pGOZGLs2fupxKUwk/view?usp=sharing
 
 # Equipo de atención
 
@@ -176,7 +176,7 @@ de unidad / precio / planta se refiere a este edificio.
 - **Total: 107,17 m²**
 - Estar comedor: 6,60 × 3,60 · Dorm. principal: 2,90 × 3,00 · Dorm. 2: 2,80 × 3,00.
 
-# Lista de precios — Mayo 2026
+# Lista de precios — Junio 2026
 
 > Precios en USD. Estado puede ser: DISPONIBLE (financiado), CASH (solo
 > contado, con descuento), RESERVADO, VENDIDO o NO DISPONIBLE.

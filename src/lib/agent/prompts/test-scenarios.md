@@ -83,7 +83,7 @@ llamada ni dio horario).
   tenga el dato puntual.
 
 Ejemplo aceptable:
-> "Te comparto la lista oficial de precios de mayo 2026 para que veas
+> "Te comparto la lista oficial de precios de junio 2026 para que veas
 > todo: [link.lista.precios]. Si te parece coordinamos una llamada con
 > un asesor para que te cuente el detalle y resuelva cualquier duda."
 

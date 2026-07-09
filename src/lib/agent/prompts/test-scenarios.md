@@ -1,5 +1,5 @@
 <!--
-  TEST SCENARIOS — Mica (Quintaglia)
+  TEST SCENARIOS — Carolina (Quintaglia)
   ==================================
   Casos de uso para validar la guía conversacional definida en
   `orchestrator.md`. No son tests automatizados: son guiones de
@@ -26,14 +26,16 @@ Origen simulado: lead aprieta "Quiero más información" en el anuncio.
 **Lead:**
 > Quiero más información
 
-**Esperado (Mica responde en 3 bloques separados por `---`):**
-- Bloque 1: saludo presentándose como Mica del equipo comercial de
-  Quintaglia.
-- Bloque 2: ofrece el brochure incluyendo el token literal
-  la URL completa del brochure de Google Drive.
-- Bloque 3: pregunta abierta SIN enumerar tipologías. Algo tipo
-  "Alguna de estas opciones es compatible con lo que estás buscando?"
-  apuntando al brochure recién enviado.
+**Esperado (Carolina responde en 3 bloques separados por `---`):**
+- Bloque 1: saludo presentándose como Carolina del Team Scaglia, con
+  tono cálido tipo "Hola! como estas?".
+- Bloque 2: menciona el plazo de obra ("24 meses aproximadamente") y
+  la unidad en oportunidad ("2B" a USD 85.000 final sin financiación)
+  antes de compartir el token literal la URL completa del brochure
+  de Google Drive.
+- Bloque 3: propuesta directa de llamada tipo "Si te interesa, podemos
+  agendar una llamada para contarte mas detalles!". NO es pregunta
+  abierta sobre tipologías.
 
 **Notify_team esperado:** ninguno.
 
@@ -49,9 +51,11 @@ Origen simulado: "Quiero hablar con un asesor".
 **Lead:**
 > Quiero hablar con un asesor
 
-**Esperado:** apertura estándar idéntica al Test 1 (saludo + brochure +
-pregunta abierta sin listar). El CTA por sí solo NO debe disparar la
-propuesta de llamada en este turno — sería saltearse el descubrimiento.
+**Esperado:** apertura estándar idéntica al Test 1 (saludo + brochure
+con plazo y 2B en oportunidad + propuesta de llamada). El CTA por sí
+solo NO debe disparar el flow de franja horaria en este turno — la
+propuesta de llamada de la apertura ya cubre el interés en hablar con
+un asesor.
 
 **Lead (mensaje 2):**
 > Busco un 2 ambientes
@@ -93,10 +97,10 @@ Ejemplo aceptable:
 
 # Test 4 — Lead acepta la llamada y da preferencia horaria
 
-**Lead (después de algún intercambio donde Mica propuso la llamada):**
+**Lead (después de algún intercambio donde Carolina propuso la llamada):**
 > Dale, que me llamen
 
-**Esperado:** Mica pregunta preferencia horaria.
+**Esperado:** Carolina pregunta preferencia horaria.
 > "Perfecto. Preferís que te llamen por la mañana o por la tarde?"
 
 **Lead:**
@@ -123,7 +127,7 @@ Ejemplo aceptable:
 - Responde el plazo desde la KB: la entrega está estimada para el
   segundo semestre de 2028 (como estimado, sin prometer fecha exacta).
 - Sobre el "sos un bot": NO admite ser IA (regla 1). Redirige amable
-  ("soy Mica del equipo comercial") sin dar detalles personales.
+  ("soy Carolina del equipo comercial") sin dar detalles personales.
 - NO deriva por esto. Solo si el lead INSISTE con que es un bot,
   derivar con `escalado_manual`.
 
@@ -136,7 +140,7 @@ Reglas a respetar:
 
 # Test 6 — Lead rechaza la llamada y sigue preguntando
 
-**Lead (después de que Mica propuso la llamada):**
+**Lead (después de que Carolina propuso la llamada):**
 > No, llamada no, contame por acá
 
 **Esperado:**
@@ -170,14 +174,14 @@ mensaje breve avisando que el equipo lo contacta para coordinar la
 visita.
 
 **⚠️ Tensión menor:** la KB no tiene horario de atención ni
-información sobre visitas guiadas. Mica debe NO inventar horarios
+información sobre visitas guiadas. Carolina debe NO inventar horarios
 (regla 2), apenas confirmar que el equipo va a coordinar.
 
 ---
 
 # Checklist rápido al correr cada test
 
-- [ ] Se presentó como Mica en el primer turno (cuando aplica)?
+- [ ] Se presentó como Carolina en el primer turno (cuando aplica)?
 - [ ] Usó los tokens la URL completa del brochure de Google Drive / la URL completa de la lista de precios de Google Drive tal
       cual (sin inventar URLs)?
 - [ ] Cerró empujando la llamada en los focos B y C, salvo

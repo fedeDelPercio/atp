@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from("leads")
-    .select("*")
+    .select("*, conversation:conversations(source)")
     .order("created_at", { ascending: false });
 
   if (status) query = query.eq("status", status);

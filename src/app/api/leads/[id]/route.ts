@@ -47,7 +47,7 @@ export async function GET(
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
-    .select("*")
+    .select("*, conversation:conversations(source)")
     .eq("id", id)
     .maybeSingle();
 
@@ -101,7 +101,7 @@ export async function PATCH(
     .from("leads")
     .update(update)
     .eq("id", id)
-    .select("*")
+    .select("*, conversation:conversations(source)")
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

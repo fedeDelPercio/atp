@@ -130,7 +130,9 @@ export function LeadDetailModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const isWa = lead.phone && /^\d+$/.test(lead.phone);
+  const source = (lead as { conversation?: { source?: string } | null }).conversation
+    ?.source;
+  const isWa = source === "whatsapp";
   const linkBase = isWa ? "/wa" : "/conversations";
 
   const smartTagChanged = smartTag !== ((lead.smart_tag as LeadSmartTag | null) ?? null);

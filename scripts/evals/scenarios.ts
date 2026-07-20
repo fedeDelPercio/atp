@@ -98,7 +98,7 @@ export const SCENARIOS: Scenario[] = [
         user: "qué precios manejan?",
         expect: {
           doesNotNotify: true,
-          contains: ["$2.300.000"],
+          contains: ["$2.400.000"],
           custom: (out) => {
             // Equipo de iBath decidió que el agente NUNCA menciona
             // descuentos/promos (se cierran con Santino en la llamada).

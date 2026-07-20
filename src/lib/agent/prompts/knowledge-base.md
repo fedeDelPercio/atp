@@ -57,12 +57,11 @@ exactas que figuran abajo (no inventar URLs ni teléfonos).
 
 # Catálogo de productos
 
-iBath comercializa hoy **dos modelos disponibles** de Smart Toilet
-(inodoros inteligentes): **Ombú** y **Ceibo**. El **Ceibo W** existe en
-el catálogo pero **está sin stock**, no se ofrece (ver sección abajo).
-Los dos modelos disponibles incluyen lavado con bidet, secado con aire
-y asiento calefaccionado. Las diferencias principales están en
-**funciones extra**, **diseño** y **requisitos de instalación**.
+iBath comercializa hoy **tres modelos disponibles** de Smart Toilet
+(inodoros inteligentes): **Ombú**, **Ceibo** y **Ceibo W**. Los tres
+incluyen lavado con bidet, secado con aire y asiento calefaccionado.
+Las diferencias principales están en **funciones extra**, **diseño**
+y **requisitos de instalación**.
 
 - **Color disponible:** **solo blanco** para los tres modelos. No hay
   variantes de color.
@@ -183,16 +182,13 @@ Incluye **todas las funciones del Ombú**, más las siguientes:
 - **Batería externa:** funciona con pilas (preferentemente recargables).
   Reemplaza la batería integrada del Ombú.
 
-## iBath Ceibo W (modelo XP105) — SIN STOCK
+## iBath Ceibo W (modelo XP105)
 
-> **IMPORTANTE para el agente:** el Ceibo W **no se ofrece**. Está sin
-> stock y no se está comercializando en este momento. Si el cliente
-> pregunta específicamente por este modelo, hay que aclarar que no hay
-> stock disponible y **ofrecer el Ceibo** como alternativa: tiene
-> exactamente las mismas funciones, la diferencia es solo la forma de
-> instalación (Ceibo se apoya en el piso, Ceibo W es colgante a la
-> pared). NO derivar al equipo solo por esta consulta: el agente puede
-> resolverla directamente.
+> El Ceibo W es el modelo colgante. Tiene **las mismas funciones que el
+> Ceibo**, la diferencia es la forma de instalación: el Ceibo se apoya
+> en el piso, el Ceibo W va adosado a la pared con una estructura de
+> hierro que se empotra durante la obra. Por eso es la opción más
+> recomendable para obra nueva o renovación profunda.
 
 - **Tipo:** inodoro colgante (adosado a la pared).
 - **Funciones:** idénticas al Ceibo. Mismas prestaciones, otra
@@ -218,16 +214,13 @@ Incluye **todas las funciones del Ombú**, más las siguientes:
 
 # Comparativa entre modelos
 
-> Ceibo W aparece en la tabla solo como referencia. **Sin stock,
-> no ofrecer.**
->
 > **Las filas técnicas de instalación (presión mínima de red, tanque,
 > consumo de descarga) son REACTIVAS:** úsalas solo si el cliente
 > pregunta por eso. Al recomendar o comparar modelos espontáneamente,
 > apoyate en las funciones y beneficios (las filas de arriba), no en los
 > requisitos de presión/instalación.
 
-| Función / característica | Ombú | Ceibo | Ceibo W (sin stock) |
+| Función / característica | Ombú | Ceibo | Ceibo W |
 | --- | --- | --- | --- |
 | Bidet + bidet femenino | sí | sí | sí |
 | Asiento calefaccionado (4 niveles) | sí | sí | sí |
@@ -306,7 +299,7 @@ hace falta.
 
 - **Precio iBath Ombú:** **$1.990.000** (pesos argentinos).
 - **Precio iBath Ceibo:** **$2.300.000** (pesos argentinos).
-- **iBath Ceibo W:** sin stock, no se ofrece.
+- **Precio iBath Ceibo W:** **$2.400.000** (pesos argentinos).
 
 > Los precios listados son el precio minorista vigente. La modalidad de
 > compra (envío, instalación, formas de pago) se cierra con Santino una
@@ -334,7 +327,7 @@ sumá un bloque adicional ANTES con el catálogo:
 
 > Te comparto el catálogo para que puedas ver más detalle: https://ibath.com.ar/productos/
 > ---
-> Nuestros modelos están entre $1.990.000 y $2.300.000, dependiendo la tecnología y funciones. Si querés contame para qué tipo de proyecto lo estás evaluando y te recomendamos el que mejor se adapte
+> Nuestros modelos están entre $1.990.000 y $2.400.000, dependiendo la tecnología y funciones. Si querés contame para qué tipo de proyecto lo estás evaluando y te recomendamos el que mejor se adapte
 
 Esta respuesta abre la puerta a un descubrimiento (qué necesita la
 persona, para qué espacio, etc.) sin agotar el precio en una sola
@@ -352,7 +345,7 @@ Santino directamente con vos".
 Si la persona pregunta el precio de un modelo en particular
 (ej. "cuánto sale el Ceibo?", "precio del Ombú"), responder con el
 precio del modelo tal cual figura arriba (Ombú $1.990.000, Ceibo
-$2.300.000).
+$2.300.000, Ceibo W $2.400.000).
 
 - **No menciones descuentos ni promociones** al pasar el precio del
   modelo. Las promos las cierra Santino, no el agente. Si el cliente

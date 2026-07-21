@@ -4,18 +4,32 @@ import Anthropic from "@anthropic-ai/sdk";
 import { serverEnv } from "@/lib/env";
 
 // ===========================================================================
-// Cliente de la API de Anthropic (modo directo, sin Agent SDK).
+// Cliente LLM (modo directo, sin Agent SDK).
 //
-// Reemplaza la dependencia previa a @anthropic-ai/claude-agent-sdk, que
-// spawneaba un binario nativo y no funciona en Vercel serverless. La SDK
-// regular (@anthropic-ai/sdk) usa HTTP directo y corre en cualquier runtime
-// de Node.
+// Usa el SDK de Anthropic tanto para Anthropic directo como para OpenRouter:
+// OpenRouter expone un endpoint compatible en /v1/messages con el mismo
+// payload shape que la Messages API de Anthropic, asi que solo cambia
+// baseURL + apiKey y el SDK sigue funcionando sin tocar nada mas.
+//
+// El toggle se hace via LLM_PROVIDER (ver env.ts + models.ts).
 // ===========================================================================
+
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
 let cached: Anthropic | null = null;
 
 export function getAnthropicClient(): Anthropic {
   if (cached) return cached;
-  cached = new Anthropic({ apiKey: serverEnv().ANTHROPIC_API_KEY });
+  const env = serverEnv();
+  if (env.LLM_PROVIDER === "openrouter") {
+    // El refine de env.ts garantiza que OPENROUTER_API_KEY esta cuando
+    // LLM_PROVIDER=openrouter. Este ! lo confirma para TS.
+    cached = new Anthropic({
+      apiKey: env.OPENROUTER_API_KEY!,
+      baseURL: OPENROUTER_BASE_URL,
+    });
+  } else {
+    cached = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY! });
+  }
   return cached;
 }

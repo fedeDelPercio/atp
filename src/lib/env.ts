@@ -62,14 +62,30 @@ function parseClientEnv() {
 export const clientEnv = parseClientEnv();
 
 // --- Variables server-only -------------------------------------------------
-const serverSchema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z
-    .string()
-    .min(1, "SUPABASE_SERVICE_ROLE_KEY es obligatoria"),
-  ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY es obligatoria"),
-  ANTHROPIC_MODEL_ORCHESTRATOR: z.string().default("claude-sonnet-4-6"),
-  ANTHROPIC_MODEL_SUBAGENT: z.string().default("claude-haiku-4-5"),
-  ANTHROPIC_MODEL_EVALUATOR: z.string().default("claude-haiku-4-5"),
+const serverSchema = z
+  .object({
+    SUPABASE_SERVICE_ROLE_KEY: z
+      .string()
+      .min(1, "SUPABASE_SERVICE_ROLE_KEY es obligatoria"),
+    // Provider LLM activo. Toggle a "openrouter" para ruteo via OpenRouter
+    // (usa el endpoint Anthropic-compatible: mismo SDK, mismos payloads,
+    // solo cambia baseURL + apiKey + IDs de modelo).
+    LLM_PROVIDER: z.enum(["anthropic", "openrouter"]).default("anthropic"),
+    // Anthropic (default). Con LLM_PROVIDER=anthropic la key es obligatoria;
+    // el refine de abajo lo valida.
+    ANTHROPIC_API_KEY: z.string().optional(),
+    ANTHROPIC_MODEL_ORCHESTRATOR: z.string().default("claude-sonnet-4-6"),
+    ANTHROPIC_MODEL_SUBAGENT: z.string().default("claude-haiku-4-5"),
+    ANTHROPIC_MODEL_EVALUATOR: z.string().default("claude-haiku-4-5"),
+    // OpenRouter (activo con LLM_PROVIDER=openrouter). IDs con prefijo del
+    // vendor (anthropic/…, openai/…, google/…). Defaults apuntan a las
+    // mismas versiones de Claude que se usan con Anthropic directo.
+    OPENROUTER_API_KEY: z.string().optional(),
+    OPENROUTER_MODEL_ORCHESTRATOR: z
+      .string()
+      .default("anthropic/claude-sonnet-4.5"),
+    OPENROUTER_MODEL_SUBAGENT: z.string().default("anthropic/claude-haiku-4.5"),
+    OPENROUTER_MODEL_EVALUATOR: z.string().default("anthropic/claude-haiku-4.5"),
   AGENT_MAX_ITERATIONS: z.coerce.number().int().positive().default(3),
   AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
   // --- Follow-up automatico (mensaje "te recuerdo que sigo por aca" tras X
@@ -130,7 +146,17 @@ const serverSchema = z.object({
       },
       "Debe ser un email o una lista de emails separados por coma",
     ),
-});
+  })
+  .refine(
+    (data) =>
+      data.LLM_PROVIDER === "anthropic"
+        ? !!data.ANTHROPIC_API_KEY
+        : !!data.OPENROUTER_API_KEY,
+    {
+      message:
+        "Falta la API key del provider activo: seteá ANTHROPIC_API_KEY (si LLM_PROVIDER=anthropic) o OPENROUTER_API_KEY (si LLM_PROVIDER=openrouter).",
+    },
+  );
 
 export type ServerEnv = z.infer<typeof serverSchema>;
 
@@ -148,10 +174,15 @@ export function serverEnv(): ServerEnv {
 
   const parsed = serverSchema.safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    LLM_PROVIDER: process.env.LLM_PROVIDER,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL_ORCHESTRATOR: process.env.ANTHROPIC_MODEL_ORCHESTRATOR,
     ANTHROPIC_MODEL_SUBAGENT: process.env.ANTHROPIC_MODEL_SUBAGENT,
     ANTHROPIC_MODEL_EVALUATOR: process.env.ANTHROPIC_MODEL_EVALUATOR,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    OPENROUTER_MODEL_ORCHESTRATOR: process.env.OPENROUTER_MODEL_ORCHESTRATOR,
+    OPENROUTER_MODEL_SUBAGENT: process.env.OPENROUTER_MODEL_SUBAGENT,
+    OPENROUTER_MODEL_EVALUATOR: process.env.OPENROUTER_MODEL_EVALUATOR,
     AGENT_MAX_ITERATIONS: process.env.AGENT_MAX_ITERATIONS,
     AGENT_TIMEOUT_MS: process.env.AGENT_TIMEOUT_MS,
     FOLLOW_UP_ENABLED: process.env.FOLLOW_UP_ENABLED,

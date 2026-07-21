@@ -46,8 +46,8 @@ import type { Json } from "@/lib/supabase/types";
 // conversación se deriva: si el orquestador derivó sin generar texto (no
 // debería pasar con el prompt actual, que exige cierre siempre) o si se
 // agotaron las iteraciones del evaluator, igual le confirmamos que Santino
-// lo va a contactar, con el timing ya resuelto (por la tarde / mañana / el
-// lunes). Tono positivo de cierre, no de "no pude resolver".
+// lo va a contactar (siempre "apenas esté disponible", ver business-hours).
+// Tono positivo de cierre, no de "no pude resolver".
 function handoffFallbackNotice(followUpTiming: string): string {
   return (
     "Buenísimo. Nuestro asesor Santino Zamboni se va a estar contactando " +

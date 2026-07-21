@@ -19,7 +19,7 @@ export interface Turn {
 
 export interface Scenario {
   name: string;
-  /** ISO con offset. Hoy: viernes 2026-05-29 09:37 ART -> timing "por la tarde". */
+  /** ISO con offset. Ejemplo: viernes 2026-05-29 09:37 ART. El timing siempre es "apenas esté disponible". */
   now: string;
   isExistingCustomer?: boolean;
   turns: Turn[];
@@ -73,7 +73,7 @@ export const SCENARIOS: Scenario[] = [
         user: "es para una construcción que estoy diseñando con la constructora Solar en Pilar",
         expect: {
           notifies: "arquitecto_desarrollador",
-          contains: ["Santino", "por la tarde"],
+          contains: ["Santino", "apenas esté disponible"],
           notContains: ["cerrar"],
           santinoCountMax: 1,
           notEndsWithQuestion: true,

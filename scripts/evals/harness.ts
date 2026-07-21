@@ -64,7 +64,7 @@ export interface EvalTurnOutput {
   notified: boolean;
   /** Categoría de la notificación (o null). */
   category: string | null;
-  /** Resuelto por el código (por la tarde / mañana / el lunes). */
+  /** Frase fija "apenas esté disponible" (ver business-hours). */
   followUpTiming: string;
 }
 

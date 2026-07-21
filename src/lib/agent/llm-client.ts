@@ -14,7 +14,11 @@ import { serverEnv } from "@/lib/env";
 // El toggle se hace via LLM_PROVIDER (ver env.ts + models.ts).
 // ===========================================================================
 
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+// OpenRouter expone la Anthropic Messages API en /api/v1/messages. El SDK
+// de Anthropic siempre agrega "/v1/messages" al baseURL, asi que el
+// baseURL debe cortar en "/api" para que quede el path correcto (no
+// /api/v1/v1/messages, que devuelve 404 con HTML de la landing).
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api";
 
 let cached: Anthropic | null = null;
 

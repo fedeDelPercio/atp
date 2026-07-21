@@ -382,7 +382,9 @@ function LeadRow({
   const statusOpt =
     STATUS_OPTIONS.find((s) => s.value === lead.status) ?? STATUS_OPTIONS[0]!;
 
-  const isWa = lead.phone && /^\d+$/.test(lead.phone);
+  const source = (lead as { conversation?: { source?: string } | null }).conversation
+    ?.source;
+  const isWa = source === "whatsapp";
   const linkBase = isWa ? "/wa" : "/conversations";
 
   return (

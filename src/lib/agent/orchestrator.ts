@@ -6,6 +6,7 @@ import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 import { getAnthropicClient } from "./llm-client";
+import { currentProvider, modelForOrchestrator } from "./models";
 import { loadPrompt } from "./prompts";
 import {
   NOTIFY_TEAM_TOOL_NAME,
@@ -53,7 +54,7 @@ async function logToolStep(
         step_name: toolName,
         iteration: ctx.iteration,
         model: "tool",
-        provider: "anthropic",
+        provider: currentProvider(),
         input: input as unknown as Json,
         output: { text: output } as Json,
         input_tokens: 0,
@@ -82,7 +83,7 @@ export async function runOrchestrator(params: {
 }): Promise<OrchestratorResult> {
   const env = serverEnv();
   const { ctx } = params;
-  const model = env.ANTHROPIC_MODEL_ORCHESTRATOR;
+  const model = modelForOrchestrator();
 
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), env.AGENT_TIMEOUT_MS);

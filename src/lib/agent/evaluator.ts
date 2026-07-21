@@ -6,6 +6,7 @@ import { z } from "zod";
 import { serverEnv } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getAnthropicClient } from "./llm-client";
+import { currentProvider, modelForEvaluator } from "./models";
 import { loadPrompt } from "./prompts";
 import { usageToTotals } from "./hooks/token-tracker";
 import type { EvaluationResult, HistoryMessage, RunContext } from "./types";
@@ -78,7 +79,7 @@ export async function evaluateResponse(params: {
 }): Promise<EvaluationResult> {
   const env = serverEnv();
   const { ctx } = params;
-  const model = env.ANTHROPIC_MODEL_EVALUATOR;
+  const model = modelForEvaluator();
   const startedAt = Date.now();
 
   const abortController = new AbortController();
@@ -199,7 +200,7 @@ export async function evaluateResponse(params: {
         step_name: "evaluator",
         iteration: ctx.iteration,
         model,
-        provider: "anthropic",
+        provider: currentProvider(),
         input: {
           userMessage: params.userMessage,
           assistantResponse: params.assistantResponse,

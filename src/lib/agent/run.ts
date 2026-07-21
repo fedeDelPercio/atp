@@ -7,6 +7,7 @@ import { sendEscalationEmail } from "@/lib/email";
 import { getContact, getContactPhone } from "@/lib/kommo/client";
 import { runOrchestrator } from "./orchestrator";
 import { evaluateResponse } from "./evaluator";
+import { currentProvider } from "./models";
 import { getTimeContext } from "./business-hours";
 import type {
   AgentRunInput,
@@ -65,7 +66,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
       conversation_id: input.conversationId,
       user_message_id: input.userMessageId,
       status: "running",
-      provider: "anthropic",
+      provider: currentProvider(),
     })
     .select("id")
     .single();
@@ -531,7 +532,7 @@ async function logOrchestratorStep(
         step_name: "orchestrator",
         iteration: ctx.iteration,
         model: orch.model,
-        provider: "anthropic",
+        provider: currentProvider(),
         input: null,
         output: {
           responseText: orch.responseText,

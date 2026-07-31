@@ -29,18 +29,16 @@ export function getAnthropicClient(): Anthropic {
     // El refine de env.ts garantiza que OPENROUTER_API_KEY esta cuando
     // LLM_PROVIDER=openrouter. Este ! lo confirma para TS.
     //
-    // El SDK de Anthropic autentica con el header `x-api-key`, pero
-    // OpenRouter espera `Authorization: Bearer <key>` (estilo OpenAI).
-    // Sin ese header, el gateway responde 401 "Missing Authentication
-    // header". Lo sumamos manualmente via defaultHeaders para que
-    // ambos headers viajen en cada request.
-    const key = env.OPENROUTER_API_KEY!;
+    // OpenRouter autentica con `Authorization: Bearer <key>` (estilo
+    // OpenAI). El SDK de Anthropic, si le pasas `apiKey`, envia
+    // `x-api-key` (formato Anthropic) — que OpenRouter no reconoce y
+    // responde 401 "Missing Authentication header". Pasandole `authToken`
+    // en lugar de `apiKey`, el SDK usa nativamente `Authorization: Bearer`
+    // (ver line 348 del SDK client.js). No conviene pasar ambos: el SDK
+    // rechaza el conflicto de auth.
     cached = new Anthropic({
-      apiKey: key,
+      authToken: env.OPENROUTER_API_KEY!,
       baseURL: OPENROUTER_BASE_URL,
-      defaultHeaders: {
-        Authorization: `Bearer ${key}`,
-      },
     });
   } else {
     cached = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY! });

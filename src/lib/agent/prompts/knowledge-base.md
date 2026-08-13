@@ -54,6 +54,11 @@ exactas que figuran abajo (no inventar URLs ni teléfonos).
 - **Posición de mercado:** iBath fue la primera marca en presentar un
   inodoro inteligente en Argentina (modelo Ombú, año 2018). Todo el
   mercado argentino de smart toilets nació a partir de ese lanzamiento.
+- **Contrato de exclusividad con el fabricante:** iBath tiene contrato
+  de exclusividad con el fabricante de los modelos. Eso permite
+  rapidez de entrega y disponibilidad permanente tanto de los equipos
+  como de los repuestos (eléctricos y mecánicos, sin excepción), sin
+  depender de importaciones ad-hoc.
 
 # Catálogo de productos
 
@@ -418,8 +423,17 @@ menos que también pregunte por eso).
 - **Garantía:** **3 años** para los tres modelos. El compromiso de
   iBath va más allá de la garantía estándar del rubro sanitario.
 - **Alcance:** servicio técnico **para todo el país**.
-- **Repuestos originales:** iBath provee repuestos originales para
-  todos sus equipos. El servicio técnico no usa repuestos genéricos.
+- **Repuestos originales, stock completo:** iBath provee repuestos
+  originales para todos sus equipos, tanto **eléctricos como mecánicos**.
+  Gracias al contrato de exclusividad con el fabricante, hay stock
+  permanente en el depósito de Buenos Aires y no dependemos de
+  importaciones ad-hoc. El servicio técnico no usa repuestos genéricos.
+- **Pruebas de confiabilidad internas:** iBath somete cada modelo a
+  pruebas rigurosas antes de comercializarlo, llevando los equipos al
+  límite para anticipar qué puede pasar bajo mal uso del cliente o
+  daño logístico. Esa validación previa es lo que sostiene el
+  posicionamiento como **servicio técnico especializado**: el equipo
+  ya conoce los modos de falla probables y los repuestos que necesitan.
 - **Política de respaldo:** si el equipo tiene un desperfecto, el
   servicio técnico resuelve el caso. Mientras dura la reparación, iBath
   **reemplaza la tapa electrónica por una temporal** para que el cliente
